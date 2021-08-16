@@ -457,13 +457,13 @@ class HexGrid():
         return True
     
     def cubeToCoord(self, cube:typing.Tuple[int,int,int]) -> typing.Tuple[int,int]:
-        col = cube[0]
-        row = cube[2] + (cube[0] - (cube[0]&1)) / 2
+        col = int(cube[0])
+        row = int(cube[2]) + (int(cube[0]) - (int(cube[0])&1)) / 2
         return (col, row)
     
     def coordToCube(self, coord:typing.Tuple[int,int]) -> typing.Tuple[int,int,int]:
-        x = coord[0]
-        z = coord[1] - (coord[0] - (coord[0]&1)) / 2
+        x = int(coord[0])
+        z = int(coord[1]) - (int(coord[0]) - (int(coord[0])&1)) / 2
         y = -x-z
         return (int(x), int(y), int(z))
     
@@ -543,6 +543,18 @@ class _Hex():
     # - All highlighting methods should only be called by the HexGrid class to ensure consistency
     SELECT_COLOUR = "Yellow"
     HIGHLIGHT_COLOUR = "Light Blue"
+    #NEIGHBOUR_DIRECTIONS =  [
+    #                        (+1, -1, 0), (+1, 0, -1), (0, +1, -1),
+    #                        (-1, +1, 0), (-1, 0, +1), (0, -1, +1),
+    #                        ]
+    SE = np.array(( 1,  0, -1))
+    SW = np.array(( 0,  1, -1))
+    W  = np.array((-1,  1,  0))
+    NW = np.array((-1,  0,  1))
+    NE = np.array(( 0, -1,  1))
+    E  = np.array(( 1, -1,  0))
+    ALL_DIRECTIONS = np.array([NW, NE, E, SE, SW, W, ])
+    
     def __init__(self, grid:HexGrid, scene:ape.APEScene, root, name:str, coordinates:typing.Tuple[int,int], pos:typing.Tuple[int,int,int], colour: str):
         try:
             # What we need:
@@ -648,6 +660,11 @@ class _Hex():
             self.setColor(self.SELECT_COLOUR)
             self.Face.setTransparency(p3dc.TransparencyAttrib.MAlpha)
             self.Face.show()
+            #TODO: TEMPORARY
+            if self.unit:
+                for i in self.unit().getReachableHexes():
+                    i.highlight()
+            #TODO: TEMPORARY
         else:
             self.CurrentColour = self.Colour
             if TRANSPARENT_HEX_RINGS:
@@ -655,6 +672,11 @@ class _Hex():
             self.setColor(self.Colour)
             self.Face.setTransparency(p3dc.TransparencyAttrib.MNone)
             self.Face.hide()
+            #TODO: TEMPORARY
+            if self.unit:
+                for i in self.unit().getReachableHexes():
+                    i.highlight(False)
+            #TODO: TEMPORARY
             
     def getNeighbour(self,direction=-1):
         """
@@ -662,16 +684,10 @@ class _Hex():
         Raises HexInvalidException if the specified neighbour does not exist (which can happen if this hex is at the edge of the map).
         """
         if 0 <= direction and direction <= 5:
-            return self.grid().getHex( [a+b for a,b in zip(self.CubeCoordinates, [
-                    (+1, -1, 0), (+1, 0, -1), (0, +1, -1),
-                    (-1, +1, 0), (-1, 0, +1), (0, -1, +1),
-                ][direction])])
+            return self.grid().getHex( [a+b for a,b in zip(self.CubeCoordinates, self.ALL_DIRECTIONS[direction])])
         else:
             l = []
-            for i in [
-                        (+1, -1, 0), (+1, 0, -1), (0, +1, -1),
-                        (-1, +1, 0), (-1, 0, +1), (0, -1, +1),
-                    ]:
+            for i in self.ALL_DIRECTIONS:
                 try:
                     l.append(self.grid().getHex([a+b for a,b in zip(self.CubeCoordinates, i)]))
                 except HexInvalidException:
@@ -685,12 +701,44 @@ class _Hex():
         x1, y1, z1 = self.CubeCoordinates
         x2, y2, z2 = other.CubeCoordinates if isinstance(other, _Hex) else other
         return max(abs(x1 - x2), abs(y1 - y2), abs(z1 - z2))
+    
+    def _getRing_cubeCoords(self, radius):
+        center = self.CubeCoordinates
+        if radius < 0:
+            return []
+        if radius == 0:
+            return [center]
+        
+        radHex = np.zeros((6 * radius, 3))
+        count = 0
+        for i in range(0, 6):
+            for k in range(0, radius):
+                radHex[count] = self.ALL_DIRECTIONS[i - 1] * (radius - k) + self.ALL_DIRECTIONS[i] * (k)
+                count += 1
+        
+        return (np.squeeze(radHex) + center).tolist()
         
     def getRing(self, radius):
-        pass #TODO
+        coords = self._getRing_cubeCoords(radius)
+        ring: typing.List[_Hex] = []
+        for i in coords:
+            try:
+                ring.append(self.grid().getHex(i))
+            except HexInvalidException:
+                pass
+        return ring
         
-    def getCircle(self, radius):
-        pass #TODO
+    def getDisk(self, radius, radius2=0):
+        """
+        Takes one or two integers as the outer and optional inner radius for a ring (order does not matter). \n
+        Returns a list of all hexes that form the specified ring around this hex.
+        """
+        radiusInner = min(radius, radius2)
+        radiusOuter = max(radius, radius2)
+        circle: typing.List[_Hex] = []
+        for i in range(radiusInner,radiusOuter+1):
+            circle.extend(self.getRing(i))
+        return circle
         
     def __lt__(self, other):
         # type: (_Hex) -> bool
@@ -791,6 +839,7 @@ class Unit():
         self.MovePoints = self.BaseMovePoints
         self.hex: weakref.ref[_Hex] = None
         self.Node = p3dc.NodePath(p3dc.PandaNode("Central node of unit: "+name))
+        self.ActiveTurn = team == 1 #TODO: This should be taken from the Unit manager to check whose turn it actually is since enemy ships are mostly initialized during enemy turns (but not always which means we can not always set this to True!)
         # self.CameraCenter = p3dc.NodePath(p3dc.PandaNode("CameraCenter"))
         # self.CameraCenter.reparentTo(ape.render())
         # self.CameraCenter.setPos(p3dc.Vec3(0,0,0))
@@ -821,9 +870,10 @@ class Unit():
     
     def startTurn(self):
         self.MovePoints = self.BaseMovePoints
+        self.ActiveTurn = True
         
     def endTurn(self):
-        pass
+        self.ActiveTurn = False
         
     def moveToHex(self, hex:_Hex, animate= True):
         self.Coordinates = hex.Coordinates
@@ -859,7 +909,7 @@ class Unit():
             return False
         else:
             path = findPath(self.hex(), hex, self._navigable, self._tileCost)
-            if not path or len(path)>self.MovePoints:
+            if not path or len(path)>self.MovePoints: #TODO: we should actually sum up the movement cost of the tiles in case their cost is not one!!! Maybe even implement that in the findPath function
                 # The figure can not move to the hex but we can at least make it look at the hex
                 lastAngle = self.Node.getHpr()[0]
                 theta = np.arctan2(hex.Pos[0] - self.hex().Pos[0], self.hex().Pos[1] - hex.Pos[1])
@@ -870,6 +920,10 @@ class Unit():
                 self.Node.hprInterval(abs(angleBefore - angleAfter)/(360), (angleAfter,0,0), (angleBefore,0,0)).start()
                 return False
             else:
+                #TODO: TEMPORARY
+                for i in self.getReachableHexes():
+                    i.highlight(False)
+                #TODO: TEMPORARY
                 seq = p3ddSequence(name = self.Name+" move")
                 lastPos = self.hex().Pos
                 lastAngle = self.Node.getHpr()[0]
@@ -914,12 +968,34 @@ class Unit():
     def getReachableHexes(self):
         #TODO
         # This method returns a list with all the hexes that can be reached (with the current movement points) by this unit
-        # For this get all hex rings around the current hex with at most a distance equal to the current movement points
-        # Throw all of these hexes into a single list (beginning with the most distant once!!)
-        # Then go through the list calculate the path to each hex
-        #   If a path is found add the hex and all hexes on the path to the output list
-        #   We can skip all hexes that are already on the output list since which dramatically reduces the amount of hexes that we must go through!
-        pass
+        # Variant 1:
+        #    For this get all hex rings around the current hex with at most a distance equal to the current movement points
+        #    Throw all of these hexes into a single list (beginning with the most distant once!!)
+        #    Then go through the list calculate the path to each hex
+        #      If a path is found add the hex and all hexes on the path to the output list
+        #      We can skip all hexes that are already on the output list since which dramatically reduces the amount of hexes that we must go through!
+        # Variant 2:
+        #    Use a different pathfinding algorithm that walks all possible path up to a specific distance and highlight all of them. This should be even more effective
+        # Variant 3:
+        #    If method 1 and 2 are too slow
+        #       Instead of highlighting all hexes that can be reached just highlight the path to the hex under the cursor whenever the cursor moves to a different cell.
+        #    If this is still too slow highlight the path to the cell under the cursor only when the user requests this by pressing a key.
+        Variant = 1
+        
+        if Variant == 1:
+            mPoints = self.MovePoints if self.ActiveTurn else self.BaseMovePoints # To allow calculations while it's not this unit's turn we use the BaseMovePoints then
+            l: typing.List[_Hex] = []
+            for i in self.hex().getDisk(mPoints):
+                if not i in l:
+                    path = findPath(self.hex(), i, self._navigable, self._tileCost)
+                    if path:
+                        if len(path) <= mPoints: #TODO: we should actually sum up the movement cost of the tiles in case their cost is not one!!! Maybe even implement that in the findPath function
+                            l.extend(path)
+                        else:
+                            l.extend(path[:mPoints])
+            return l
+        if Variant == 2:
+            pass # https://www.reddit.com/r/gamemaker/comments/1eido8/mp_grid_for_tactics_grid_movement_highlights/
 
 #endregion Objects
 
