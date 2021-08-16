@@ -1,0 +1,17 @@
+
+*.driveupload
+*.bat
+*.log
+.spyproject
+__pycache__
+*.pyproject*
+exit
+Git console commands
+GIT console commands
+.directory
+.tmp.drivedownload
+*.code-workspace
+.vscode
+Test.py
+
+tempModels
