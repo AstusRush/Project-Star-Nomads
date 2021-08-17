@@ -6,12 +6,11 @@
 __pycache__
 *.pyproject*
 exit
-Git console commands
-GIT console commands
 .directory
 .tmp.drivedownload
 *.code-workspace
 .vscode
 Test.py
+.qt_for_python
 
 tempModels
