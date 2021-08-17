@@ -25,8 +25,9 @@ if __name__ == "__main__":
             pass
 
 # Python standard imports 2/2
-import sys
 import os
+import sys
+import time
 import random
 import typing
 import weakref
@@ -909,7 +910,7 @@ class Unit():
             return False
         else:
             path = findPath(self.hex(), hex, self._navigable, self._tileCost)
-            if not path or len(path)>self.MovePoints: #TODO: we should actually sum up the movement cost of the tiles in case their cost is not one!!! Maybe even implement that in the findPath function
+            if not path or len(path)>self.MovePoints: #FEATURE:MOVECOST: we should actually sum up the movement cost of the tiles in case their cost is not one!!! Maybe even implement that in the findPath function
                 # The figure can not move to the hex but we can at least make it look at the hex
                 lastAngle = self.Node.getHpr()[0]
                 theta = np.arctan2(hex.Pos[0] - self.hex().Pos[0], self.hex().Pos[1] - hex.Pos[1])
@@ -980,22 +981,49 @@ class Unit():
         #    If method 1 and 2 are too slow
         #       Instead of highlighting all hexes that can be reached just highlight the path to the hex under the cursor whenever the cursor moves to a different cell.
         #    If this is still too slow highlight the path to the cell under the cursor only when the user requests this by pressing a key.
-        Variant = 1
+        # Variant 4:
+        #    Make your own pathfinding algorithm that walks all possible path up to a specific distance and highlight all of them. (Does not take into account movement cost)
+        # Variant 5: (This seems to be the same as variant 2...)
+        #    Make your own pathfinding algorithm that walks all possible path up to a specific distance and highlight all of them.
+        #    This one takes into account movement cost by using recursion and keeping track of available movement points from that tile on
+        #    This also requires checking if a hex has been visited before and only continuing to calculate from that tile on if the new cost is lower
+        #    ... wait... this is variant 2 all over again!!! I have just described the same algorithm that I want to use in variant 2!
+        Variant = 4
         
-        if Variant == 1:
+        if Variant == 1: #Too slow...
+            t1 = time.time()
+            ####
             mPoints = self.MovePoints if self.ActiveTurn else self.BaseMovePoints # To allow calculations while it's not this unit's turn we use the BaseMovePoints then
-            l: typing.List[_Hex] = []
+            l: typing.Set[_Hex] = set() # Using a set instead of a list is 5% faster... which is still not fast enough
             for i in self.hex().getDisk(mPoints):
                 if not i in l:
                     path = findPath(self.hex(), i, self._navigable, self._tileCost)
                     if path:
-                        if len(path) <= mPoints: #TODO: we should actually sum up the movement cost of the tiles in case their cost is not one!!! Maybe even implement that in the findPath function
-                            l.extend(path)
+                        if len(path) <= mPoints: #FEATURE:MOVECOST: we should actually sum up the movement cost of the tiles in case their cost is not one!!! Maybe even implement that in the findPath function
+                            l.update(path)
                         else:
-                            l.extend(path[:mPoints])
+                            l.update(path[:mPoints])
+            ####
+            print("list",time.time()-t1)
             return l
         if Variant == 2:
             pass # https://www.reddit.com/r/gamemaker/comments/1eido8/mp_grid_for_tactics_grid_movement_highlights/
+        if Variant == 3:
+            pass
+        if Variant == 4: #FEATURE:MOVECOST: This does not take into account different tile movement cost
+            # This is VERY fast
+            mPoints = self.MovePoints if self.ActiveTurn else self.BaseMovePoints # To allow calculations while it's not this unit's turn we use the BaseMovePoints then
+            l: typing.Set[_Hex] = set() # Using a set instead of a list is 5% faster... which is still not fast enough
+            tl: typing.List[typing.Set[_Hex]] = [set([self.hex()]),]
+            for i in range(mPoints):
+                temp = set()
+                for ii in tl[i]:
+                    for iii in ii.getNeighbour():
+                        if self._navigable(iii):
+                            temp.add(iii)
+                tl.append(temp.difference(tl[i-1]).difference(tl[i]))
+                l.update(temp)
+            return l
 
 #endregion Objects
 
@@ -1116,7 +1144,8 @@ class MainWindowClass(ape.APELabWindow):#APEWindow):
         
         self.cw.setLayout(layout)
         
-        self.Console1.setText("self.Pawn = Unit((25,25),App().MiscColours[\"Self\"])\n")
+        #self.Console1.setText("self.Pawn = Unit((25,25),App().MiscColours[\"Self\"])\n")
+        self.Console1.setText(ENTERPRISE_IMPORT)
     
     def gen(self):
         self.HexGrid.generateHex()
@@ -1136,6 +1165,12 @@ class MainWindowClass(ape.APELabWindow):#APEWindow):
 class PandaWidget(ape.PandaWidget):
     pass
 
+ENTERPRISE_IMPORT = """self.Pawn = Unit((25,24),App().MiscColours["Self"],model="/Users/Robin/Desktop/Projects/AstusGameEngine_dev/3DModels/NCC-1701-D.gltf")
+self.Pawn.Model.setY(-0.2)
+self.Pawn.Model.setH(180)
+self.Pawn.Model.setScale(0.1)
+self.Pawn.Model.setColor((1,1,1,1))
+"""
 
 
 
