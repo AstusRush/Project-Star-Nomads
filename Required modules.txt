@@ -1,0 +1,6 @@
+pip install PyQt5  (alternatively you can use PySide2, Pyside6 and PyQt6)
+pip install numpy
+pip install Panda3D
+pip install panda3d-blend2bam
+
+The AstusPandaEngine repository mus be in the same folder as this repository!! (Otherwise AGeLib and APE can not be imported) (link: https://github.com/AstusRush/AstusPandaEngine )
