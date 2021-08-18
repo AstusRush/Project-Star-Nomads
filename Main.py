@@ -114,6 +114,14 @@ def getHexPos(i:typing.Tuple[int,int]):
     """A handy little function for getting the proper position for a given square1"""
     return window().getHex(i).Pos
 
+def getHex(i:typing.Tuple[int,int]):
+    """
+    This function is only intended for use in the interactive AGeIDE. \n
+    To properly get a hex you should always use the method of the HexGrid instance. \n
+    Furthermore the HexGrid instance should be accessed unambiguously (optimally by getting it from another _Hex instace) since we might have two hex grids in the future (one for the main game and one for battles)!
+    """
+    return window().getHex(i)
+
 #endregion Helper Functions
 
 class BattleScene(ape.APEScene):
@@ -389,7 +397,7 @@ class HexGrid():
         else:
             self.Root = render().attachNewNode("hexRoot")
             self.Root.setPos((0,0,0))
-        self.Hexes = [] # type: typing.List[_Hex]
+        self.Hexes = [] # type: typing.List[typing.List[_Hex]]
         self.Size = size
         self.m_material = None
         self.m_colour = None
@@ -429,7 +437,7 @@ class HexGrid():
             for j,y in enumerate(np.linspace(limy1, limy2, self.Size[1])):
                 if i%2:
                     y += np.sqrt(3)/2
-                l.append(_Hex(self, self.Scene, self.Root, f"Hex ({i},{j})", (i,j), (y,x,0), "Blue"))
+                l.append(_Hex(self, self.Scene, self.Root, f"Hex ({i},{j})", (i,j), (y,x,0)))
             self.Hexes.append(l)
             
     def getHex(self, i):
@@ -437,11 +445,11 @@ class HexGrid():
         if len(i) == 3:
             i = self.cubeToCoord(i)
         if len(i) == 2:
-            i = ( int(i[0]) , int(i[1]) )
+            i = ( round(i[0]) , round(i[1]) )
         else:
             raise HexInvalidException(i)
         if self._isValidCoordinate(i):
-            return self.Hexes[int(i[0])][int(i[1])]
+            return self.Hexes[round(i[0])][round(i[1])]
         else:
             raise HexInvalidException(i)
             
@@ -458,53 +466,55 @@ class HexGrid():
         return True
     
     def cubeToCoord(self, cube:typing.Tuple[int,int,int]) -> typing.Tuple[int,int]:
-        col = int(cube[0])
-        row = int(cube[2]) + (int(cube[0]) - (int(cube[0])&1)) / 2
-        return (col, row)
+        # Note: Casting to int (by using round) is necessary here since inputs are often floats (for which for example the "&" operation is invalid)
+        col = round(cube[0])
+        row = round(cube[2]) + (round(cube[0]) - (round(cube[0])&1)) / 2
+        return (round(col), round(row))
     
     def coordToCube(self, coord:typing.Tuple[int,int]) -> typing.Tuple[int,int,int]:
-        x = int(coord[0])
-        z = int(coord[1]) - (int(coord[0]) - (int(coord[0])&1)) / 2
+        # Note: Casting to int (by using round) is necessary here since inputs are often floats (for which for example the "&" operation is invalid)
+        x = round(coord[0])
+        z = round(coord[1]) - (round(coord[0]) - (round(coord[0])&1)) / 2
         y = -x-z
-        return (int(x), int(y), int(z))
+        return (round(x), round(y), round(z))
+        
+    def highlightHexes(self, hexes = [], edge = False, face = False, clearFirst = True):
+        # type: (typing.List[_Hex], typing.Union[QtGui.QColor,QtGui.QBrush,typing.Tuple[int,int,int,int],str,False], typing.Union[QtGui.QColor,QtGui.QBrush,typing.Tuple[int,int,int,int],str,False], bool) -> None
+        if clearFirst:
+            for i in self.Hexes:
+                for ii in i:
+                    if ii.Highlighted:
+                        ii.highlight(edge = False, face = False)
+        if (edge or face) or not clearFirst:
+            for i in hexes:
+                i.highlight(edge = edge, face = face)
     
   #region Interaction
     def _mouseTask(self, task):
-        # This task deals with the highlighting and SelectedHex based on the mouse
+        # This task deals with the highlighting and selection based on the mouse
         
-        # First, clear the current highlight
+        # First, clear the current highlighted hex
         if self.HighlightedHex is not False:
-            self.HighlightedHex.highlight(False)
+            self.HighlightedHex.hoverHighlight(False)
             self.HighlightedHex = False
         
-        # Check to see if we can access the mouse. We need it to do anything else
+        # Check to see if we can access the mouse since we obviously need it to do anything else
         if base().mouseWatcherNode.hasMouse():
-            # get the mouse position
+            # Get the mouse position
             mpos = base().mouseWatcherNode.getMouse()
             
             # Set the position of the ray based on the mouse position
             base().pickerRay.setFromLens(base().camNode, mpos.getX(), mpos.getY())
             
-            # If we are SelectedHex something, set the position of the object
-            # to be at the appropriate point over the plane of the board
-            if self.SelectedHex is not False:
-                # Gets the point described by pickerRay.getOrigin(), which is relative to
-                # camera, relative instead to render
-                nearPoint = render().getRelativePoint( base().camera, base().pickerRay.getOrigin() )
-                # Same thing with the direction of the ray
-                nearVec  = render().getRelativeVector( base().camera, base().pickerRay.getDirection() )
-                #for i in self.SelectedHex.content:
-                #    i.Node.setPos( PointAtZ(.5, nearPoint, nearVec) )
-            
-            # Do the actual collision pass (Do it only on the squares for efficiency purposes)
+            # Do the actual collision pass (Do it only on the hexes for efficiency purposes)
             base().picker.traverse(self.Root)
             if base().pq.getNumEntries() > 0:
-                # if we have hit something, sort the hits so that the closest is first, and highlight that node
+                # If we have hit something, sort the hits so that the closest is first, and hoverHighlight that node
                 base().pq.sortEntries()
                 i:str = base().pq.getEntry(0).getIntoNode().getTag('hex')
                 i = self.getHex((int(i.split(" ")[0]), int(i.split(" ")[1]))) # type: _Hex
-                # Set the highlight on the picked square
-                i.highlight()
+                # Highlight the picked hex and store it as a member
+                i.hoverHighlight()
                 self.HighlightedHex = i
                 window().Statusbar.showMessage(i.Name)
         
@@ -514,8 +524,9 @@ class HexGrid():
         if self.SelectedHex is not False:
             if self.SelectedHex is self.HighlightedHex:
                 self.SelectedHex.select(False)
-                self.SelectedHex.highlight()
+                self.SelectedHex.hoverHighlight()
                 self.SelectedHex = False
+                unitManager().selectUnit(None)
                 return
             else:
                 self.SelectedHex.select(False)
@@ -524,6 +535,8 @@ class HexGrid():
             self.SelectedHex = self.HighlightedHex
             self.SelectedHex.select()
             self.HighlightedHex = False
+        else:
+            unitManager().selectUnit(None)
     
     def _interactWithHighlightedHex(self):
         if self.SelectedHex is not False and self.HighlightedHex is not False:
@@ -532,31 +545,30 @@ class HexGrid():
   #endregion Interaction
 
 class _Hex():
-    #TODO: Highlighting:
-    # - The current highlighting method should be renamed to represent that it is only called when the cursor hovers over a hex
-    # - Add a new highlight method to highlight the hex EDGE for stuff like movementrange and weaponrange that simply takes a colour
-    # - Add a new highlight method to highlight the hex FACE for stuff like movementrange and weaponrange that simply takes a colour
-    # - Add a bool that shows whether or not this hex is highlighted
-    # - Add a method to the HexGrid class that loops over all hexes and un-highlights them (but for efficiency reasons only when the highlight bool is True so that we don't have thousands of recolouring events)
-    # - Add a method to the HexGrid class that resets the highlighting of all hexes (except if a bool (parameter of the function) is False)
-    #       and highlights all hexes in a given list with a given colour (two colours for ring and face, if None then don't change colour).
-    #       With the help of the bool one can highlight all faces of hexes that can be reached by movement and all rings of hexes that are in weaponsrange
-    # - All highlighting methods should only be called by the HexGrid class to ensure consistency
-    SELECT_COLOUR = "Yellow"
-    HIGHLIGHT_COLOUR = "Light Blue"
-    #NEIGHBOUR_DIRECTIONS =  [
-    #                        (+1, -1, 0), (+1, 0, -1), (0, +1, -1),
-    #                        (-1, +1, 0), (-1, 0, +1), (0, -1, +1),
-    #                        ]
-    SE = np.array(( 1,  0, -1))
-    SW = np.array(( 0,  1, -1))
-    W  = np.array((-1,  1,  0))
-    NW = np.array((-1,  0,  1))
-    NE = np.array(( 0, -1,  1))
-    E  = np.array(( 1, -1,  0))
+    #TODO: Highlighting: todo = - , done = ++
+    # ++ The current highlighting method should be renamed to represent that it is only called when the cursor hovers over a hex
+    # -  Add a new highlight method to highlight the hex EDGE for stuff like movementrange and weaponrange that simply takes a colour
+    # -  Add a new highlight method to highlight the hex FACE for stuff like movementrange and weaponrange that simply takes a colour
+    # -  Add a bool that shows whether or not this hex is highlighted
+    # -  Add a method to the HexGrid class that loops over all hexes and un-highlights them (but for efficiency reasons only when the highlight bool is True so that we don't have thousands of recolouring events)
+    # -  Add a method to the HexGrid class that resets the highlighting of all hexes (except if a bool (parameter of the function) is False)
+    #        and highlights all hexes in a given list with a given colour (two colours for ring and face, if None then don't change colour).
+    #        With the help of the bool one can highlight all faces of hexes that can be reached by movement and all rings of hexes that are in weaponsrange
+    # -  All highlighting methods should only be called by the HexGrid class to ensure consistency
+    COLOUR_NORMAL = "Blue"
+    COLOUR_SELECT = "Yellow"
+    COLOUR_SELECT_FACE = "Light Blue"
+    COLOUR_HIGHLIGHT = "Light Blue"
+    COLOUR_REACHABLE = "Green"
+    NW = np.array(( 1,  0, -1))
+    W  = np.array(( 0,  1, -1))
+    SW = np.array((-1,  1,  0))
+    SE = np.array((-1,  0,  1))
+    E  = np.array(( 0, -1,  1))
+    NE = np.array(( 1, -1,  0))
     ALL_DIRECTIONS = np.array([NW, NE, E, SE, SW, W, ])
     
-    def __init__(self, grid:HexGrid, scene:ape.APEScene, root, name:str, coordinates:typing.Tuple[int,int], pos:typing.Tuple[int,int,int], colour: str):
+    def __init__(self, grid:HexGrid, scene:ape.APEScene, root, name:str, coordinates:typing.Tuple[int,int], pos:typing.Tuple[int,int,int]):
         try:
             # What we need:
             # -DONE- A hexagonal mesh for the click-detection and to highlight the hex
@@ -564,8 +576,9 @@ class _Hex():
             # -PART- These two meshes must be as simple as possible but must be able to be visible, blink, and be hidden independently of one another
             #
             self.Name = name
-            self.Colour = colour
-            self.CurrentColour = colour
+            self.Colour = self.COLOUR_NORMAL
+            self.CurrentColour_Edge = self.COLOUR_NORMAL
+            self.CurrentColour_Face = self.COLOUR_SELECT_FACE
             self.Coordinates = coordinates
             self.grid = weakref.ref(grid)
             
@@ -581,12 +594,12 @@ class _Hex():
             self.Model.setPos(self.Pos)
             if TRANSPARENT_HEX_RINGS:
                 self.Model.setTransparency(p3dc.TransparencyAttrib.MAlpha)
-            self.setColor(self.Colour)
+            self._setColor(self.Colour)
             # Load, parent, hide, and position the face (a single hexagon polygon)
             self.Face = loader().loadModel(mesh)
             self.Face.reparentTo(self.Model)
             self.Face.setPos(p3dc.LPoint3((0,0,-0.01)))
-            self.setColorFace("Light Blue")
+            self._setColorFace(self.CurrentColour_Face)
             #TODO: Make transparent
             self.Face.hide()
             # Set the Model itself to be collideable with the ray. If this Model was
@@ -601,6 +614,8 @@ class _Hex():
             self.content = [] # type: typing.List[Object]
             self.unit = None # type: weakref.ref[Unit]
             self.Navigable = True
+            
+            self.Highlighted = False
         except:
             NC(1,f"Error while creating {name}",exc=True)
     
@@ -608,7 +623,11 @@ class _Hex():
         del self.content
         self.Face.removeNode()
         self.Model.removeNode()
+        
+    def isSelected(self):
+        return self is self.grid().HighlightedHex
     
+  #region Unit Movement
     def swapContentsWith(self,other):
         # type: (_Hex) -> None
         oContent = other.content
@@ -630,60 +649,123 @@ class _Hex():
         #    return True
         #else:
         #    return False
+        
+  #endregion Unit Movement
     
-    def setColor(self, colour, alpha = 0.2):
+  #region Colour
+    def _setColor(self, colour, alpha = 0.2):
+        """
+        Set the colour of the edge to `colour`. \n
+        `colour` can be a QColor, a QBrush, a tuple, or a string from AGeLib's PenColours dictionary. \n
+        If `colour` is a PenColours-string `alpha` can be given. (Otherwise `alpha` is ignored since the other input variants already support specifying the alpha value.)
+        """
+        return self._setColour(colour,alpha)
+    def _setColour(self, colour, alpha = 0.2):
+        """
+        Set the colour of the edge to `colour`. \n
+        `colour` can be a QColor, a QBrush, a tuple, or a string from AGeLib's PenColours dictionary. \n
+        If `colour` is a PenColours-string `alpha` can be given. (Otherwise `alpha` is ignored since the other input variants already support specifying the alpha value.)
+        """
         if isinstance(colour,str):
             colour = App().PenColours[colour].color()
             colour.setAlphaF(alpha)
         self.Model.setColor(ape.colour(colour))
     
-    def setColorFace(self, colour, alpha = 0.2):
+    def _setColorFace(self, colour, alpha = 0.2):
+        """
+        Set the colour of the face to `colour`. \n
+        `colour` can be a QColor, a QBrush, a tuple, or a string from AGeLib's PenColours dictionary. \n
+        If `colour` is a PenColours-string `alpha` can be given. (Otherwise `alpha` is ignored since the other input variants already support specifying the alpha value.)
+        """
+        return self._setColourFace(colour,alpha)
+    def _setColourFace(self, colour, alpha = 0.2):
+        """
+        Set the colour of the face to `colour`. \n
+        `colour` can be a QColor, a QBrush, a tuple, or a string from AGeLib's PenColours dictionary. \n
+        If `colour` is a PenColours-string `alpha` can be given. (Otherwise `alpha` is ignored since the other input variants already support specifying the alpha value.)
+        """
         if isinstance(colour,str):
             colour = App().PenColours[colour].color()
             colour.setAlphaF(alpha)
         self.Face.setColor(ape.colour(colour))
+  #endregion Colour
+  #region Highlighting
         
-    def highlight(self, highlight:bool = True):
+    def hoverHighlight(self, highlight:bool = True):
         if highlight:
             if TRANSPARENT_HEX_RINGS:
                 self.Model.setTransparency(p3dc.TransparencyAttrib.MNone)
-            self.setColor(self.HIGHLIGHT_COLOUR)
+            self._setColor(self.COLOUR_HIGHLIGHT)
         else:
-            if TRANSPARENT_HEX_RINGS and not self.CurrentColour == self.SELECT_COLOUR:
+            if TRANSPARENT_HEX_RINGS and not self.CurrentColour_Edge == self.COLOUR_SELECT:
                 self.Model.setTransparency(p3dc.TransparencyAttrib.MAlpha)
-            self.setColor(self.CurrentColour)
-        
+            self._setColor(self.CurrentColour_Edge)
+            
+    def highlight(self, edge = False, face = False):
+        if not face and not edge:
+            if TRANSPARENT_HEX_RINGS and not self.CurrentColour_Edge == self.COLOUR_SELECT:
+                self.Model.setTransparency(p3dc.TransparencyAttrib.MAlpha)
+            if self.isSelected():
+                self.CurrentColour_Edge = self.COLOUR_SELECT
+                self.CurrentColour_Face = self.COLOUR_SELECT_FACE
+                self._setColor(self.CurrentColour_Edge)
+                self._setColorFace(self.CurrentColour_Face)
+                if TRANSPARENT_HEX_RINGS:
+                    self.Model.setTransparency(p3dc.TransparencyAttrib.MNone)
+                self.Face.setTransparency(p3dc.TransparencyAttrib.MAlpha)
+                self.Face.show()
+            else:
+                self.CurrentColour_Edge = self.COLOUR_NORMAL
+                self.CurrentColour_Face = self.COLOUR_SELECT_FACE
+                self._setColor(self.CurrentColour_Edge)
+                self._setColorFace(self.CurrentColour_Face)
+                if TRANSPARENT_HEX_RINGS:
+                    self.Model.setTransparency(p3dc.TransparencyAttrib.MAlpha)
+                self.Face.setTransparency(p3dc.TransparencyAttrib.MNone)
+                self.Face.hide()
+            self.Highlighted = False
+        else:
+            self.Highlighted = True
+            if edge:
+                self.CurrentColour_Edge = edge
+                self._setColor(self.CurrentColour_Edge)
+            if face:
+                self.CurrentColour_Edge = edge
+                self._setColor(self.CurrentColour_Edge)
+                self.Face.show()
+    
     def select(self, select:bool = True):
         if select:
-            self.CurrentColour = self.SELECT_COLOUR
+            self.CurrentColour_Edge = self.COLOUR_SELECT
             if TRANSPARENT_HEX_RINGS:
                 self.Model.setTransparency(p3dc.TransparencyAttrib.MNone)
-            self.setColor(self.SELECT_COLOUR)
+            self._setColor(self.COLOUR_SELECT)
+            self._setColorFace(self.COLOUR_SELECT_FACE)
             self.Face.setTransparency(p3dc.TransparencyAttrib.MAlpha)
             self.Face.show()
-            #TODO: TEMPORARY
-            if self.unit:
-                for i in self.unit().getReachableHexes():
-                    i.highlight()
-            #TODO: TEMPORARY
+            unitManager().selectUnit(self.unit)
         else:
-            self.CurrentColour = self.Colour
+            self.CurrentColour_Edge = self.Colour
             if TRANSPARENT_HEX_RINGS:
                 self.Model.setTransparency(p3dc.TransparencyAttrib.MAlpha)
-            self.setColor(self.Colour)
+            self._setColor(self.Colour)
             self.Face.setTransparency(p3dc.TransparencyAttrib.MNone)
             self.Face.hide()
-            #TODO: TEMPORARY
-            if self.unit:
-                for i in self.unit().getReachableHexes():
-                    i.highlight(False)
-            #TODO: TEMPORARY
-            
+    
+  #endregion Highlighting
+  #region Hex Math
     def getNeighbour(self,direction=-1):
         """
         Returns the specified neighbour in direction if 0<=direction<=5 or else all neighbours. \n
-        Raises HexInvalidException if the specified neighbour does not exist (which can happen if this hex is at the edge of the map).
+        Raises HexInvalidException if the specified neighbour does not exist (which can happen if this hex is at the edge of the map). \n
+        Also accepts one of `_Hex.ALL_DIRECTIONS` (eg `NW, NE, E, SE, SW, W`) \n
+        (Theoretically accepts all tuples of length 3 which allows to get relative positions but this behaviour is not explicitly intended nor supported and should not be used.)
         """
+        try:
+            if len(direction) == 3:
+                return self.grid().getHex( [a+b for a,b in zip(self.CubeCoordinates, direction)])
+        except:
+            pass
         if 0 <= direction and direction <= 5:
             return self.grid().getHex( [a+b for a,b in zip(self.CubeCoordinates, self.ALL_DIRECTIONS[direction])])
         else:
@@ -742,8 +824,11 @@ class _Hex():
         return circle
         
     def __lt__(self, other):
+        "Needed for comparissons in `findPath` (specifically the heap operations)"
         # type: (_Hex) -> bool
         return self.CubeCoordinates < other.CubeCoordinates
+    
+  #endregion Hex Math
 
 def findPath(start:_Hex, destination:_Hex, navigable = lambda hex: hex.Navigable, cost = lambda hex: 1) -> typing.List[_Hex]:
     """
@@ -754,6 +839,7 @@ def findPath(start:_Hex, destination:_Hex, navigable = lambda hex: hex.Navigable
     navigable   : A function that, given a _Hex, tells us whether we can move through this hex. \n
     cost        : A cost function for moving through a hex. Should return a value >= 1. By default all costs are 1. \n
     """
+    #TODO: This should be able to take movement points and endsure that the returned path does not exceed this (if given)
     Found = False
     Done = False
     Path: typing.List[_Hex] = None
@@ -790,11 +876,12 @@ def findPath(start:_Hex, destination:_Hex, navigable = lambda hex: hex.Navigable
                 heappush(Openset, (new_h, new_cost, new_pos, new_path))
     try:
         if len(Path) > 1:
-            return Path[1:]
+            Path = Path[1:] # We do not return the starting position
+            return Path, sum([cost(i) for i in Path])
         else:
-            return []
+            return [], 0
     except: #Catches the case that Path is None #TODO: handle this case more cleanly
-        return []
+        return [], 0
 
 #endregion Hex Map
 
@@ -866,9 +953,18 @@ class Unit():
     #    self.Node.setPos(pos)
     
     def __del__(self):
+        if self.isSelected:
+            unitManager().selectUnit(None)
+        if self.hex:
+            self.hex().unit = None
         self.Model.removeNode()
         self.Node.removeNode()
+        
+    def destroy(self):
+        #TODO
+        raise NotImplementedError()
     
+  #region Turn and Selection
     def startTurn(self):
         self.MovePoints = self.BaseMovePoints
         self.ActiveTurn = True
@@ -876,6 +972,17 @@ class Unit():
     def endTurn(self):
         self.ActiveTurn = False
         
+    def isSelected(self):
+        return unitManager().isSelectedUnit(self)
+    
+    def select(self):
+        self.highlightRanges(True)
+    
+    def unselect(self):
+        self.highlightRanges(False)
+    
+  #endregion Turn and Selection
+  #region Movement
     def moveToHex(self, hex:_Hex, animate= True):
         self.Coordinates = hex.Coordinates
         if hex.unit:
@@ -904,27 +1011,32 @@ class Unit():
             theta = np.arctan2(hex.Pos[0] - self.hex().Pos[0], self.hex().Pos[1] - hex.Pos[1])
             if (theta < 0.0):
                 theta += 2*np.pi
-            angle = np.rad2deg(theta) + 180 # This +180 is probably nesseccary because the chess pieces have the wrong orientation but I might be wrong here
+            angle = np.rad2deg(theta) + 180
+            #INVESTIGATE: Why do I need to add 180°? The formula above should be correct and the 180° should be wrong here but whitout adding them the object looks in the wrong direction...
+            #       .lookAt makes the object look in the correct direction therefore the object itself is not modeled to look in the wrong direction.
+            #       Furthermore I can pretty much rule out that the further processing of the angle is wrong since the 180° were necessary even before the processing was added.
+            #       Thereby the formula must be mistaken, which, as mentioned, should be the correct formula... So where is the problem?!?
             angleBefore, angleAfter = self.improveRotation(lastAngle,angle)
             self.Node.hprInterval(abs(angleBefore - angleAfter)/(360), (angleAfter,0,0), (angleBefore,0,0)).start()
             return False
         else:
-            path = findPath(self.hex(), hex, self._navigable, self._tileCost)
-            if not path or len(path)>self.MovePoints: #FEATURE:MOVECOST: we should actually sum up the movement cost of the tiles in case their cost is not one!!! Maybe even implement that in the findPath function
+            path, cost = findPath(self.hex(), hex, self._navigable, self._tileCost)
+            if not path or cost > self.MovePoints:
                 # The figure can not move to the hex but we can at least make it look at the hex
                 lastAngle = self.Node.getHpr()[0]
                 theta = np.arctan2(hex.Pos[0] - self.hex().Pos[0], self.hex().Pos[1] - hex.Pos[1])
                 if (theta < 0.0):
                     theta += 2*np.pi
-                angle = np.rad2deg(theta) + 180 # This +180 is probably nesseccary because the chess pieces have the wrong orientation but I might be wrong here
+                angle = np.rad2deg(theta) + 180
+                #INVESTIGATE: Why do I need to add 180°? The formula above should be correct and the 180° should be wrong here but whitout adding them the object looks in the wrong direction...
+                #       .lookAt makes the object look in the correct direction therefore the object itself is not modeled to look in the wrong direction.
+                #       Furthermore I can pretty much rule out that the further processing of the angle is wrong since the 180° were necessary even before the processing was added.
+                #       Thereby the formula must be mistaken, which, as mentioned, should be the correct formula... So where is the problem?!?
                 angleBefore, angleAfter = self.improveRotation(lastAngle,angle)
                 self.Node.hprInterval(abs(angleBefore - angleAfter)/(360), (angleAfter,0,0), (angleBefore,0,0)).start()
                 return False
             else:
-                #TODO: TEMPORARY
-                for i in self.getReachableHexes():
-                    i.highlight(False)
-                #TODO: TEMPORARY
+                self.highlightRanges(False)
                 seq = p3ddSequence(name = self.Name+" move")
                 lastPos = self.hex().Pos
                 lastAngle = self.Node.getHpr()[0]
@@ -932,7 +1044,11 @@ class Unit():
                     theta = np.arctan2(i.Pos[0] - lastPos[0], lastPos[1] - i.Pos[1])
                     if (theta < 0.0):
                         theta += 2*np.pi
-                    angle = np.rad2deg(theta) + 180 # This +180 is probably nesseccary because the chess pieces have the wrong orientation but I might be wrong here
+                    angle = np.rad2deg(theta) + 180
+                    #INVESTIGATE: Why do I need to add 180°? The formula above should be correct and the 180° should be wrong here but whitout adding them the object looks in the wrong direction...
+                    #       .lookAt makes the object look in the correct direction therefore the object itself is not modeled to look in the wrong direction.
+                    #       Furthermore I can pretty much rule out that the further processing of the angle is wrong since the 180° were necessary even before the processing was added.
+                    #       Thereby the formula must be mistaken, which, as mentioned, should be the correct formula... So where is the problem?!?
                     angleBefore, angleAfter = self.improveRotation(lastAngle,angle)
                     if abs(angleBefore - angleAfter) > 2:
                         #seq.append( self.Node.hprInterval(0, (angleBefore,0,0) )
@@ -945,7 +1061,8 @@ class Unit():
                 hex.unit = weakref.ref(self)
                 self.hex = weakref.ref(hex)
                 self.Coordinates = hex.Coordinates
-                self.MovePoints -= len(path)
+                self.MovePoints -= cost
+                self.highlightRanges(True)
                 return True
     
     def improveRotation(self,c,t):
@@ -965,7 +1082,7 @@ class Unit():
     
     def moveToCoordinates(self,coordinates):
         self.moveToHex(window().getHex(coordinates))
-                
+    
     def getReachableHexes(self):
         #TODO
         # This method returns a list with all the hexes that can be reached (with the current movement points) by this unit
@@ -995,11 +1112,12 @@ class Unit():
             ####
             mPoints = self.MovePoints if self.ActiveTurn else self.BaseMovePoints # To allow calculations while it's not this unit's turn we use the BaseMovePoints then
             l: typing.Set[_Hex] = set() # Using a set instead of a list is 5% faster... which is still not fast enough
-            for i in self.hex().getDisk(mPoints):
+            for i in self.hex().getDisk(mPoints): #FEATURE:MOVECOST: This does not take into account that hexes could have a negative movement point cost...
+                #                                       Therefore we could miss some more distant tiles. But this method is already far too slow so we can not really afford to increase the radius of the disk...
                 if not i in l:
-                    path = findPath(self.hex(), i, self._navigable, self._tileCost)
+                    path, cost = findPath(self.hex(), i, self._navigable, self._tileCost)
                     if path:
-                        if len(path) <= mPoints: #FEATURE:MOVECOST: we should actually sum up the movement cost of the tiles in case their cost is not one!!! Maybe even implement that in the findPath function
+                        if cost <= mPoints:
                             l.update(path)
                         else:
                             l.update(path[:mPoints])
@@ -1024,6 +1142,32 @@ class Unit():
                 tl.append(temp.difference(tl[i-1]).difference(tl[i]))
                 l.update(temp)
             return l
+    
+    
+  #endregion Movement
+  #region Highlighting
+    def highlightRanges(self, highlight=True):
+        """
+        Highlights all hexes that are relevant (movementrange, weaponrange, etc). \n
+        If `highlight = False` the highlighted hexes are instead un-highlighted.
+        """
+        self.hex().grid().highlightHexes(clearFirst=True)
+        if highlight:
+            self.highlightMovementRange(highlight, clearFirst=False)
+    
+    def highlightMovementRange(self, highlight=True, clearFirst=True):
+        """
+        Highlights all hexes that can be reached with the current movement points. \n
+        If `highlight = False` the highlighted hexes are instead un-highlighted.
+        """
+        self.hex().grid().highlightHexes(self.getReachableHexes(), _Hex.COLOUR_REACHABLE, False, clearFirst=clearFirst)
+        ##TODO: TEMPORARY
+        #for i in self.getReachableHexes():
+        #    i.highlight(highlight)
+        ##TODO: TEMPORARY
+  #endregion Highlighting
+  #region ...
+  #endregion ...
 
 #endregion Objects
 
@@ -1042,6 +1186,23 @@ class UnitManager():
             2  : self.Units_Team2,
             3  : self.Units_Team3,
         }
+        self.selectedUnit: weakref.ref[Unit] = None
+        
+    def selectUnit(self, unit):
+        if isinstance(unit, weakref.ref):
+            unit = unit()
+        if not ( unit is self.selectedUnit ):
+            if self.selectedUnit:
+                self.selectedUnit().unselect()
+                self.selectedUnit = None
+            if unit:
+                self.selectedUnit =  weakref.ref(unit)
+                self.selectedUnit().select()
+        
+    def isSelectedUnit(self, unit):
+        if isinstance(unit, weakref.ref):
+            unit = unit()
+        return unit is self.selectedUnit()
         
     def endTurn(self):
         "Ends the player turn, processes all other turns and returns control back to the player"
@@ -1057,6 +1218,9 @@ class UnitManager():
         self.Units_Neutral.endTurn()
         
         self.Units_Team1.startTurn()
+        if self.selectedUnit:
+            self.selectedUnit().highlightRanges(False)
+            self.selectedUnit().highlightRanges(True)
     
 class UnitList(typing.List[Unit]):
     def append(self, unit):
