@@ -617,7 +617,7 @@ class _Hex():
             
             self.Highlighted = False
         except:
-            NC(1,f"Error while creating {name}",exc=True)
+            NC(1,f"Error while creating {name}",exc=True)  #CRITICAL: Clean up all nodes by removing them if they were created!!
     
     def __del__(self):
         del self.content
@@ -920,7 +920,7 @@ class Unit():
     #       For this the unit mangaer should have a member that stores the active unit and when activating a new unit the old unit is first deactivated (if any was active)
     #           This way we avoid errors where multiple units become selected by mistake
     #       Selecting an empty hex should deactivate the currently active unit
-    def __init__(self, coordinates, colour, team=1, name="a Unit", model="Models/Simple Geometry/cube.ply"):
+    def __init__(self, coordinates, team=1, name="a Unit", model="Models/Simple Geometry/cube.ply", colour=(1,1,1,1)):
         self.Name = name
         self.Team = team
         self.BaseMovePoints = 6 #float("inf") #10
@@ -936,23 +936,30 @@ class Unit():
         try:
             self.Node.reparentTo(render())
             self.Model = loader().loadModel(model)
-        except Exception as inst:
+        except:# Exception as inst:  #VALIDATE: Does this work as intended?
             self.Node.removeNode()
-            raise inst
+            raise# inst
         try:
             self.Model.reparentTo(self.Node)
             self.Model.setColor(ape.colour(colour))
             self.moveToCoordinates(coordinates)
-        except Exception as inst:
+        except:# Exception as inst:  #VALIDATE: Does this work as intended?
             self.Model.removeNode()
             self.Node.removeNode()
-            raise inst
-        engine().UnitManager.Teams[self.Team].append(self)
+            raise# inst
+        unitManager().Teams[self.Team].append(self)
+        
+        self.init_combat()
+        self.init_effects()
         
     #def moveToPos(self,pos):
     #    self.Node.setPos(pos)
     
     def __del__(self):
+        if self.ExplosionEffect:
+            self.ExplosionEffect.removeNode()
+        if self.ExplosionEffect2:
+            self.ExplosionEffect2.removeNode()
         if self.isSelected:
             unitManager().selectUnit(None)
         if self.hex:
@@ -960,14 +967,30 @@ class Unit():
         self.Model.removeNode()
         self.Node.removeNode()
         
-    def destroy(self):
-        #TODO
-        raise NotImplementedError()
+    def destroy(self, task=None):
+        unitManager().Teams[self.Team].remove(self)
+        self.__del__()
+        #if task:
+        #    return Task.cont
+        
+    def __str__(self) -> str:
+        if self.hex:
+            return f"{self.Name} (team {self.Team}) at {self.hex().Coordinates}"
+        else:
+            return f"{self.Name} (team {self.Team}) lost in the warp..."
+        
+    def __repr__(self) -> str:
+        if self.hex:
+            return f"Unit( coordinates = {self.hex().Coordinates} , team = {self.Team} , name = \"{self.Name}\" )"
+        else:
+            return f"Unit( coordinates = (None,None) , team = {self.Team} , name = \"{self.Name}\" )"
     
   #region Turn and Selection
     def startTurn(self):
         self.MovePoints = self.BaseMovePoints
         self.ActiveTurn = True
+        
+        self.healAtTurnStart()
         
     def endTurn(self):
         self.ActiveTurn = False
@@ -1166,6 +1189,92 @@ class Unit():
         #    i.highlight(highlight)
         ##TODO: TEMPORARY
   #endregion Highlighting
+  #region Combat Defensive
+    def init_combat(self):
+        self.init_HP()
+        
+    def init_HP(self):
+        #FEATURE:HULLTYPES
+        self.Evasion = 0.1
+        self.HP_Hull_max = 100
+        self.HP_Shields_max = 400
+        self.HP_Hull = self.HP_Hull_max
+        self.HP_Shields = self.HP_Shields_max
+        self.HP_Hull_Regeneration = self.HP_Hull_max / 20
+        self.HP_Shields_Regeneration = self.HP_Shields_max / 8
+        self.WasHitLastTurn = False
+        self.ShieldsWereOffline = False
+        
+    def healAtTurnStart(self):
+        #TODO: This should be 2 methods: One that calculates the healing and one that the first one and then actually updates the values. This way the first method can be used to display a prediction to the user
+        #REMINDER: When displaying this to the user there should also be a short text explaining that taking noticeable damage halves the regeneration for one turn and that shields need one turn to restart after being taken down.
+        regenFactor = 1 if not self.WasHitLastTurn else 0.5
+        self.HP_Hull = min(self.HP_Hull + self.HP_Hull_Regeneration*regenFactor , self.HP_Hull_max)
+        if self.ShieldsWereOffline:
+            self.ShieldsWereOffline = False
+        else:
+            self.HP_Shields = min(self.HP_Shields + self.HP_Shields_Regeneration*regenFactor , self.HP_Shields_max)
+        
+    def takeDamage(self, damage:float, accuracy:float = 1 ,shieldFactor:float = 1, normalHullFactor:float = 1, shieldPiercing:bool = False) -> typing.Tuple[bool,bool,float]:
+        """
+        This method handles sustaining damage. \n
+        TODO: describe parameters \n
+        returns bool[shot hit the target], bool[destroyed the target], float[the amount of inflicted damage]
+        """
+        #FEATURE:HULLTYPES
+        #FEATURE:WEAPONSTRUCTURES: instead of handing over a bazillion parameters there should be a class for weapons which can handle everything. That class should probably replace this takeDamage method all together
+        hit = np.random.random_sample() < accuracy-self.Evasion
+        finalDamage = 0
+        destroyed = False
+        if hit:
+            if shieldPiercing or self.HP_Shields <= 0:
+                finalDamage = damage*normalHullFactor
+                self.HP_Hull -= finalDamage
+                if self.HP_Hull <= 0:
+                    destroyed = True
+            else:
+                finalDamage = damage*shieldFactor
+                self.HP_Shields -= finalDamage
+                if self.HP_Shields <= 0:
+                    self.HP_Shields = 0
+                    self.ShieldsWereOffline = True
+            self.WasHitLastTurn = finalDamage > self.HP_Hull_max / 10
+        if destroyed: self.explode()
+        return hit, destroyed, finalDamage
+  #endregion Combat Defensive
+  #region Combat Offensive
+  #endregion Combat Offensive
+  #region Effects
+    def init_effects(self):
+        self.ExplosionEffect = None
+        self.ExplosionEffect2 = None
+    
+    def explode(self):
+        explosionDuration = 1.0
+        self.Model.setColor((0.1,0.1,0.1,1))
+        
+        self.ExplosionEffect = loader().loadModel("Models/Simple Geometry/sphere.ply")
+        colour = App().PenColours["Orange"].color()
+        colour.setAlphaF(0.6)
+        self.ExplosionEffect.setColor(ape.colour(colour))
+        self.ExplosionEffect.setTransparency(p3dc.TransparencyAttrib.MAlpha)
+        #self.ExplosionEffect.setSize(0.1)
+        self.ExplosionEffect.reparentTo(self.Node)
+        self.ExplosionEffect.scaleInterval(explosionDuration, 1.5, 0.1).start()
+        
+        self.ExplosionEffect2 = loader().loadModel("Models/Simple Geometry/sphere.ply")
+        colour = App().PenColours["Red"].color()
+        #colour.setAlphaF(0.5)
+        self.ExplosionEffect2.setColor(ape.colour(colour))
+        #self.ExplosionEffect2.setTransparency(p3dc.TransparencyAttrib.MAlpha)
+        #self.ExplosionEffect2.setSize(0.1)
+        self.ExplosionEffect2.reparentTo(self.Node)
+        self.ExplosionEffect2.scaleInterval(explosionDuration, 1.1, 0.05).start()
+        
+        base().taskMgr.doMethodLater(explosionDuration, self.destroy, str(id(self)))
+  #endregion Effects
+  #region ...
+  #endregion ...
   #region ...
   #endregion ...
 
@@ -1222,7 +1331,7 @@ class UnitManager():
             self.selectedUnit().highlightRanges(False)
             self.selectedUnit().highlightRanges(True)
     
-class UnitList(typing.List[Unit]):
+class UnitList(typing.List[Unit]): 
     def append(self, unit):
         # type: (Unit) -> None
         if not unit in self:
@@ -1235,6 +1344,9 @@ class UnitList(typing.List[Unit]):
     def endTurn(self):
         for i in self:
             i.endTurn()
+            
+    def __str__(self) -> str:
+        return f"Unit list:\n\t"+"\n\t".join([str(i) for i in self])+"\n"
     
 #endregion Unit Manager
 
@@ -1310,18 +1422,19 @@ class MainWindowClass(ape.APELabWindow):#APEWindow):
         
         #self.Console1.setText("self.Pawn = Unit((25,25),App().MiscColours[\"Self\"])\n")
         self.Console1.setText(ENTERPRISE_IMPORT)
+        self.Console2.setText("self.Pawn.takeDamage(400)\n")
     
     def gen(self):
         self.HexGrid.generateHex()
             
     def start(self):
         self.HexGrid = HexGrid()
-        Unit((25,25),App().MiscColours["Self"],   name="self",  model="Models/Simple Geometry/cube.ply")
-        Unit((27,22),App().MiscColours["Neutral"],name="a pawn",model="Models/Simple Geometry/cube.ply")
-        Unit((26,23),App().MiscColours["Neutral"],name="a pawn",model="Models/Simple Geometry/cube.ply")
-        Unit((25,23),App().MiscColours["Neutral"],name="a pawn",model="Models/Simple Geometry/cube.ply")
-        Unit((24,23),App().MiscColours["Neutral"],name="a pawn",model="Models/Simple Geometry/cube.ply")
-        Unit((23,22),App().MiscColours["Neutral"],name="a pawn",model="Models/Simple Geometry/cube.ply")
+        Unit((25,25),name="self"  ,model="Models/Simple Geometry/cube.ply", colour=App().MiscColours["Self"]   )
+        Unit((27,22),name="a pawn",model="Models/Simple Geometry/cube.ply", colour=App().MiscColours["Neutral"])
+        Unit((26,23),name="a pawn",model="Models/Simple Geometry/cube.ply", colour=App().MiscColours["Neutral"])
+        Unit((25,23),name="a pawn",model="Models/Simple Geometry/cube.ply", colour=App().MiscColours["Neutral"])
+        Unit((24,23),name="a pawn",model="Models/Simple Geometry/cube.ply", colour=App().MiscColours["Neutral"])
+        Unit((23,22),name="a pawn",model="Models/Simple Geometry/cube.ply", colour=App().MiscColours["Neutral"])
         
     def getHex(self, i:typing.Tuple[int,int]) -> _Hex:
         return self.HexGrid.getHex(i)
@@ -1329,11 +1442,15 @@ class MainWindowClass(ape.APELabWindow):#APEWindow):
 class PandaWidget(ape.PandaWidget):
     pass
 
-ENTERPRISE_IMPORT = """self.Pawn = Unit((25,24),App().MiscColours["Self"],model="/Users/Robin/Desktop/Projects/AstusGameEngine_dev/3DModels/NCC-1701-D.gltf")
+ENTERPRISE_IMPORT = """self.Pawn = Unit((25,24),name="USS Enterprise",model="/Users/Robin/Desktop/Projects/AstusGameEngine_dev/3DModels/NCC-1701-D.gltf")
 self.Pawn.Model.setY(-0.2)
 self.Pawn.Model.setH(180)
 self.Pawn.Model.setScale(0.1)
-self.Pawn.Model.setColor((1,1,1,1))
+
+self.Pawn2 = Unit((25,26),name="USS Enterprise",model="/Users/Robin/Desktop/Projects/AstusGameEngine_dev/3DModels/NCC-1701-D.gltf")
+self.Pawn2.Model.setY(-0.2)
+self.Pawn2.Model.setH(180)
+self.Pawn2.Model.setScale(0.1)
 """
 
 
