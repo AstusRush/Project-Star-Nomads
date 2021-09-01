@@ -545,16 +545,6 @@ class HexGrid():
   #endregion Interaction
 
 class _Hex():
-    #TODO: Highlighting: todo = - , done = ++
-    # ++ The current highlighting method should be renamed to represent that it is only called when the cursor hovers over a hex
-    # -  Add a new highlight method to highlight the hex EDGE for stuff like movementrange and weaponrange that simply takes a colour
-    # -  Add a new highlight method to highlight the hex FACE for stuff like movementrange and weaponrange that simply takes a colour
-    # -  Add a bool that shows whether or not this hex is highlighted
-    # -  Add a method to the HexGrid class that loops over all hexes and un-highlights them (but for efficiency reasons only when the highlight bool is True so that we don't have thousands of recolouring events)
-    # -  Add a method to the HexGrid class that resets the highlighting of all hexes (except if a bool (parameter of the function) is False)
-    #        and highlights all hexes in a given list with a given colour (two colours for ring and face, if None then don't change colour).
-    #        With the help of the bool one can highlight all faces of hexes that can be reached by movement and all rings of hexes that are in weaponsrange
-    # -  All highlighting methods should only be called by the HexGrid class to ensure consistency
     COLOUR_NORMAL = "Blue"
     COLOUR_SELECT = "Yellow"
     COLOUR_SELECT_FACE = "Light Blue"
