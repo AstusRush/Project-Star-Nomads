@@ -487,7 +487,36 @@ class Unit():
         
     def fireLaserEffectAt(self, unit, hit=True):
         # type: (Unit, bool) -> None
-        laserEffect = loader().loadModel("tempModels\BambooLaser/bambooLaser")
+        laserEffect = loader().loadModel("Models/Simple Geometry/rod.ply")
+        try:
+            laserEffect.reparentTo(self.Node)
+            #laserEffect.setZ(1.5)
+            # This prevents lights from affecting this particular node
+            laserEffect.setLightOff()
+            
+            hitPos = unit.Model.getPos(render())
+            beamLength = (hitPos - self.Model.getPos(render())).length()
+            if not hit:
+                beamLength += 1
+            #laserEffect.setZ(beamLength/2)
+            laserEffect.setScale(0.02,beamLength,0.02)
+            colour = App().PenColours["Orange"].color()
+            laserEffect.setColor(ape.colour(colour))
+            if not hit:
+                miss = np.random.random_sample()
+                miss1s = 1 if np.random.random_sample() > 0.5 else -1
+                miss2s = 1 if np.random.random_sample() > 0.5 else -1
+                miss1o = np.random.random_sample()*0.3-0.15
+                miss2o = np.random.random_sample()*0.3-0.15
+                laserEffect.setH(20*miss1s*(miss+miss1o))
+                laserEffect.setP(20*miss2s*(1-miss+miss2o))
+        finally:
+            #base().taskMgr.doMethodLater(1, lambda task: self._removeNode(laserEffect), str(id(laserEffect)))
+            self.removeNode(laserEffect, 1)
+        
+    def fireLaserEffectAt_bamboo(self, unit, hit=True): #CLEANUP: Remove this as it is no longer needed
+        # type: (Unit, bool) -> None
+        laserEffect = loader().loadModel("tempModels/BambooLaser/bambooLaser")
         try:
             laserEffect.reparentTo(self.Node)
             #laserEffect.setZ(1.5)

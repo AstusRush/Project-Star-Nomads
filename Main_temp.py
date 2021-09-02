@@ -370,9 +370,12 @@ class UnitManager():
                 self.selectedUnit().select()
         
     def isSelectedUnit(self, unit):
-        if isinstance(unit, weakref.ref):
-            unit = unit()
-        return unit is self.selectedUnit()
+        if isinstance(self.selectedUnit, weakref.ref):
+            if isinstance(unit, weakref.ref):
+                unit = unit()
+            return unit is self.selectedUnit()
+        else:
+            return False
         
     def endTurn(self):
         "Ends the player turn, processes all other turns and returns control back to the player"
