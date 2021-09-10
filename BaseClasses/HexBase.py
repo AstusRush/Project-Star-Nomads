@@ -1,4 +1,9 @@
-
+"""
+TODO
+"""
+"""
+    Copyright (C) 2021  Robin Albers
+"""
 # Python standard imports
 import datetime
 import platform
@@ -41,9 +46,10 @@ else:
     from AstusPandaEngine import window as _window
 
 # Game Imports
-from .getter import *
+from BaseClasses import get
 if TYPE_CHECKING:
-    from . import Unit
+    from BaseClasses import Unit
+    from BaseClasses import FleetBase
 
 
 #region Exceptions
@@ -56,7 +62,7 @@ class HexOccupiedException(HexException):
     def __init__(self, hex=None):
         # type: (_Hex) -> None
         if hex:
-            super().__init__(f"{hex.Name} is already occupied by {hex.unit().Name}.")
+            super().__init__(f"{hex.Name} is already occupied by {hex.fleet().Name}.")
         else:
             super().__init__(f"The hex is already occupied.")
 
@@ -86,7 +92,7 @@ def PointAtZ(z, point, vec):
 
 def getHexPos(i:typing.Tuple[int,int]):
     """A handy little function for getting the proper position for a given square1"""
-    return window().getHex(i).Pos
+    return get.window().getHex(i).Pos
 
 def getHex(i:typing.Tuple[int,int]):
     """
@@ -94,7 +100,7 @@ def getHex(i:typing.Tuple[int,int]):
     To properly get a hex you should always use the method of the HexGrid instance. \n
     Furthermore the HexGrid instance should be accessed unambiguously (optimally by getting it from another Hex._Hex instace) since we might have two hex grids in the future (one for the main game and one for battles)!
     """
-    return window().getHex(i)
+    return get.window().getHex(i)
 
 #endregion Helper Functions
 
@@ -227,7 +233,7 @@ class HexGrid():
                 # Highlight the picked hex and store it as a member
                 i.hoverHighlight()
                 self.HighlightedHex = i
-                window().Statusbar.showMessage(i.Name)
+                get.window().Statusbar.showMessage(i.Name)
         
         return Task.cont
     
@@ -314,7 +320,7 @@ class _Hex():
             
             # We will use this list to store all objects that occupy this hexagon
             self.content = [] # type: typing.List[Unit.Object]
-            self.unit = None # type: weakref.ref[Unit.Unit]
+            self.fleet = None # type: weakref.ref[FleetBase.FleetBase]
             self.Navigable = True
             
             self.Highlighted = False
@@ -335,17 +341,17 @@ class _Hex():
         Makes the contents of this hex interact with the `other` hex. \n
         Returns `True` if the new hex should be selected after this interaction. 
         """
-        if self.unit:
-            return self.unit().interactWith(other)
+        if self.fleet:
+            return self.fleet().interactWith(other)
     
     
   #region Content
     # These Methods should be overwritten by subclasses
     def selectContent(self, select:bool = True): #TODO:OVERHAUL
         if select:
-            unitManager().selectUnit(self.unit)
+            get.unitManager().selectUnit(self.fleet)
         else:
-            unitManager().selectUnit(None)
+            get.unitManager().selectUnit(None)
         
     def addContent(self, content): #TODO:OVERHAUL
         #TODO: If the this is already selected while new content is added the new content should be informed about this and act accordingly (display/update movement range, add/update UI elements, etc).
@@ -531,7 +537,7 @@ class _Hex():
     
   #endregion Hex Math
 
-def findPath(start:_Hex, destination:_Hex, navigable = lambda hex: hex.Navigable, cost = lambda hex: 1) -> typing.List[_Hex]:
+def findPath(start:_Hex, destination:_Hex, navigable = lambda hex: hex.Navigable, cost = lambda hex: 1) -> typing.Tuple[typing.List[_Hex],float]:
     """
     The hex path finder. \n
     Returns a list containing the hexes that form a shortest path between start and destination (including destination but excluding start). \n

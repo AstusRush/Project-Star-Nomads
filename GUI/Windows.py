@@ -1,4 +1,9 @@
-
+"""
+TODO
+"""
+"""
+    Copyright (C) 2021  Robin Albers
+"""
 # Python standard imports
 import datetime
 import platform
@@ -42,8 +47,8 @@ else:
 # Game Imports
 from BaseClasses import HexBase as Hex
 from BaseClasses.Unit import Unit
-from BaseClasses.getter import unitManager, window
-from GUI import Widgets
+from BaseClasses.get import unitManager, window
+from GUI import WidgetsBase
 
 class MainWindowClass(ape.APELabWindow):#APEWindow):
     def setupUI(self):
@@ -67,13 +72,10 @@ class MainWindowClass(ape.APELabWindow):#APEWindow):
         self.cw.setLayout(layout)
         
         #self.Console1.setText("self.Pawn = Unit((25,25),App().MiscColours[\"Self\"])\n")
-        ENTERPRISE_IMPORT =\
-            """self.Pawn = Unit((25,24),name="USS Enterprise",model="/Users/Robin/Desktop/Projects/AstusGameEngine_dev/3DModels/NCC-1701-D.gltf")"""+"\n"+\
-            """self.Pawn2 = Unit((25,26),name="USS Galaxy",model="/Users/Robin/Desktop/Projects/AstusGameEngine_dev/3DModels/NCC-1701-D.gltf")"""+"\n"
-        self.Console1.setText(ENTERPRISE_IMPORT)
+        self.Console1.setText(TEMP_CODE)
         self.Console2.setText("self.Pawn.takeDamage(400)\n\n#for i in unitManager().Teams[1]:\n#\ti.takeDamage(400,2)\n#\ti.takeDamage(400,2)\n")
         
-        self.UnitStatDisplay = Widgets.ShipStats(self)
+        self.UnitStatDisplay = WidgetsBase.ShipStats(self)
         self.TabWidget.addTab(self.UnitStatDisplay, "Unit Stats")
     
     def gen(self):
@@ -81,12 +83,26 @@ class MainWindowClass(ape.APELabWindow):#APEWindow):
             
     def start(self):
         self.HexGrid = Hex.HexGrid()
-        Unit((25,25),name="self"  ,model="Models/Simple Geometry/cube.ply", colour=App().MiscColours["Self"]   )
-        Unit((27,22),name="a pawn",model="Models/Simple Geometry/cube.ply", colour=App().MiscColours["Neutral"])
-        Unit((26,23),name="a pawn",model="Models/Simple Geometry/cube.ply", colour=App().MiscColours["Neutral"])
-        Unit((25,23),name="a pawn",model="Models/Simple Geometry/cube.ply", colour=App().MiscColours["Neutral"])
-        Unit((24,23),name="a pawn",model="Models/Simple Geometry/cube.ply", colour=App().MiscColours["Neutral"])
-        Unit((23,22),name="a pawn",model="Models/Simple Geometry/cube.ply", colour=App().MiscColours["Neutral"])
+        #Unit((25,25),name="self"  ,model="Models/Simple Geometry/cube.ply", colour=App().MiscColours["Self"]   )
+        #Unit((27,22),name="a pawn",model="Models/Simple Geometry/cube.ply", colour=App().MiscColours["Neutral"])
+        #Unit((26,23),name="a pawn",model="Models/Simple Geometry/cube.ply", colour=App().MiscColours["Neutral"])
+        #Unit((25,23),name="a pawn",model="Models/Simple Geometry/cube.ply", colour=App().MiscColours["Neutral"])
+        #Unit((24,23),name="a pawn",model="Models/Simple Geometry/cube.ply", colour=App().MiscColours["Neutral"])
+        #Unit((23,22),name="a pawn",model="Models/Simple Geometry/cube.ply", colour=App().MiscColours["Neutral"])
         
     def getHex(self, i:typing.Tuple[int,int]) -> 'Hex._Hex':
         return self.HexGrid.getHex(i)
+
+
+ENTERPRISE_IMPORT ="""
+self.Pawn = Unit((25,24),name="USS Enterprise",model="/Users/Robin/Desktop/Projects/AstusGameEngine_dev/3DModels/NCC-1701-D.gltf")
+self.Pawn2 = Unit((25,26),name="USS Galaxy",model="/Users/Robin/Desktop/Projects/AstusGameEngine_dev/3DModels/NCC-1701-D.gltf")
+"""
+TEMP_CODE = """
+self.Fleet = FleetBase.FleetBase()
+self.Ship = ShipBase.ShipBase()
+self.Fleet.addShip(self.Ship)
+self.Model = ModelBase.EnterpriseModel()
+self.Ship.setModel(self.Model)
+self.Fleet.moveToHex(self.getHex((25,25)))
+"""

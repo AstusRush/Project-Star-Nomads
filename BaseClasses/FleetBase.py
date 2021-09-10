@@ -1,4 +1,7 @@
 """
+TODO
+"""
+"""
     Copyright (C) 2021  Robin Albers
 """
 # Python standard imports
@@ -44,137 +47,67 @@ else:
     from AstusPandaEngine import window as _window
 
 # Game Imports
-from . import get
-#if TYPE_CHECKING:
-from . import HexBase as Hex
+if TYPE_CHECKING:
+    from BaseClasses import ShipBase
+from BaseClasses import get
+from BaseClasses import HexBase
 
-#region Objects
-class Object():
-    def __init__(self, coordinates, colour, model):
-        self.Node = loader().loadModel(model)
-        try:
-            self.Node.reparentTo(render())
-            self.Node.setColor(ape.colour(colour))
-            self.Node.setPos(get.window().getHex(coordinates).Pos)
-        except Exception as inst:
-            self.Node.removeNode()
-            raise inst
-        get.window().getHex(coordinates).content.append(self)
-        
-    def moveToPos(self,pos):
-        self.setPos(pos)
-        
-    def moveToHex(self,hex:'Hex._Hex'):
-        self.setPos(hex.Pos)
-        
-    def moveToCoordinates(self,coordinates):
-        self.setPos(Hex.getHexPos(coordinates))
-        
-    def setPos(self, pos):
-        self.Node.lookAt(pos)
-        self.Node.posInterval(pos,min(6,abs(sum(self.Node.getPos()-pos))))
-    
-    def __del__(self):
-        self.Node.removeNode()
-        
-class Unit():
-    #TODO: There should be a method to replace the model
-    #TODO: There should be a method that marks the current Unit as the active unit that brings up the UI for the Unit and highlights all reachable hexes (highlighting using method of HexClass)
-    #       For this the unit mangaer should have a member that stores the active unit and when activating a new unit the old unit is first deactivated (if any was active)
-    #           This way we avoid errors where multiple units become selected by mistake
-    #       Selecting an empty hex should deactivate the currently active unit
+class ShipList(list):
+    pass
+
+class FleetBase():
   #region init and destroy
-    def __init__(self, coordinates, team=1, name="a Unit", model="Models/Simple Geometry/cube.ply", colour=(1,1,1,1)):
-        self.Name = name
-        self.Team = team
-        self.ModelPath = model
+    def __init__(self, strategic: bool = False) -> None:
+        """
+        If `strategic` the fleet is a fleet on the strategic map, \n
+        otherwise the 'fleet' is a flotilla on the tactical map.
+        """
+        self._IsFleet, self._IsFlotilla = strategic, not strategic
+        self.Ships = ShipList()
+        self.Node = p3dc.NodePath(p3dc.PandaNode(f"Central node of fleet {id(self)}"))
+        self.Node.reparentTo(render())
+        
+        #TEMPORARY
+        self.Name = "name"
+        self.Team = 1
         self.Destroyed = False
         self.MovePoints_max = 6 #float("inf") #10
         self.MovePoints = self.MovePoints_max
-        self.hex: weakref.ref['Hex._Hex'] = None
-        self.ActiveTurn = team == 1 #TODO: This should be taken from the Unit manager to check whose turn it actually is since enemy ships are mostly initialized during enemy turns (but not always which means we can not always set this to True!)
-        self.init_model(coordinates, colour)
-        self.init_combat()
-        self.init_effects()
+        self.hex: weakref.ref['HexBase._Hex'] = None
+        self.ActiveTurn = 1 == 1
         get.unitManager().Teams[self.Team].append(self)
-        try:
-            self.centreModel()
-        except:
-            NC(2,"Could not centre model",exc=True)
-        
-    #def moveToPos(self,pos):
-    #    self.Node.setPos(pos)
-    
-    def __del__(self):
-        self.Destroyed = True
-        if self.ExplosionEffect:
-            self.ExplosionEffect.removeNode()
-        if self.ExplosionEffect2:
-            self.ExplosionEffect2.removeNode()
-        if self.isSelected():
-            get.unitManager().selectUnit(None)
-        if self.hex:
-            if self.hex().unit:
-                if self.hex().unit() is self:
-                    self.hex().unit = None
-        self.Model.removeNode()
-        self.Node.removeNode()
-        
-    def destroy(self, task=None):
-        self.Destroyed = True
-        try:
-            get.unitManager().Teams[self.Team].remove(self)
-        except:
-            if self in get.unitManager().Teams[self.Team]:
-                raise
-        self.__del__()
-        #if task:
-        #    return Task.cont
-        
-    def __str__(self) -> str:
-        if self.hex:
-            return f"{self.Name} (team {self.Team}) at {self.hex().Coordinates}"
-        else:
-            return f"{self.Name} (team {self.Team}) lost in the warp..."
-        
-    def __repr__(self) -> str:
-        if self.hex:
-            return f"Unit( coordinates = {self.hex().Coordinates} , team = {self.Team} , name = \"{self.Name}\" )"
-        else:
-            return f"Unit( coordinates = (None,None) , team = {self.Team} , name = \"{self.Name}\" )"
-        
-    def removeNode(self, node, time = 1):
-        base().taskMgr.doMethodLater(time, lambda task: self._removeNode(node), str(id(node)))
-    
-    def _removeNode(self, node):
-        #try:
-        node.removeNode()
     
   #endregion init and destroy
+  #region manage ship list
+    def addShip(self, ship):
+        # type: (ShipBase.ShipBase) -> None
+        self.Ships.append(ship)
+        ship.reparentTo(self)
+  #endregion manage ship list
   #region Turn and Selection
-    def startTurn(self):
+    def startTurn(self): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
         self.MovePoints = self.MovePoints_max
         self.ActiveTurn = True
         
-        self.healAtTurnStart()
+        #self.healAtTurnStart()
         
-    def endTurn(self):
+    def endTurn(self): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
         self.ActiveTurn = False
         
-    def isSelected(self):
+    def isSelected(self): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
         return get.unitManager().isSelectedUnit(self)
     
-    def select(self):
+    def select(self): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
         self.highlightRanges(True)
         self.diplayStats(True)
     
-    def unselect(self):
+    def unselect(self): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
         self.highlightRanges(False)
         self.diplayStats(False)
     
   #endregion Turn and Selection
   #region Interaction
-    def interactWith(self, hex:'Hex._Hex'): #TODO:OVERHAUL
+    def interactWith(self, hex:'HexBase._Hex'): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
         """
         Makes this unit interact with the hex. \n
         Returns `True` if the new hex should be selected after this interaction (eg in case this unit has moved to the hex or has joined a fleet in the hex due to this interaction)
@@ -191,10 +124,10 @@ class Unit():
     
   #endregion Interaction
   #region Movement
-    def moveToHex(self, hex:'Hex._Hex', animate= True):
+    def moveToHex(self, hex:'HexBase._Hex', animate= True): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
         self.Coordinates = hex.Coordinates
         if hex.fleet:
-            raise Hex.HexOccupiedException(hex)
+            raise HexBase.HexOccupiedException(hex)
         else:
             if animate and self.hex:
                 self.Node.lookAt(hex.Pos)
@@ -210,13 +143,13 @@ class Unit():
                 raise Exception("Could not assign unit to Hex")
             self.hex = weakref.ref(hex)
         
-    def _navigable(self, hex:'Hex._Hex'):
+    def _navigable(self, hex:'HexBase._Hex'): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
         return (not bool(hex.fleet)) and hex.Navigable
         
-    def _tileCost(self, hex:'Hex._Hex'):
+    def _tileCost(self, hex:'HexBase._Hex'): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
         return 1
         
-    def lookAt(self, hex:'Hex._Hex'):
+    def lookAt(self, hex:'HexBase._Hex'): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
         lastAngle = self.Node.getHpr()[0]
         theta = np.arctan2(hex.Pos[0] - self.hex().Pos[0], self.hex().Pos[1] - hex.Pos[1])
         if (theta < 0.0):
@@ -229,13 +162,13 @@ class Unit():
         angleBefore, angleAfter = self.improveRotation(lastAngle,angle)
         self.Node.hprInterval(abs(angleBefore - angleAfter)/(360), (angleAfter,0,0), (angleBefore,0,0)).start()
     
-    def moveTo(self, hex:'Hex._Hex'):
+    def moveTo(self, hex:'HexBase._Hex'): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
         if not self._navigable(hex):
             # The figure can not move to the hex but we can at least make it look at the hex
             self.lookAt(hex)
             return False
         else:
-            path, cost = Hex.findPath(self.hex(), hex, self._navigable, self._tileCost)
+            path, cost = HexBase.findPath(self.hex(), hex, self._navigable, self._tileCost)
             if not path or cost > self.MovePoints:
                 # The figure can not move to the hex but we can at least make it look at the hex
                 lastAngle = self.Node.getHpr()[0]
@@ -272,7 +205,7 @@ class Unit():
                     lastPos = i.Pos
                     lastAngle = angle
                 seq.start()
-                self.hex().unit = None
+                self.hex().fleet = None
                 hex.fleet = weakref.ref(self)
                 self.hex = weakref.ref(hex)
                 self.Coordinates = hex.Coordinates
@@ -284,7 +217,7 @@ class Unit():
                     raise Exception("Could not assign unit to Hex")
                 return True
     
-    def improveRotation(self,c,t):
+    def improveRotation(self,c,t): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
         """
         c is current rotation, t is target rotation. \n
         returns two values that are equivalent to c and t but have values between -360 and 360 and have a difference of at most 180 degree.
@@ -299,10 +232,10 @@ class Unit():
                         ,func="improveRotation",input="c = {}\nt = {}\nci = {}\nti = {}\nd = {}\nsolution = {}".format(c,t,ci,ti,abs(ci-ti),abs(ci-ti) <= 180))
         return ci,ti
     
-    def moveToCoordinates(self,coordinates):
+    def moveToCoordinates(self,coordinates): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
         self.moveToHex(get.window().getHex(coordinates))
     
-    def getReachableHexes(self):
+    def getReachableHexes(self): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
         #TODO
         # This method returns a list with all the hexes that can be reached (with the current movement points) by this unit
         # Variant 1:
@@ -330,11 +263,11 @@ class Unit():
             t1 = time.time()
             ####
             mPoints = self.MovePoints if self.ActiveTurn else self.MovePoints_max # To allow calculations while it's not this unit's turn we use the MovePoints_max then
-            l: typing.Set['Hex._Hex'] = set() # Using a set instead of a list is 5% faster... which is still not fast enough
+            l: typing.Set['HexBase._Hex'] = set() # Using a set instead of a list is 5% faster... which is still not fast enough
             for i in self.hex().getDisk(mPoints): #FEATURE:MOVECOST: This does not take into account that hexes could have a negative movement point cost...
                 #                                       Therefore we could miss some more distant tiles. But this method is already far too slow so we can not really afford to increase the radius of the disk...
                 if not i in l:
-                    path, cost = Hex.findPath(self.hex(), i, self._navigable, self._tileCost)
+                    path, cost = HexBase.findPath(self.hex(), i, self._navigable, self._tileCost)
                     if path:
                         if cost <= mPoints:
                             l.update(path)
@@ -350,8 +283,8 @@ class Unit():
         if Variant == 4: #FEATURE:MOVECOST: This does not take into account different tile movement cost
             # This is VERY fast
             mPoints = self.MovePoints if self.ActiveTurn else self.MovePoints_max # To allow calculations while it's not this unit's turn we use the MovePoints_max then
-            l: typing.Set['Hex._Hex'] = set() # Using a set instead of a list is 5% faster... which is still not fast enough
-            tl: typing.List[typing.Set['Hex._Hex']] = [set([self.hex()]),]
+            l: typing.Set['HexBase._Hex'] = set() # Using a set instead of a list is 5% faster... which is still not fast enough
+            tl: typing.List[typing.Set['HexBase._Hex']] = [set([self.hex()]),]
             for i in range(mPoints):
                 temp = set()
                 for ii in tl[i]:
@@ -365,7 +298,7 @@ class Unit():
     
   #endregion Movement
   #region Highlighting
-    def highlightRanges(self, highlight=True):
+    def highlightRanges(self, highlight=True): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
         """
         Highlights all hexes that are relevant (movementrange, weaponrange, etc). \n
         If `highlight = False` the highlighted hexes are instead un-highlighted.
@@ -374,90 +307,23 @@ class Unit():
         if highlight:
             self.highlightMovementRange(highlight, clearFirst=False)
     
-    def highlightMovementRange(self, highlight=True, clearFirst=True):
+    def highlightMovementRange(self, highlight=True, clearFirst=True): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
         """
         Highlights all hexes that can be reached with the current movement points. \n
         If `highlight = False` the highlighted hexes are instead un-highlighted.
         """
-        self.hex().grid().highlightHexes(self.getReachableHexes(), Hex._Hex.COLOUR_REACHABLE, False, clearFirst=clearFirst)
+        self.hex().grid().highlightHexes(self.getReachableHexes(), HexBase._Hex.COLOUR_REACHABLE, False, clearFirst=clearFirst)
         ##TODO: TEMPORARY
         #for i in self.getReachableHexes():
         #    i.highlight(highlight)
         ##TODO: TEMPORARY
   #endregion Highlighting
-  #region Combat Defensive
-    def init_combat(self):
-        self.init_HP()
-        
-    def init_HP(self):
-        #FEATURE:HULLTYPES
-        self.Evasion = 0.1
-        self.HP_Hull_max = 100
-        self.HP_Shields_max = 400
-        self.HP_Hull = self.HP_Hull_max
-        self.HP_Shields = self.HP_Shields_max
-        self.HP_Hull_Regeneration = self.HP_Hull_max / 20
-        self.HP_Shields_Regeneration = self.HP_Shields_max / 8
-        self.WasHitLastTurn = False
-        self.ShieldsWereOffline = False
-        self.NoticeableDamage = self.HP_Hull_max / 10
-        
-    def healAtTurnStart(self):
-        #TODO: This should be 2 methods: One that calculates the healing and one that the first one and then actually updates the values. This way the first method can be used to display a prediction to the user
-        #REMINDER: When displaying this to the user there should also be a short text explaining that taking noticeable damage halves the regeneration for one turn and that shields need one turn to restart after being taken down.
-        regenFactor = 1 if not self.WasHitLastTurn else 0.5
-        self.HP_Hull = min(self.HP_Hull + self.HP_Hull_Regeneration*regenFactor , self.HP_Hull_max)
-        if self.ShieldsWereOffline:
-            self.ShieldsWereOffline = False
-        else:
-            self.HP_Shields = min(self.HP_Shields + self.HP_Shields_Regeneration*regenFactor , self.HP_Shields_max)
-        self.WasHitLastTurn = False
-        
-    def takeDamage(self, damage:float, accuracy:float = 1 ,shieldFactor:float = 1, normalHullFactor:float = 1, shieldPiercing:bool = False) -> typing.Tuple[bool,bool,float]:
-        """
-        This method handles sustaining damage. \n
-        TODO: describe parameters \n
-        returns bool[shot hit the target], bool[destroyed the target], float[the amount of inflicted damage]
-        """
-        #FEATURE:HULLTYPES
-        #FEATURE:WEAPONSTRUCTURES: instead of handing over a bazillion parameters there should be a class for weapons which can handle everything. That class should probably replace this takeDamage method all together
-        hit = np.random.random_sample() < accuracy-self.Evasion
-        finalDamage = 0
-        destroyed = False
-        if hit:
-            if shieldPiercing or self.HP_Shields <= 0:
-                finalDamage = damage*normalHullFactor
-                self.HP_Hull -= finalDamage
-                if self.HP_Hull <= 0:
-                    destroyed = True
-            else:
-                finalDamage = damage*shieldFactor
-                self.HP_Shields -= finalDamage
-                if self.HP_Shields <= 0:
-                    self.HP_Shields = 0
-                    self.ShieldsWereOffline = True
-                self.showShield()
-            self.WasHitLastTurn = finalDamage >= self.NoticeableDamage
-        if self.isSelected():
-            self.diplayStats(True)
-        if destroyed and not self.Destroyed: self.explode()
-        return hit, destroyed, finalDamage
-  #endregion Combat Defensive
-  #region Combat Offensive
-    def attack(self, target):
-        # type: (Unit) -> None
-        hit , targetDestroyed, damageDealt = target.takeDamage(50,0.9)
-        self.fireLaserEffectAt(target, hit)
-        if targetDestroyed:
-            self.highlightRanges()
-    
-  #endregion Combat Offensive
   #region Effects
-    def init_effects(self):
+    def init_effects(self): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
         self.ExplosionEffect = None
         self.ExplosionEffect2 = None
     
-    def explode(self):
+    def explode(self): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
         #CRITICAL: The ship should already count as destroyed at this point (thus before the animation is played)
         #           Otherwise it is still possible to accidentally attack "the explosion" when giving orders hastily
         #           Maybe the destroy method should take a time in seconds. Then all the removal of game logic is handled before the nodes are destroyed.
@@ -488,8 +354,8 @@ class Unit():
         
         base().taskMgr.doMethodLater(explosionDuration, self.destroy, str(id(self)))
         
-    def fireLaserEffectAt(self, unit, hit=True):
-        # type: (Unit, bool) -> None
+    def fireLaserEffectAt(self, unit, hit=True): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
+        # type: (FleetBase, bool) -> None
         laserEffect = loader().loadModel("Models/Simple Geometry/rod.ply")
         try:
             laserEffect.reparentTo(self.Node)
@@ -516,34 +382,8 @@ class Unit():
         finally:
             #base().taskMgr.doMethodLater(1, lambda task: self._removeNode(laserEffect), str(id(laserEffect)))
             self.removeNode(laserEffect, 1)
-        
-    def fireLaserEffectAt_bamboo(self, unit, hit=True): #CLEANUP: Remove this as it is no longer needed
-        # type: (Unit, bool) -> None
-        laserEffect = loader().loadModel("tempModels/BambooLaser/bambooLaser")
-        try:
-            laserEffect.reparentTo(self.Node)
-            #laserEffect.setZ(1.5)
-            # This prevents lights from affecting this particular node
-            laserEffect.setLightOff()
             
-            hitPos = unit.Model.getPos(render())
-            beamLength = (hitPos - self.Model.getPos(render())).length()
-            if not hit:
-                beamLength += 1
-            laserEffect.setSy(beamLength)
-            if not hit:
-                miss = np.random.random_sample()
-                miss1s = 1 if np.random.random_sample() > 0.5 else -1
-                miss2s = 1 if np.random.random_sample() > 0.5 else -1
-                miss1o = np.random.random_sample()*0.3-0.15
-                miss2o = np.random.random_sample()*0.3-0.15
-                laserEffect.setH(20*miss1s*(miss+miss1o))
-                laserEffect.setP(20*miss2s*(1-miss+miss2o))
-        finally:
-            #base().taskMgr.doMethodLater(1, lambda task: self._removeNode(laserEffect), str(id(laserEffect)))
-            self.removeNode(laserEffect, 1)
-            
-    def showShield(self, time = 1):
+    def showShield(self, time = 1): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
         
         shieldEffect = loader().loadModel("Models/Simple Geometry/sphere.ply")
         try:
@@ -574,7 +414,7 @@ class Unit():
     
   #endregion Effects
   #region Display Information
-    def diplayStats(self, display=True):
+    def diplayStats(self, display=True): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
         if display:
             text = textwrap.dedent(f"""
             Name: {self.Name}
@@ -582,44 +422,41 @@ class Unit():
             Positions: {self.hex().Coordinates}
             
             Movement Points: {self.MovePoints}/{self.MovePoints_max}
-            
-            Hull: {self.HP_Hull}/{self.HP_Hull_max} (+{self.HP_Hull_Regeneration} per turn (halfed if the ship took a single hit that dealt at least {self.NoticeableDamage} damage last turn))
-            Shields: {self.HP_Shields}/{self.HP_Shields_max} (+{self.HP_Shields_Regeneration} per turn (halfed if the ship took a single hit that dealt at least {self.NoticeableDamage} damage last turn))
             """)
+            
+            #Hull: {self.HP_Hull}/{self.HP_Hull_max} (+{self.HP_Hull_Regeneration} per turn (halfed if the ship took a single hit that dealt at least {self.NoticeableDamage} damage last turn))
+            #Shields: {self.HP_Shields}/{self.HP_Shields_max} (+{self.HP_Shields_Regeneration} per turn (halfed if the ship took a single hit that dealt at least {self.NoticeableDamage} damage last turn))
             get.window().UnitStatDisplay.Text.setText(text)
         else:
             get.window().UnitStatDisplay.Text.setText("No unit selected")
   #endregion Display Information
   #region model
-    def init_model(self, coordinates, colour = (1,1,1,1)):
-        self.Node = p3dc.NodePath(p3dc.PandaNode("Central node of unit: "+self.Name))
-        try:
-            self.Node.reparentTo(render())
-            self.Model = loader().loadModel(self.ModelPath)
-        except:# Exception as inst:  #VALIDATE: Does this work as intended?
-            self.Node.removeNode()
-            raise# inst
-        try:
-            self.Model.reparentTo(self.Node)
-            self.Model.setColor(ape.colour(colour))
-            self.moveToCoordinates(coordinates)
-        except:# Exception as inst:  #VALIDATE: Does this work as intended?
-            self.Model.removeNode()
-            self.Node.removeNode()
-            raise# inst
-    
-    def centreModel(self):
-        self.Model.setH(0)
-        self.Model.setPos(0,0,0)
-        self.Model.setScale(1)
-        self.Model.setScale(0.8/self.Model.getBounds().getRadius()) #REMINDER: Use this and the next line to make shields (adjust the scale factor here accordingly so that the shields have a decend distance to the ship but are smaller than 1.0 to avoid clipping)
-        if self.ModelPath == "/Users/Robin/Desktop/Projects/AstusGameEngine_dev/3DModels/NCC-1701-D.gltf": #REMINDER: This is temporary
-            self.Model.setH(180)
-        self.Model.setPos(-self.Model.getBounds().getApproxCenter())
+    def arrangeShips(self): #TODO: OVERHAUL
+        for i in self.Ships:
+            i.setPos(0,0,0)
   #endregion model
   #region ...
+    #def ___(self,):
   #endregion ...
   #region ...
+    #def ___(self,):
   #endregion ...
+        
 
-#endregion Objects
+class Fleet(FleetBase):
+    """
+    A fleet on the strategic map. \n
+    Every ship on the strategic map is part of a fleet. \n
+    The fleet object coordinates the UI creation, the movement, and all other interactions of all its ships.
+    """
+    def __init__(self) -> None:
+        super().__init__(strategic=True)
+
+class Flotilla(FleetBase):
+    """
+    A flotilla on the tactical map. \n
+    Every ship on the tactical map is part of a flotilla, therefore one-ship-flotillas are quite common. \n
+    The flotilla object coordinates the UI creation, the movement, and all other interactions of all its ships.
+    """
+    def __init__(self) -> None:
+        super().__init__(strategic=False)

@@ -1,29 +1,12 @@
 """
+TODO
+"""
+"""
     Copyright (C) 2021  Robin Albers
 """
-
-SupportsRenderPipeline = False
-
-# Python standard imports 1/2
+# Python standard imports
 import datetime
 import platform
-
-# Print into the console that the program is starting and set the application ID if we are on windows
-WindowTitle = "Project-Star-Nomads"
-if __name__ == "__main__":
-    print()
-    print(datetime.datetime.now().strftime('%H:%M:%S'))
-    print(WindowTitle)
-    print("Loading Modules")#, end = "")
-    if platform.system() == 'Windows':
-        try:
-            import ctypes
-            myAppId = u'{}{}'.format(WindowTitle , datetime.datetime.now().strftime('%H:%M:%S')) # arbitrary string
-            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myAppId)
-        except:
-            pass
-
-# Python standard imports 2/2
 import os
 import sys
 import time
@@ -50,102 +33,17 @@ from direct.task.Task import Task
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     # These imports make the IDE happy
-    from ..AstusPandaEngine.AGeLib import *
-    from ..AstusPandaEngine import AstusPandaEngine as ape
-    from ..AstusPandaEngine.AstusPandaEngine import engine, base, render, loader
-    from ..AstusPandaEngine.AstusPandaEngine import window as _window
+    from ...AstusPandaEngine.AGeLib import *
+    from ...AstusPandaEngine import AstusPandaEngine as ape
+    from ...AstusPandaEngine.AstusPandaEngine import engine, base, render, loader
+    from ...AstusPandaEngine.AstusPandaEngine import window as _window
 else:
     # These imports make Python happy
-    sys.path.append('../AstusPandaEngine')
+    #sys.path.append('../AstusPandaEngine')
     from AGeLib import *
     import AstusPandaEngine as ape
     from AstusPandaEngine import engine, base, render, loader
     from AstusPandaEngine import window as _window
-
-# Game Imports
-from BaseClasses import HexBase as Hex
-from BaseClasses.Unit import Unit
-from BaseClasses.get import unitManager, window
-from GUI.Windows import MainWindowClass
-
-#def window():
-#    # type: () -> MainWindowClass
-#    #w:MainWindowClass = _window()
-#    return _window()#w
-#
-#def unitManager():
-#    # type: () -> UnitManager
-#    return engine().UnitManager
-
-class BattleScene(ape.APEScene):
-    
-    def start(self):
-        self.Camera = StrategyCamera()
-        ape.base().win.setClearColor(p3dc.Vec4(0,0,0,1))
-        self.loadSkybox()
-        
-        # Per-pixel lighting and shadows are initially on
-        self.perPixelEnabled = True
-        self.shadowsEnabled = True
-        
-        #base().accept("l", self.togglePerPixelLighting)
-        #base().accept("e", self.toggleShadows)
-        
-    def loadSkybox(self):
-        self.Camera.loadSkybox()
-        
-    #region For future use: These methods are not used currently but will probably be useful in the future. Ignore them for now
-    #def makeStatusLabel(self, i):
-    #    """
-    #    Macro-like function to reduce the amount of code needed to create the
-    #    onscreen instructions
-    #    """
-    #    return OnscreenText(
-    #        parent=base().a2dTopLeft, align=p3dc.TextNode.ALeft,
-    #        style=1, fg=(1, 1, 0, 1), shadow=(0, 0, 0, .4),
-    #        pos=(0.06, -0.1 -(.06 * i)), scale=.05, mayChange=True)
-    #
-    #def updateStatusLabel(self):
-    #    """Builds the onscreen instruction labels"""
-    #    self.updateLabel(self.lightingPerPixelText, "(l) Per-pixel lighting is", self.perPixelEnabled)
-    #    self.updateLabel(self.lightingShadowsText, "(e) Shadows are", self.shadowsEnabled)
-    #
-    #def updateLabel(self, obj, base, var):
-    #    """Appends either (on) or (off) to the base string based on the base value"""
-    #    if var:
-    #        s = " (on)"
-    #    else:
-    #        s = " (off)"
-    #    obj.setText(base + s)
-    #
-    #def togglePerPixelLighting(self):
-    #    """This function turns per-pixel lighting on or off."""
-    #    if self.perPixelEnabled:
-    #        self.perPixelEnabled = False
-    #        if self.shadowsEnabled:
-    #            self.shadowsEnabled = False
-    #            self.light.setShadowCaster(False)
-    #            #  self.light2.setShadowCaster(False)
-    #        render().clearShader()
-    #    else:
-    #        self.perPixelEnabled = True
-    #        render().setShaderAuto()
-    #    self.updateStatusLabel()
-    #
-    #def toggleShadows(self):
-    #    """This function turns shadows on or off."""
-    #    if self.shadowsEnabled:
-    #        self.shadowsEnabled = False
-    #        self.light.setShadowCaster(False)
-    #        #  self.light2.setShadowCaster(False)
-    #    else:
-    #        if not self.perPixelEnabled:
-    #            self.togglePerPixelLighting()
-    #        self.shadowsEnabled = True
-    #        self.light.setShadowCaster(True, 1024, 1024)
-    #        #  self.light2.setShadowCaster(True, 1024, 1024)
-    #    self.updateStatusLabel()
-    #endregion For future use
 
 class StrategyCamera():
     def __init__(self):
@@ -339,136 +237,3 @@ class StrategyCamera():
                 self._enforceLimits()
         
         return Task.cont
-
-
-#region Unit Manager
-class UnitManager():
-    def __init__(self) -> None:
-        self.Units_Environmental = UnitList()
-        self.Units_Neutral = UnitList()
-        self.Units_Team1 = UnitList()
-        self.Units_Team2 = UnitList()
-        self.Units_Team3 = UnitList()
-        self.Teams = {
-            -1 : self.Units_Environmental,
-            0  : self.Units_Neutral,
-            1  : self.Units_Team1,
-            2  : self.Units_Team2,
-            3  : self.Units_Team3,
-        }
-        self.selectedUnit: weakref.ref[Unit] = None
-        
-    def selectUnit(self, unit):
-        if isinstance(unit, weakref.ref):
-            unit = unit()
-        if not ( unit is self.selectedUnit ):
-            if self.selectedUnit:
-                self.selectedUnit().unselect()
-                self.selectedUnit = None
-            if unit:
-                self.selectedUnit =  weakref.ref(unit)
-                self.selectedUnit().select()
-        
-    def isSelectedUnit(self, unit):
-        if isinstance(self.selectedUnit, weakref.ref):
-            if isinstance(unit, weakref.ref):
-                unit = unit()
-            return unit is self.selectedUnit()
-        else:
-            return False
-        
-    def endTurn(self):
-        "Ends the player turn, processes all other turns and returns control back to the player"
-        self.Units_Team1.endTurn()
-        
-        self.Units_Team2.startTurn()
-        self.Units_Team2.endTurn()
-        self.Units_Team3.startTurn()
-        self.Units_Team3.endTurn()
-        self.Units_Environmental.startTurn()
-        self.Units_Environmental.endTurn()
-        self.Units_Neutral.startTurn()
-        self.Units_Neutral.endTurn()
-        
-        self.Units_Team1.startTurn()
-        if self.selectedUnit:
-            self.selectedUnit().highlightRanges(False)
-            self.selectedUnit().highlightRanges(True)
-            self.selectedUnit().diplayStats(True)
-    
-class UnitList(typing.List[Unit]): 
-    def append(self, unit):
-        # type: (Unit) -> None
-        if not unit in self:
-            return super().append(unit)
-    
-    def startTurn(self):
-        for i in self:
-            i.startTurn()
-    
-    def endTurn(self):
-        for i in self:
-            i.endTurn()
-            
-    def __str__(self) -> str:
-        return f"Unit list:\n\t"+"\n\t".join([str(i) for i in self])+"\n"
-    
-#endregion Unit Manager
-
-#region  main
-
-
-# Function to put instructions on the screen.
-#def addInstructions(pos, msg):
-#    return OnscreenText(text = msg, style = 1, fg = (1, 1, 1, 1), 
-#                        pos = (-0.9, pos - 0.2), align = p3dc.TextNode.ALeft, scale = .035)
-
-class BaseClass(ape.APEPandaBase):
-    def start(self):
-        if self.render_pipeline:
-            # Set time of day
-            self.render_pipeline.daytime_mgr.time = "5:20"
-            
-            # Use a special effect for rendering the scene, this is because the
-            # roaming ralph model has no normals or valid materials
-            self.render_pipeline.set_effect(ape.render(), "_pipeline_effect-texture.yaml", {}, sort=250)
-        
-        self.disableMouse()  # Disable mouse camera control
-        self.camera.setPosHpr(0, -12, 8, 0, -35, 0)  # Set the camera
-        
-        # Since we are using collision detection to do picking, we set it up like
-        # any other collision detection system with a traverser and a handler
-        self.picker = p3dc.CollisionTraverser()  # Make a traverser
-        self.pq = p3dc.CollisionHandlerQueue()  # Make a handler
-        # Make a collision node for our picker ray
-        self.pickerNode = p3dc.CollisionNode('mouseRay')
-        # Attach that node to the camera since the ray will need to be positioned relative to it
-        self.pickerNP = self.camera.attachNewNode(self.pickerNode)
-        # Everything to be picked will use bit 1. This way if we were doing other collision we could separate it
-        self.pickerNode.setFromCollideMask(p3dc.BitMask32.bit(1))
-        self.pickerRay = p3dc.CollisionRay()  # Make our ray
-        # Add it to the collision node
-        self.pickerNode.addSolid(self.pickerRay)
-        # Register the ray as something that can cause collisions
-        self.picker.addCollider(self.pickerNP, self.pq)
-        # self.picker.showCollisions(render)
-        
-class EngineClass(ape.APE):
-    def start(self):
-        self.base.start()
-        self.UnitManager = UnitManager()
-        self.Scene = BattleScene()
-        self.Scene.start()
-        window().start()
-
-class AppClass(ape.APEApp):
-    pass
-
-
-class PandaWidget(ape.PandaWidget):
-    pass
-
-
-#endregion real main
-if __name__ == '__main__':
-    ape.start(WindowTitle, EngineClass, BaseClass, AppClass, MainWindowClass, PandaWidget, True, SupportsRenderPipeline)

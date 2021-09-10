@@ -63,6 +63,10 @@ else:
     from AstusPandaEngine import window as _window
 
 # Game Imports
-#from BaseClasses import Hex
-#from BaseClasses.Unit import Unit
-#from BaseClasses.getter import unitManager, window
+from ApplicationClasses import MainAppClass, Scene, Camera
+from BaseClasses import HexBase, FleetBase, ShipBase, ModelBase, UnitManagerBase, get
+from GUI import Windows, WidgetsBase
+
+
+if __name__ == '__main__':
+    ape.start(WindowTitle, MainAppClass.EngineClass, Scene.BaseClass, MainAppClass.AppClass, Windows.MainWindowClass, WidgetsBase.PandaWidget, True, SupportsRenderPipeline)

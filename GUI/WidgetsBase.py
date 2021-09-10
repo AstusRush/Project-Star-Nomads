@@ -1,4 +1,9 @@
-
+"""
+TODO
+"""
+"""
+    Copyright (C) 2021  Robin Albers
+"""
 # Python standard imports
 import datetime
 import platform
@@ -40,21 +45,12 @@ else:
     from AstusPandaEngine import engine, base, render, loader
     from AstusPandaEngine import window as _window
 
-if TYPE_CHECKING:
-    # These imports make the IDE happy
-    from GUI.Windows import MainWindowClass
-    from Main_temp import * #TODO: This is temporary
+class PandaWidget(ape.PandaWidget):
+    pass
 
-def window():
-    # type: () -> MainWindowClass
-    #w:MainWindowClass = _window()
-    return _window()#w
-
-def unitManager():
-    # type: () -> UnitManager
-    return engine().UnitManager
-    
-
-__all__ = ["window",
-           "unitManager",
-           ]
+class ShipStats(QtWidgets.QWidget):
+    def __init__(self, parent: typing.Optional['QtWidgets.QWidget']) -> None:
+        super().__init__(parent=parent)
+        self.setLayout(QtWidgets.QHBoxLayout(self))
+        self.Text = AGeWidgets.TextEdit(self)
+        self.layout().addWidget(self.Text)
