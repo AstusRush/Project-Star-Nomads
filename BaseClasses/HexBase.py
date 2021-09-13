@@ -51,6 +51,28 @@ if TYPE_CHECKING:
     from BaseClasses import Unit
     from BaseClasses import FleetBase
 
+# Helperfunction #TODO: put these in a global place so that all files use these
+#region round-hack
+#TODO: put this into an if block and only apply this fix when the numpy version is old enough to require this fix
+import builtins
+builtins._round = builtins.round
+def round(*args):
+    """
+    This function is exactly the same as the built-in round function. \n
+    the only difference is, that this function casts the result to an int if no precision is given. \n
+    This is supposed to be the default behaviour of round anyways
+    but numpy had a time where it did not conform to this. \n
+    (Read more here: https://github.com/numpy/numpy/issues/11810 ). \n
+    This function ensures correct behaviour accross all numpy versions.
+    """
+    if len(args) is 1:
+        return int(builtins._round(*args))
+    else:
+        return builtins._round(*args)
+builtins.round = round # This overload ensures that round behaves correctly.
+# since this overload only slightly increases the runtime and does not affect
+# the standard behaviour at all (except for fixing this weird bug) it should not lead to any confusion.
+#endregion round-hack
 
 #region Exceptions
 class HexException(Exception): pass
@@ -166,7 +188,7 @@ class HexGrid():
         else:
             raise HexInvalidException(i)
         if self._isValidCoordinate(i):
-            return self.Hexes[round(i[0])][round(i[1])]
+            return self.Hexes[i[0]][i[1]]
         else:
             raise HexInvalidException(i)
             
