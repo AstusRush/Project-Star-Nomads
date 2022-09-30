@@ -64,13 +64,23 @@ class Module():
     #       (This is used to determine random module damage. Targeted attacks by fighters on for example weapon systems are effected by this but far more likely to hit)
     #   required staff (#MAYBE: make a distinction between staff on the strategic map and staff on the tactical map since the crew that usually operates refineries can operate guns during combat)
     #   (Slot type is basically the type of the subclass but maybe it would be helpful to implement it here)
-    pass
+    def __init__(self, ship:'ShipBase.ShipBase') -> None:
+        self.ship = weakref.ref(ship)
+    
+    def handleNewTurn(self):
+        pass
 
 class Hull(Module):
     # The hull of a ship (can be tied to a ship model)
     # Determins the size of the ship (and maybe available slots for module types)
     # Also influences the HP of the ship and the required engine size
-    pass
+    def __init__(self, ship:'ShipBase.ShipBase') -> None:
+        super().__init__(ship)
+        self.Evasion = 0.1
+        self.HP_Hull_max = 100
+        self.HP_Hull = self.HP_Hull_max
+        self.HP_Hull_Regeneration = self.HP_Hull_max / 20
+        self.NoticeableDamage = self.HP_Hull_max / 10
 
 class HullPlating(Module):
     pass

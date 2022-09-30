@@ -48,47 +48,36 @@ else:
 
 # Game Imports
 from BaseClasses import get
-#if TYPE_CHECKING:
 from BaseClasses import HexBase
+from BaseClasses import ShipBase
+from BaseClasses import ModelBase
+from BaseClasses import BaseModules
+from BaseClasses import FleetBase
+import ShipModules
 
-class ModelBase():
-    def __init__(self, modelPath) -> None:
-        self.ModelPath = modelPath
-        self.Model:p3dc.NodePath = None
-        self._init_model()
-        
-    def _init_model(self):
-        self.Node = p3dc.NodePath(p3dc.PandaNode(f"Central node of model: {id(self)}"))
-        try:
-            self.Node.reparentTo(render())
-            try:
-                self.Model:p3dc.NodePath = loader().loadModel(self.ModelPath)
-            except:
-                self.Model:p3dc.NodePath = loader().loadModel("Models/Simple Geometry/cube.ply")
-                NC(2,f"Could not load model {self.ModelPath}. Loading a cube instead...", exc=True)
-        except:
-            self.Node.removeNode()
-            raise
-        try:
-            self.Model.reparentTo(self.Node)
-            self.Model.setColor(ape.colour((1,1,1,1)))
-        except:
-            self.Model.removeNode()
-            self.Node.removeNode()
-            raise
+class EnterpriseModel(ModelBase.ShipModel):
+    def __init__(self) -> None:
+        super().__init__("tempModels/NCC-1701-D.gltf")
         
     def resetModel(self):
         self.Model.setH(0) #TODO: Reset all rotations
         self.Model.setPos(0,0,0)
         self.Model.setScale(1)
-        
+        self.Model.setH(180)
+        self.Model.setP(90)
+    
     def centreModel(self):
-        self.resetModel()
-        #REMINDER: Use the next line to make shields (adjust the scale factor here accordingly so that the shields have a decend distance to the ship but are smaller than 1.0 to avoid clipping)
+        self.Model.setH(0)
+        self.Model.setP(90)
+        self.Model.setPos(0,0,0)
+        self.Model.setScale(1)
         self.Model.setScale(0.8/self.Model.getBounds().getRadius())
+        self.Model.setH(180)
         self.Model.setPos(-self.Model.getBounds().getApproxCenter())
 
-class ShipModel(ModelBase):
-    def __init__(self, modelPath) -> None:
-        super().__init__(modelPath)
-        self.centreModel()
+class Enterprise(ShipBase.Ship):
+    def __init__(self) -> None:
+        super().__init__()
+        self.Model = EnterpriseModel()
+        self.setModel(self.Model)
+        self.addModule(ShipModules.TestModules.TestHull_1(self))

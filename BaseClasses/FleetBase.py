@@ -63,7 +63,7 @@ class FleetBase():
         otherwise the 'fleet' is a flotilla on the tactical map.
         """
         self._IsFleet, self._IsFlotilla = strategic, not strategic
-        self.Ships = ShipList()
+        self.Ships:'typing.List[ShipBase.ShipBase]' = ShipList()
         self.Node = p3dc.NodePath(p3dc.PandaNode(f"Central node of fleet {id(self)}"))
         self.Node.reparentTo(render())
         
@@ -79,15 +79,25 @@ class FleetBase():
     
   #endregion init and destroy
   #region manage ship list
-    def addShip(self, ship):
-        # type: (ShipBase.ShipBase) -> None
+    def addShip(self, ship:'ShipBase.ShipBase'):
         self.Ships.append(ship)
         ship.reparentTo(self)
+        self.arrangeShips()
+    
+    def removeShip(self, ship:'ShipBase.ShipBase'):
+        if ship in self.Ships:
+            self.Ships.remove(ship)
+            if self.Ships: self.arrangeShips()
+        else:
+            NC(1,"SHIP WAS NOT IN SHIP LIST") #TODO: give more info
   #endregion manage ship list
   #region Turn and Selection
     def startTurn(self): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
         self.MovePoints = self.MovePoints_max
         self.ActiveTurn = True
+        
+        for i in self.Ships:
+            i.handleNewTurn()
         
         #self.healAtTurnStart()
         
@@ -318,122 +328,24 @@ class FleetBase():
         #    i.highlight(highlight)
         ##TODO: TEMPORARY
   #endregion Highlighting
-  #region Effects
-    def init_effects(self): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
-        self.ExplosionEffect = None
-        self.ExplosionEffect2 = None
-    
-    def explode(self): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
-        #CRITICAL: The ship should already count as destroyed at this point (thus before the animation is played)
-        #           Otherwise it is still possible to accidentally attack "the explosion" when giving orders hastily
-        #           Maybe the destroy method should take a time in seconds. Then all the removal of game logic is handled before the nodes are destroyed.
-        #               The timer should then be started at the start of the function so that the removal of the game logic does not desync the timer.
-        #               I like it that the Unit is deselected only after the explosion so that the UI stays up during the explosion (this way one can see the overkill damage). This effect should be kept.
-        #           Reminder: Removing the game logic also includes to make it impossible to give orders to the ship. (At the time of writing this you can move the explosion around... which looks kinda funny...)
-        self.Destroyed = True
-        explosionDuration = 1.0
-        self.Model.setColor((0.1,0.1,0.1,1))
-        
-        self.ExplosionEffect = loader().loadModel("Models/Simple Geometry/sphere.ply")
-        colour = App().PenColours["Orange"].color()
-        colour.setAlphaF(0.6)
-        self.ExplosionEffect.setColor(ape.colour(colour))
-        self.ExplosionEffect.setTransparency(p3dc.TransparencyAttrib.MAlpha)
-        #self.ExplosionEffect.setSize(0.1)
-        self.ExplosionEffect.reparentTo(self.Node)
-        self.ExplosionEffect.scaleInterval(explosionDuration, 1.5, 0.1).start()
-        
-        self.ExplosionEffect2 = loader().loadModel("Models/Simple Geometry/sphere.ply")
-        colour = App().PenColours["Red"].color()
-        #colour.setAlphaF(0.5)
-        self.ExplosionEffect2.setColor(ape.colour(colour))
-        #self.ExplosionEffect2.setTransparency(p3dc.TransparencyAttrib.MAlpha)
-        #self.ExplosionEffect2.setSize(0.1)
-        self.ExplosionEffect2.reparentTo(self.Node)
-        self.ExplosionEffect2.scaleInterval(explosionDuration, 1.1, 0.05).start()
-        
-        base().taskMgr.doMethodLater(explosionDuration, self.destroy, str(id(self)))
-        
-    def fireLaserEffectAt(self, unit, hit=True): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
-        # type: (FleetBase, bool) -> None
-        laserEffect = loader().loadModel("Models/Simple Geometry/rod.ply")
-        try:
-            laserEffect.reparentTo(self.Node)
-            #laserEffect.setZ(1.5)
-            # This prevents lights from affecting this particular node
-            laserEffect.setLightOff()
-            
-            hitPos = unit.Model.getPos(render())
-            beamLength = (hitPos - self.Model.getPos(render())).length()
-            if not hit:
-                beamLength += 1
-            #laserEffect.setZ(beamLength/2)
-            laserEffect.setScale(0.02,beamLength,0.02)
-            colour = App().PenColours["Orange"].color()
-            laserEffect.setColor(ape.colour(colour))
-            if not hit:
-                miss = np.random.random_sample()
-                miss1s = 1 if np.random.random_sample() > 0.5 else -1
-                miss2s = 1 if np.random.random_sample() > 0.5 else -1
-                miss1o = np.random.random_sample()*0.3-0.15
-                miss2o = np.random.random_sample()*0.3-0.15
-                laserEffect.setH(20*miss1s*(miss+miss1o))
-                laserEffect.setP(20*miss2s*(1-miss+miss2o))
-        finally:
-            #base().taskMgr.doMethodLater(1, lambda task: self._removeNode(laserEffect), str(id(laserEffect)))
-            self.removeNode(laserEffect, 1)
-            
-    def showShield(self, time = 1): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
-        
-        shieldEffect = loader().loadModel("Models/Simple Geometry/sphere.ply")
-        try:
-            if self.HP_Shields >= self.HP_Shields_max / 2:
-                c = "Green"
-            elif self.HP_Shields >= self.HP_Shields_max / 4:
-                c = "Orange"
-            else:
-                c = "Red"
-            colour = App().PenColours[c].color()
-            colour.setAlphaF(0.3)
-            shieldEffect.setColor(ape.colour(colour))
-            shieldEffect.setTransparency(p3dc.TransparencyAttrib.MAlpha)
-            #shieldEffect.setSize(0.1)
-            shieldEffect.reparentTo(self.Node)
-            
-            bounds = self.Model.getTightBounds()
-            bounds = (bounds[1]-bounds[0])
-            shieldEffect.setScale(bounds)
-            #shieldEffect.setSx()
-            #shieldEffect.setSy()
-            #shieldEffect.setSz()
-            
-            shieldEffect.show()
-        finally:
-            self.removeNode(shieldEffect, time)
-        
-    
-  #endregion Effects
-  #region Display Information
-    def diplayStats(self, display=True): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
-        if display:
-            text = textwrap.dedent(f"""
-            Name: {self.Name}
-            Team: {self.Team}
-            Positions: {self.hex().Coordinates}
-            
-            Movement Points: {self.MovePoints}/{self.MovePoints_max}
-            """)
-            
-            #Hull: {self.HP_Hull}/{self.HP_Hull_max} (+{self.HP_Hull_Regeneration} per turn (halfed if the ship took a single hit that dealt at least {self.NoticeableDamage} damage last turn))
-            #Shields: {self.HP_Shields}/{self.HP_Shields_max} (+{self.HP_Shields_Regeneration} per turn (halfed if the ship took a single hit that dealt at least {self.NoticeableDamage} damage last turn))
-            get.window().UnitStatDisplay.Text.setText(text)
-        else:
-            get.window().UnitStatDisplay.Text.setText("No unit selected")
-  #endregion Display Information
   #region model
     def arrangeShips(self): #TODO: OVERHAUL
-        for i in self.Ships:
-            i.setPos(0,0,0)
+        # https://github.com/topics/packing-algorithm?o=desc&s=forks
+        # https://github.com/jerry800416/3D-bin-packing
+        num = len(self.Ships)
+        if num is 1:
+            self.Ships[0].setPos(0,0,0)
+        else:
+            maxSize = max([i.Model.Model.getBounds().getRadius() for i in self.Ships])
+            #maxSize = [0,0,0]
+            #for i in self.Ships:
+            #    bounds = i.Model.Model.getTightBounds()
+            #    bounds = (bounds[1]-bounds[0])
+            #    maxSize = [max(maxSize[i],bounds[i]) for i in range(3)]
+            for i,s in enumerate(self.Ships):
+                s.Model.resetModel()
+                s.setPos((1/num)*((num-1)/2-i),0,0)
+                s.Model.Model.setScale((0.8/num)/(s.Model.Model.getBounds().getRadius()))
   #endregion model
   #region ...
     #def ___(self,):
@@ -460,3 +372,32 @@ class Flotilla(FleetBase):
     """
     def __init__(self) -> None:
         super().__init__(strategic=False)
+    
+  #region Combat Offensive
+    def attack(self, targetFlotilla: 'Flotilla'):
+        for i in self.Ships:
+            target:ShipBase.ShipBase = random.choice(targetFlotilla.Ships)
+            hit , targetDestroyed, damageDealt = target.takeDamage(50,0.9)
+            i.fireLaserEffectAt(target, hit)
+            if targetDestroyed:
+                self.highlightRanges()
+    
+  #endregion Combat Offensive
+    
+  #region Display Information
+    def diplayStats(self, display=True): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
+        if display:
+            text = textwrap.dedent(f"""
+            Name: {self.Name}
+            Team: {self.Team}
+            Positions: {self.hex().Coordinates}
+            
+            Movement Points: {self.MovePoints}/{self.MovePoints_max}
+            """)
+            
+            #Hull: {self.HP_Hull}/{self.HP_Hull_max} (+{self.HP_Hull_Regeneration} per turn (halfed if the ship took a single hit that dealt at least {self.NoticeableDamage} damage last turn))
+            #Shields: {self.HP_Shields}/{self.HP_Shields_max} (+{self.HP_Shields_Regeneration} per turn (halfed if the ship took a single hit that dealt at least {self.NoticeableDamage} damage last turn))
+            get.window().UnitStatDisplay.Text.setText(text)
+        else:
+            get.window().UnitStatDisplay.Text.setText("No unit selected")
+  #endregion Display Information

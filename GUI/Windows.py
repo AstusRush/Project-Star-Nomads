@@ -99,10 +99,38 @@ self.Pawn = Unit((25,24),name="USS Enterprise",model="/Users/Robin/Desktop/Proje
 self.Pawn2 = Unit((25,26),name="USS Galaxy",model="/Users/Robin/Desktop/Projects/AstusGameEngine_dev/3DModels/NCC-1701-D.gltf")
 """
 TEMP_CODE = """
-self.Fleet = FleetBase.FleetBase()
-self.Ship = ShipBase.ShipBase()
+self.Fleet = FleetBase.Flotilla()
+
+self.Ship = Ships.TestShips.Enterprise()
 self.Fleet.addShip(self.Ship)
+
+self.Ship = Ships.TestShips.Enterprise()
+self.Fleet.addShip(self.Ship)
+
+self.Ship = Ships.TestShips.Enterprise()
+self.Fleet.addShip(self.Ship)
+
+self.Fleet.moveToHex(self.getHex((25,25)))
+"""
+
+
+TEMP_CODE_OLD = """
+self.Fleet = FleetBase.Flotilla()
+
+self.Ship = ShipBase.Ship()
 self.Model = ModelBase.EnterpriseModel()
 self.Ship.setModel(self.Model)
+self.Fleet.addShip(self.Ship)
+
+self.Ship = ShipBase.Ship()
+self.Model = ModelBase.EnterpriseModel()
+self.Ship.setModel(self.Model)
+self.Fleet.addShip(self.Ship)
+
+self.Ship = ShipBase.Ship()
+self.Model = ModelBase.EnterpriseModel()
+self.Ship.setModel(self.Model)
+self.Fleet.addShip(self.Ship)
+
 self.Fleet.moveToHex(self.getHex((25,25)))
 """
