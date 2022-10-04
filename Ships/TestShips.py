@@ -56,9 +56,8 @@ from BaseClasses import FleetBase
 import ShipModules
 
 class EnterpriseModel(ModelBase.ShipModel):
-    def __init__(self) -> None:
-        super().__init__("tempModels/NCC-1701-D.gltf")
-        
+    ModelPath = "tempModels/NCC-1701-D.gltf"
+    IconPath = "/home/astus/Games/gog/star-trek-armada-ii/drive_c/GOG Games/Star Trek Armada II/Textures/RGB/gbfgalaxy.tga"
     def resetModel(self):
         self.Model.setH(0) #TODO: Reset all rotations
         self.Model.setPos(0,0,0)
@@ -76,8 +75,14 @@ class EnterpriseModel(ModelBase.ShipModel):
         self.Model.setPos(-self.Model.getBounds().getApproxCenter())
 
 class Enterprise(ShipBase.Ship):
+    Name = "Enterprise"
+    ClassName = "Galaxy Class"
     def __init__(self) -> None:
         super().__init__()
         self.Model = EnterpriseModel()
         self.setModel(self.Model)
-        self.addModule(ShipModules.TestModules.TestHull_1(self))
+        self.addModule(ShipModules.TestModules.TestHull_M(self))
+        self.addModule(ShipModules.TestModules.TestShield_L(self))
+        self.addModule(ShipModules.TestModules.TestShield_S(self))
+        self.addModule(ShipModules.TestModules.TestBeam_S(self))
+        self.addModule(ShipModules.TestModules.TestBeam_S(self))

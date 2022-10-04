@@ -64,6 +64,7 @@ class MainWindowClass(ape.APELabWindow):#APEWindow):
         #self.genCB.setText("Use seed 6")
         #genLayout.addWidget(self.genCB)
         self.EndTurnButton = AGeWidgets.Button(self,"End Turn",lambda: unitManager().endTurn())
+        base().accept("control-enter",lambda: unitManager().endTurn()) # ctrl + Enter
         genLayout.addWidget(self.EndTurnButton)
         
         self.genWidget.setLayout(genLayout)
@@ -75,7 +76,7 @@ class MainWindowClass(ape.APELabWindow):#APEWindow):
         self.Console1.setText(TEMP_CODE)
         self.Console2.setText("self.Pawn.takeDamage(400)\n\n#for i in unitManager().Teams[1]:\n#\ti.takeDamage(400,2)\n#\ti.takeDamage(400,2)\n")
         
-        self.UnitStatDisplay = WidgetsBase.ShipStats(self)
+        self.UnitStatDisplay = WidgetsBase.FleetStats(self)
         self.TabWidget.addTab(self.UnitStatDisplay, "Unit Stats")
     
     def gen(self):
@@ -99,18 +100,41 @@ self.Pawn = Unit((25,24),name="USS Enterprise",model="/Users/Robin/Desktop/Proje
 self.Pawn2 = Unit((25,26),name="USS Galaxy",model="/Users/Robin/Desktop/Projects/AstusGameEngine_dev/3DModels/NCC-1701-D.gltf")
 """
 TEMP_CODE = """
-self.Fleet = FleetBase.Flotilla()
+self.Fleet1 = FleetBase.Flotilla()
+self.Fleet1.Name = "Fleet 1"
 
-self.Ship = Ships.TestShips.Enterprise()
-self.Fleet.addShip(self.Ship)
+self.Ship11 = Ships.TestShips.Enterprise()
+self.Ship11.Name = "Enterprise 11"
+self.Fleet1.addShip(self.Ship11)
 
-self.Ship = Ships.TestShips.Enterprise()
-self.Fleet.addShip(self.Ship)
+self.Ship12 = Ships.TestShips.Enterprise()
+self.Ship12.Name = "Enterprise 12"
+self.Fleet1.addShip(self.Ship12)
 
-self.Ship = Ships.TestShips.Enterprise()
-self.Fleet.addShip(self.Ship)
+self.Ship13 = Ships.TestShips.Enterprise()
+self.Ship13.Name = "Enterprise 13"
+self.Fleet1.addShip(self.Ship13)
 
-self.Fleet.moveToHex(self.getHex((25,25)))
+self.Fleet1.moveToHex(self.getHex((25,25)))
+
+###########################################
+
+self.Fleet2 = FleetBase.Flotilla()
+self.Fleet2.Name = "Fleet 2"
+
+self.Ship21 = Ships.TestShips.Enterprise()
+self.Ship21.Name = "Enterprise 21"
+self.Fleet2.addShip(self.Ship21)
+
+self.Ship22 = Ships.TestShips.Enterprise()
+self.Ship22.Name = "Enterprise 22"
+self.Fleet2.addShip(self.Ship22)
+
+self.Ship23 = Ships.TestShips.Enterprise()
+self.Ship23.Name = "Enterprise 23"
+self.Fleet2.addShip(self.Ship23)
+
+self.Fleet2.moveToHex(self.getHex((25,24)))
 """
 
 

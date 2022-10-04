@@ -52,8 +52,9 @@ from BaseClasses import get
 from BaseClasses import HexBase
 
 class ModelBase():
-    def __init__(self, modelPath) -> None:
-        self.ModelPath = modelPath
+    IconPath = ""
+    "tempModels/NCC-1701-D.gltf"
+    def __init__(self) -> None:
         self.Model:p3dc.NodePath = None
         self._init_model()
         
@@ -89,6 +90,6 @@ class ModelBase():
         self.Model.setPos(-self.Model.getBounds().getApproxCenter())
 
 class ShipModel(ModelBase):
-    def __init__(self, modelPath) -> None:
-        super().__init__(modelPath)
+    def __init__(self) -> None:
+        super().__init__()
         self.centreModel()

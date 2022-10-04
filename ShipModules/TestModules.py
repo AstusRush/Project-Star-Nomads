@@ -54,18 +54,29 @@ from BaseClasses import ModelBase
 from BaseClasses import BaseModules
 from BaseClasses import FleetBase
 
-class TestHull_1(BaseModules.Hull):
-    def __init__(self, ship:ShipBase.ShipBase) -> None:
-        super().__init__(ship)
-        self.Evasion = 0.1
-        self.HP_Hull_max = 200
-        self.HP_Hull = self.HP_Hull_max
-        self.HP_Hull_Regeneration = self.HP_Hull_max / 20
-        self.NoticeableDamage = self.HP_Hull_max / 10
-    
-    def handleNewTurn(self):
-        self.healAtTurnStart()
-    
-    def healAtTurnStart(self):
-        regenFactor = 1 if not self.ship().WasHitLastTurn else 0.5
-        self.HP_Hull = min(self.HP_Hull + self.HP_Hull_Regeneration*regenFactor , self.HP_Hull_max)
+class TestHull_M(BaseModules.Hull):
+    Name = "TestHull_M"
+    Evasion = 0.1
+    HP_Hull_max = 100
+    HP_Hull = HP_Hull_max
+    HP_Hull_Regeneration = HP_Hull_max / 20
+    NoticeableDamage = HP_Hull_max / 10
+
+class TestShield_L(BaseModules.Shield):
+    Name = "TestShield_L"
+    HP_Shields_max = 400
+    HP_Shields = HP_Shields_max
+    HP_Shields_Regeneration = HP_Shields_max / 8
+
+class TestShield_S(BaseModules.Shield):
+    Name = "TestShield_S"
+    HP_Shields_max = 100
+    HP_Shields = HP_Shields_max
+    HP_Shields_Regeneration = HP_Shields_max / 8
+
+class TestBeam_S(BaseModules.Weapon_Beam):
+    Name = "TestBeam_S"
+    Damage = 50
+    Accuracy = 1
+    ShieldFactor = 1
+    HullFactor = 1

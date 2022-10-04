@@ -53,13 +53,53 @@ if TYPE_CHECKING:
     from BaseClasses import BaseModules
 from BaseClasses import HexBase
 from BaseClasses import ModelBase
+from GUI import WidgetsBase
+
+class ShipsStats():
+    def __init__(self, ship:'ShipBase') -> None:
+        self.ship = weakref.ref(ship)
+    
+    @property
+    def HP_Hull(self) -> float:
+        return self.ship().hull().HP_Hull
+    
+    @HP_Hull.setter
+    def HP_Hull(self, value:float):
+        self.ship().hull().HP_Hull = value
+    
+    @property
+    def HP_Hull_max(self) -> float:
+        return self.ship().hull().HP_Hull_max
+    
+    @property
+    def HP_Shields(self) -> float:
+        return sum([i.HP_Shields for i in self.ship().Shields])
+    
+    @HP_Shields.setter
+    def HP_Shields(self, value:float):
+        for i in self.ship().Shields:
+            i.HP_Shields = value/len(self.ship().Shields) #TODO: This is absolutely terrible and does not work!!! It should be percentage based for all shield generators!
+    
+    @property
+    def HP_Shields_max(self) -> float:
+        return sum([i.HP_Shields_max for i in self.ship().Shields])
+    
+    @property
+    def HP_Shields_Regeneration(self) -> float:
+        return sum([i.HP_Shields_Regeneration for i in self.ship().Shields])
 
 class ShipBase():
+    Name = "Unnamed Entity (ShipBase)"
+    ClassName = "Unnamed Entity Class (ShipBase)"
   #region init and destroy
     def __init__(self) -> None:
+        self.Interface = WidgetsBase.ShipInterface(self)
+        self.Stats = ShipsStats(self)
         self.fleet = None # type: weakref.ref['FleetBase.FleetBase']
         self.Model: ModelBase.ModelBase = None
         self.hull: 'weakref.ref[BaseModules.Hull]' = None
+        self.Shields: 'typing.List[BaseModules.Shield]' = []
+        self.Weapons: 'typing.List[BaseModules.Weapon]' = []
         self.Node = p3dc.NodePath(p3dc.PandaNode(f"Central node of ship {id(self)}"))
         self.Node.reparentTo(render())
         self.Modules:'typing.List[BaseModules.Module]' = []
@@ -76,26 +116,19 @@ class ShipBase():
         # self.HP_Hull = self.HP_Hull_max
         # self.HP_Hull_Regeneration = self.HP_Hull_max / 20
         # self.NoticeableDamage = self.HP_Hull_max / 10
-        self.HP_Shields_max = 400
-        self.HP_Shields = self.HP_Shields_max
-        self.HP_Shields_Regeneration = self.HP_Shields_max / 8
+        # self.HP_Shields_max = 400
+        # self.HP_Shields = self.HP_Shields_max
+        # self.HP_Shields_Regeneration = self.HP_Shields_max / 8
         self.WasHitLastTurn = False
         self.ShieldsWereOffline = False
   #endregion init and destroy
-  #region Properties
-    @property
-    def HP(self):
-        return self.hull().HP_Hull
-    
-    @HP.setter
-    def HP(self, value):
-        self.hull().HP_Hull = value
-    
-  #endregion Properties
   #region Management
-    def handleNewTurn(self):
+    def handleNewCombatTurn(self):
         for i in self.Modules:
-            i.handleNewTurn()
+            i.handleNewCombatTurn()
+        self.WasHitLastTurn = False
+        if self.ShieldsWereOffline:
+            self.ShieldsWereOffline = False
     
     def addModule(self, module:'BaseModules.Module'):
         from BaseClasses import BaseModules
@@ -103,11 +136,34 @@ class ShipBase():
         if isinstance(module, BaseModules.Hull):
             if self.hull: self.Modules.remove(self.hull())
             self.hull = weakref.ref(module)
-        #match module:
-        #    case BaseModules.Hull():
-        #        if self.hull: self.Modules.remove(self.hull())
-        #        self.hull = weakref.ref(module)
+        if hasattr(module, "HP_Shields"):
+            self.Shields.append(module)
+        if isinstance(module, BaseModules.Weapon):
+            self.Weapons.append(module)
+    
+    def removeModule(self, module:'BaseModules.Module'):
+        from BaseClasses import BaseModules
+        self.Modules.remove(module)
+        if module is self.hull():
+            self.hull = None
+        if hasattr(module, "HP_Shields"):
+            self.Shields.remove(module)
+        if isinstance(module, BaseModules.Weapon):
+            self.Weapons.remove(module)
   #endregion Management
+  #region Interface
+    def getCombatInterface(self) -> QtWidgets.QWidget: #TODO: Update this name as there are now 2 Combat interfaces - the QuickView and the detailed view
+        return WidgetsBase.ShipQuickView(self)
+        #return self.Interface.getCombatInterface()
+    
+    def updateCombatInterface(self):
+        self.Interface.updateCombatInterface()
+  #endregion Interface
+  #region Interaction
+    def attack(self, hex:'HexBase._Hex'):
+        for i in self.Weapons:
+            i.attack(hex)
+  #endregion Interaction
   #region model
     def reparentTo(self, fleet):
         # type: (FleetBase.FleetBase) -> None
@@ -123,7 +179,7 @@ class ShipBase():
         self.Model = model
         self.Model.Node.reparentTo(self.Node)
         self.Model.Node.setPos(0,0,0)
-        
+    
     def setPos(self, *args):
         self.Node.setPos(*args)
   #endregion model
@@ -172,42 +228,13 @@ class ShipBase():
         
         base().taskMgr.doMethodLater(explosionDuration, self.destroy, str(id(self)))
     
-    def fireLaserEffectAt(self, unit:'ShipBase', hit:bool=True): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
-        #TODO: Align the laser towards the target ship so that multiship flotillas look better
-        laserEffect:p3dc.NodePath = loader().loadModel("Models/Simple Geometry/rod.ply")
-        try:
-            laserEffect.reparentTo(self.Node)
-            #laserEffect.setZ(1.5)
-            # This prevents lights from affecting this particular node
-            laserEffect.setLightOff()
-            
-            hitPos = unit.Node.getPos(render())
-            beamLength = (hitPos - self.Model.Model.getPos(render())).length()
-            if not hit:
-                beamLength += 1
-            #laserEffect.setZ(beamLength/2)
-            laserEffect.setScale(0.02,beamLength,0.02)
-            colour = App().PenColours["Orange"].color()
-            laserEffect.setColor(ape.colour(colour))
-            if not hit:
-                miss = np.random.random_sample()
-                miss1s = 1 if np.random.random_sample() > 0.5 else -1
-                miss2s = 1 if np.random.random_sample() > 0.5 else -1
-                miss1o = np.random.random_sample()*0.3-0.15
-                miss2o = np.random.random_sample()*0.3-0.15
-                laserEffect.setH(20*miss1s*(miss+miss1o))
-                laserEffect.setP(20*miss2s*(1-miss+miss2o))
-        finally:
-            #base().taskMgr.doMethodLater(1, lambda task: self._removeNode(laserEffect), str(id(laserEffect)))
-            self.removeNode(laserEffect, 1)
-    
     def showShield(self, time = 1): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
         
         shieldEffect:p3dc.NodePath = loader().loadModel("Models/Simple Geometry/sphere.ply")
         try:
-            if self.HP_Shields >= self.HP_Shields_max / 2:
+            if self.Stats.HP_Shields >= self.Stats.HP_Shields_max / 2:
                 c = "Green"
-            elif self.HP_Shields >= self.HP_Shields_max / 4:
+            elif self.Stats.HP_Shields >= self.Stats.HP_Shields_max / 4:
                 c = "Orange"
             else:
                 c = "Red"
@@ -233,16 +260,16 @@ class ShipBase():
   #endregion Effects
   #region Combat Defensive
     
-    def healAtTurnStart(self):
-        #TODO: This should be 2 methods: One that calculates the healing and one that the first one and then actually updates the values. This way the first method can be used to display a prediction to the user
-        #REMINDER: When displaying this to the user there should also be a short text explaining that taking noticeable damage halves the regeneration for one turn and that shields need one turn to restart after being taken down.
-        regenFactor = 1 if not self.WasHitLastTurn else 0.5
-        # self.HP_Hull = min(self.HP_Hull + self.HP_Hull_Regeneration*regenFactor , self.HP_Hull_max)
-        if self.ShieldsWereOffline:
-            self.ShieldsWereOffline = False
-        else:
-            self.HP_Shields = min(self.HP_Shields + self.HP_Shields_Regeneration*regenFactor , self.HP_Shields_max)
-        self.WasHitLastTurn = False
+    #def healAtTurnStart(self):
+    #    #TODO: This should be 2 methods: One that calculates the healing and one that the first one and then actually updates the values. This way the first method can be used to display a prediction to the user
+    #    #REMINDER: When displaying this to the user there should also be a short text explaining that taking noticeable damage halves the regeneration for one turn and that shields need one turn to restart after being taken down.
+    #    regenFactor = 1 if not self.WasHitLastTurn else 0.5
+    #    # self.HP_Hull = min(self.HP_Hull + self.HP_Hull_Regeneration*regenFactor , self.HP_Hull_max)
+    #    #if self.ShieldsWereOffline:
+    #    #    self.ShieldsWereOffline = False
+    #    #else:
+    #    #    self.Stats.HP_Shields = min(self.Stats.HP_Shields + self.Stats.HP_Shields_Regeneration*regenFactor , self.Stats.HP_Shields_max)
+    #    #self.WasHitLastTurn = False
     
     def takeDamage(self, damage:float, accuracy:float = 1 ,shieldFactor:float = 1, normalHullFactor:float = 1, shieldPiercing:bool = False) -> typing.Tuple[bool,bool,float]:
         """
@@ -256,16 +283,16 @@ class ShipBase():
         finalDamage = 0
         destroyed = False
         if hit:
-            if shieldPiercing or self.HP_Shields <= 0:
+            if shieldPiercing or self.Stats.HP_Shields <= 0:
                 finalDamage = damage*normalHullFactor
-                self.HP -= finalDamage
-                if self.HP <= 0:
+                self.Stats.HP_Hull -= finalDamage
+                if self.Stats.HP_Hull <= 0:
                     destroyed = True
             else:
                 finalDamage = damage*shieldFactor
-                self.HP_Shields -= finalDamage
-                if self.HP_Shields <= 0:
-                    self.HP_Shields = 0
+                self.Stats.HP_Shields -= finalDamage
+                if self.Stats.HP_Shields <= 0:
+                    self.Stats.HP_Shields = 0
                     self.ShieldsWereOffline = True
                 self.showShield()
             self.WasHitLastTurn = finalDamage >= self.hull().NoticeableDamage
@@ -303,23 +330,6 @@ class ShipBase():
         self.Node.removeNode()
     
   #endregion Combat Defensive
-  #region Display Information
-    def diplayStats(self, display=True): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
-        if display:
-            text = textwrap.dedent(f"""
-            Name: {self.fleet().Name}
-            Team: {self.fleet().Team}
-            Positions: {self.fleet().hex().Coordinates}
-            
-            Movement Points: {self.fleet().MovePoints}/{self.fleet().MovePoints_max}
-            """)
-            
-            #Hull: {self.HP_Hull}/{self.HP_Hull_max} (+{self.HP_Hull_Regeneration} per turn (halfed if the ship took a single hit that dealt at least {self.NoticeableDamage} damage last turn))
-            #Shields: {self.HP_Shields}/{self.HP_Shields_max} (+{self.HP_Shields_Regeneration} per turn (halfed if the ship took a single hit that dealt at least {self.NoticeableDamage} damage last turn))
-            get.window().UnitStatDisplay.Text.setText(text)
-        else:
-            get.window().UnitStatDisplay.Text.setText("No unit selected")
-  #endregion Display Information
   #region ...
     #def ___(self,):
   #endregion ...

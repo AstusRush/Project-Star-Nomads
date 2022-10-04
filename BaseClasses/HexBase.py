@@ -297,14 +297,14 @@ class _Hex():
             mesh = "Models/Simple Geometry/hexagon.ply"
             meshRing = "Models/Simple Geometry/hexagonRing.ply"
             # Load, parent, colour, and position the model (a hexagon-shaped ring consisting of 6 polygons)
-            self.Model = loader().loadModel(meshRing)
+            self.Model:p3dc.NodePath = loader().loadModel(meshRing)
             self.Model.reparentTo(root)
             self.Model.setPos(self.Pos)
             if self.TransparentHexRings:
                 self.Model.setTransparency(p3dc.TransparencyAttrib.MAlpha)
             self._setColor(self.Colour)
             # Load, parent, hide, and position the face (a single hexagon polygon)
-            self.Face = loader().loadModel(mesh)
+            self.Face:p3dc.NodePath = loader().loadModel(mesh)
             self.Face.reparentTo(self.Model)
             self.Face.setPos(p3dc.LPoint3((0,0,-0.01)))
             self._setColorFace(self.CurrentColour_Face)

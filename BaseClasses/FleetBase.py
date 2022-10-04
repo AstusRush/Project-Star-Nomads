@@ -67,15 +67,37 @@ class FleetBase():
         self.Node = p3dc.NodePath(p3dc.PandaNode(f"Central node of fleet {id(self)}"))
         self.Node.reparentTo(render())
         
-        #TEMPORARY
+        self.Widget = None
+        
         self.Name = "name"
         self.Team = 1
         self.Destroyed = False
+        
+        #TEMPORARY
         self.MovePoints_max = 6 #float("inf") #10
         self.MovePoints = self.MovePoints_max
         self.hex: weakref.ref['HexBase._Hex'] = None
         self.ActiveTurn = 1 == 1
         get.unitManager().Teams[self.Team].append(self)
+    
+    def destroy(self):
+        self.Destroyed = True
+        try:
+            get.unitManager().Teams[self.Team].remove(self)
+        except:
+            if self in get.unitManager().Teams[self.Team]:
+                raise
+        self.__del__()
+    
+    def __del__(self):
+        self.Destroyed = True
+        if self.isSelected():
+            get.unitManager().selectUnit(None)
+        if self.hex:
+            if self.hex().fleet:
+                if self.hex().fleet() is self:
+                    self.hex().fleet = None
+        self.Node.removeNode()
     
   #endregion init and destroy
   #region manage ship list
@@ -90,6 +112,8 @@ class FleetBase():
             if self.Ships: self.arrangeShips()
         else:
             NC(1,"SHIP WAS NOT IN SHIP LIST") #TODO: give more info
+        if not self.Ships:
+            self.destroy()
   #endregion manage ship list
   #region Turn and Selection
     def startTurn(self): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
@@ -97,13 +121,15 @@ class FleetBase():
         self.ActiveTurn = True
         
         for i in self.Ships:
-            i.handleNewTurn()
+            i.handleNewCombatTurn()
+        if self.isSelected():
+            self.diplayStats(True)
         
         #self.healAtTurnStart()
-        
+    
     def endTurn(self): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
         self.ActiveTurn = False
-        
+    
     def isSelected(self): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
         return get.unitManager().isSelectedUnit(self)
     
@@ -127,14 +153,15 @@ class FleetBase():
         if hex.fleet:
             self.lookAt(hex)
             if not ( hex.fleet() is self ): #TODO: Teams check
-                self.attack(hex.fleet())
+                self.attack(hex)
+                self.highlightRanges(True)
             return False
         else:
             return self.moveTo(hex)
     
   #endregion Interaction
   #region Movement
-    def moveToHex(self, hex:'HexBase._Hex', animate= True): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
+    def moveToHex(self, hex:'HexBase._Hex', animate=True): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
         self.Coordinates = hex.Coordinates
         if hex.fleet:
             raise HexBase.HexOccupiedException(hex)
@@ -152,25 +179,27 @@ class FleetBase():
             if hex.fleet() != self: #TODO: We have a serious problem when this occurs. What do we do in that case?
                 raise Exception("Could not assign unit to Hex")
             self.hex = weakref.ref(hex)
-        
+    
     def _navigable(self, hex:'HexBase._Hex'): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
         return (not bool(hex.fleet)) and hex.Navigable
-        
+    
     def _tileCost(self, hex:'HexBase._Hex'): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
         return 1
-        
+    
     def lookAt(self, hex:'HexBase._Hex'): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
         lastAngle = self.Node.getHpr()[0]
         theta = np.arctan2(hex.Pos[0] - self.hex().Pos[0], self.hex().Pos[1] - hex.Pos[1])
         if (theta < 0.0):
             theta += 2*np.pi
         angle = np.rad2deg(theta) + 180
-        #INVESTIGATE: Why do I need to add 180°? The formula above should be correct and the 180° should be wrong here but whitout adding them the object looks in the wrong direction...
-        #       .lookAt makes the object look in the correct direction therefore the object itself is not modeled to look in the wrong direction.
+        #INVESTIGATE: Why do I need to add 180°? The formula above should be correct and the 180° should be wrong here but without adding them the object looks in the wrong direction...
+        #       .lookAt makes the object look in the correct direction therefore the object itself is not modelled to look in the wrong direction.
         #       Furthermore I can pretty much rule out that the further processing of the angle is wrong since the 180° were necessary even before the processing was added.
         #       Thereby the formula must be mistaken, which, as mentioned, should be the correct formula... So where is the problem?!?
         angleBefore, angleAfter = self.improveRotation(lastAngle,angle)
         self.Node.hprInterval(abs(angleBefore - angleAfter)/(360), (angleAfter,0,0), (angleBefore,0,0)).start()
+        #CRITICAL: In order to not break other animations we must usually wait before other animations until this animation is completed. How can we do that!?!
+        #       This will probably be necessary for other animations, too... For example a ship should only explode once a rocket has hit it - not when the rocket was fired by the other ship...
     
     def moveTo(self, hex:'HexBase._Hex'): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
         if not self._navigable(hex):
@@ -347,13 +376,6 @@ class FleetBase():
                 s.setPos((1/num)*((num-1)/2-i),0,0)
                 s.Model.Model.setScale((0.8/num)/(s.Model.Model.getBounds().getRadius()))
   #endregion model
-  #region ...
-    #def ___(self,):
-  #endregion ...
-  #region ...
-    #def ___(self,):
-  #endregion ...
-        
 
 class Fleet(FleetBase):
     """
@@ -374,30 +396,45 @@ class Flotilla(FleetBase):
         super().__init__(strategic=False)
     
   #region Combat Offensive
-    def attack(self, targetFlotilla: 'Flotilla'):
+    def attack(self, target: 'HexBase._Hex'):
         for i in self.Ships:
-            target:ShipBase.ShipBase = random.choice(targetFlotilla.Ships)
-            hit , targetDestroyed, damageDealt = target.takeDamage(50,0.9)
-            i.fireLaserEffectAt(target, hit)
-            if targetDestroyed:
-                self.highlightRanges()
+            if not i.Destroyed:
+                i.attack(target)
+        # Re-highlight everything in case the target was destroyed or moved by the attack or a ship with an inhibitor was destroyed
+        self.highlightRanges()
     
   #endregion Combat Offensive
     
   #region Display Information
-    def diplayStats(self, display=True): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
+    def diplayStats(self, display=True, forceRebuild=False):
         if display:
+            if forceRebuild or not self.Widget:
+                get.window().UnitStatDisplay.addWidget(self.getCombatInterface())
+            else:
+                for i in self.Ships:
+                    i.updateCombatInterface()
             text = textwrap.dedent(f"""
             Name: {self.Name}
             Team: {self.Team}
             Positions: {self.hex().Coordinates}
-            
             Movement Points: {self.MovePoints}/{self.MovePoints_max}
             """)
-            
-            #Hull: {self.HP_Hull}/{self.HP_Hull_max} (+{self.HP_Hull_Regeneration} per turn (halfed if the ship took a single hit that dealt at least {self.NoticeableDamage} damage last turn))
-            #Shields: {self.HP_Shields}/{self.HP_Shields_max} (+{self.HP_Shields_Regeneration} per turn (halfed if the ship took a single hit that dealt at least {self.NoticeableDamage} damage last turn))
-            get.window().UnitStatDisplay.Text.setText(text)
+            # Hull HP: {[f"{i.Stats.HP_Hull}/{i.Stats.HP_Hull_max}" for i in self.Ships]}
+            # Shield HP: {[f"{i.Stats.HP_Shields}/{i.Stats.HP_Shields_max}" for i in self.Ships]}
+            #Hull: {self.HP_Hull}/{self.HP_Hull_max} (+{self.HP_Hull_Regeneration} per turn (halved if the ship took a single hit that dealt at least {self.NoticeableDamage} damage last turn))
+            #Shields: {self.HP_Shields}/{self.HP_Shields_max} (+{self.HP_Shields_Regeneration} per turn (halved if the ship took a single hit that dealt at least {self.NoticeableDamage} damage last turn))
+            #get.window().UnitStatDisplay.Text.setText(text)
+            self.Label.setText(text)
         else:
-            get.window().UnitStatDisplay.Text.setText("No unit selected")
+            #get.window().UnitStatDisplay.Text.setText("No unit selected")
+            get.window().UnitStatDisplay.removeWidget(self.Widget)
+            self.Widget = None
+    
+    def getCombatInterface(self):
+        self.Widget = AGeWidgets.TightGridFrame()
+        self.Label = self.Widget.addWidget(QtWidgets.QLabel(self.Widget))
+        for i in self.Ships:
+            self.Widget.addWidget(i.getCombatInterface())
+        return self.Widget
+    
   #endregion Display Information
