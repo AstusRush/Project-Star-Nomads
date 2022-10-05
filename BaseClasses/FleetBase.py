@@ -16,7 +16,7 @@ import weakref
 import inspect
 import importlib
 import textwrap
-from heapq import heappush, heappop
+import math
 
 # External imports
 import numpy as np
@@ -52,30 +52,29 @@ if TYPE_CHECKING:
 from BaseClasses import get
 from BaseClasses import HexBase
 
-class ShipList(list):
+class ShipList(typing.List['ShipBase.ShipBase']):
     pass
 
 class FleetBase():
   #region init and destroy
-    def __init__(self, strategic: bool = False) -> None:
+    def __init__(self, strategic: bool = False, team = 1) -> None:
         """
         If `strategic` the fleet is a fleet on the strategic map, \n
         otherwise the 'fleet' is a flotilla on the tactical map.
         """
         self._IsFleet, self._IsFlotilla = strategic, not strategic
-        self.Ships:'typing.List[ShipBase.ShipBase]' = ShipList()
+        self.Ships:ShipList = ShipList()
         self.Node = p3dc.NodePath(p3dc.PandaNode(f"Central node of fleet {id(self)}"))
         self.Node.reparentTo(render())
         
         self.Widget = None
+        self.MovementSequence:p3ddSequence = None
         
         self.Name = "name"
-        self.Team = 1
+        self.Team = team
         self.Destroyed = False
         
         #TEMPORARY
-        self.MovePoints_max = 6 #float("inf") #10
-        self.MovePoints = self.MovePoints_max
         self.hex: weakref.ref['HexBase._Hex'] = None
         self.ActiveTurn = 1 == 1
         get.unitManager().Teams[self.Team].append(self)
@@ -116,8 +115,7 @@ class FleetBase():
             self.destroy()
   #endregion manage ship list
   #region Turn and Selection
-    def startTurn(self): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
-        self.MovePoints = self.MovePoints_max
+    def startTurn(self):
         self.ActiveTurn = True
         
         for i in self.Ships:
@@ -151,10 +149,11 @@ class FleetBase():
         if self.Destroyed:
             return False
         if hex.fleet:
-            self.lookAt(hex)
-            if not ( hex.fleet() is self ): #TODO: Teams check
-                self.attack(hex)
+            if not hex.fleet() is self and not hex.fleet().Team is self.Team:
+                base().taskMgr.add(self.attack(hex))
                 self.highlightRanges(True)
+            else:
+                self.lookAt(hex)
             return False
         else:
             return self.moveTo(hex)
@@ -197,7 +196,8 @@ class FleetBase():
         #       Furthermore I can pretty much rule out that the further processing of the angle is wrong since the 180° were necessary even before the processing was added.
         #       Thereby the formula must be mistaken, which, as mentioned, should be the correct formula... So where is the problem?!?
         angleBefore, angleAfter = self.improveRotation(lastAngle,angle)
-        self.Node.hprInterval(abs(angleBefore - angleAfter)/(360), (angleAfter,0,0), (angleBefore,0,0)).start()
+        self.MovementSequence = self.Node.hprInterval(abs(angleBefore - angleAfter)/(360), (angleAfter,0,0), (angleBefore,0,0))
+        self.MovementSequence.start()
         #CRITICAL: In order to not break other animations we must usually wait before other animations until this animation is completed. How can we do that!?!
         #       This will probably be necessary for other animations, too... For example a ship should only explode once a rocket has hit it - not when the rocket was fired by the other ship...
     
@@ -248,8 +248,9 @@ class FleetBase():
                 hex.fleet = weakref.ref(self)
                 self.hex = weakref.ref(hex)
                 self.Coordinates = hex.Coordinates
-                self.MovePoints -= cost
+                self.spendMovePoints(cost)
                 self.highlightRanges(True)
+                self.MovementSequence = seq
                 if not hex.fleet: #TODO: We have a serious problem when this occurs. What do we do in that case?
                     raise Exception("Could not assign unit to Hex")
                 if not hex.fleet() == self: #TODO: We have a serious problem when this occurs. What do we do in that case?
@@ -274,7 +275,7 @@ class FleetBase():
     def moveToCoordinates(self,coordinates): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
         self.moveToHex(get.window().getHex(coordinates))
     
-    def getReachableHexes(self): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
+    def getReachableHexes(self) -> typing.Set['HexBase._Hex']: #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
         #TODO
         # This method returns a list with all the hexes that can be reached (with the current movement points) by this unit
         # Variant 1:
@@ -324,7 +325,7 @@ class FleetBase():
             mPoints = self.MovePoints if self.ActiveTurn else self.MovePoints_max # To allow calculations while it's not this unit's turn we use the MovePoints_max then
             l: typing.Set['HexBase._Hex'] = set() # Using a set instead of a list is 5% faster... which is still not fast enough
             tl: typing.List[typing.Set['HexBase._Hex']] = [set([self.hex()]),]
-            for i in range(mPoints):
+            for i in range(math.floor(mPoints)):
                 temp = set()
                 for ii in tl[i]:
                     for iii in ii.getNeighbour():
@@ -362,7 +363,7 @@ class FleetBase():
         # https://github.com/topics/packing-algorithm?o=desc&s=forks
         # https://github.com/jerry800416/3D-bin-packing
         num = len(self.Ships)
-        if num is 1:
+        if num == 1:
             self.Ships[0].setPos(0,0,0)
         else:
             maxSize = max([i.Model.Model.getBounds().getRadius() for i in self.Ships])
@@ -383,8 +384,20 @@ class Fleet(FleetBase):
     Every ship on the strategic map is part of a fleet. \n
     The fleet object coordinates the UI creation, the movement, and all other interactions of all its ships.
     """
-    def __init__(self) -> None:
-        super().__init__(strategic=True)
+    def __init__(self, team = 1) -> None:
+        super().__init__(strategic=True, team=team)
+    
+    @property
+    def MovePoints(self) -> typing.Tuple[float,float]:
+        return min([i.Stats.Movement_FTL[0] for i in self.Ships])
+    
+    def spendMovePoints(self, value:float):
+        for i in self.Ships:
+            i.Stats.spendMovePoints_FTL(value)
+    
+    @property
+    def MovePoints_max(self) -> typing.Tuple[float,float]:
+        return min([i.Stats.Movement_FTL[1] for i in self.Ships])
 
 class Flotilla(FleetBase):
     """
@@ -392,17 +405,44 @@ class Flotilla(FleetBase):
     Every ship on the tactical map is part of a flotilla, therefore one-ship-flotillas are quite common. \n
     The flotilla object coordinates the UI creation, the movement, and all other interactions of all its ships.
     """
-    def __init__(self) -> None:
-        super().__init__(strategic=False)
+    def __init__(self, team = 1) -> None:
+        super().__init__(strategic=False, team=team)
+    
+    @property
+    def MovePoints(self) -> typing.Tuple[float,float]:
+        return min([i.Stats.Movement_Sublight[0] for i in self.Ships])
+    
+    def spendMovePoints(self, value:float):
+        for i in self.Ships:
+            i.Stats.spendMovePoints_Sublight(value)
+    
+    @property
+    def MovePoints_max(self) -> typing.Tuple[float,float]:
+        return min([i.Stats.Movement_Sublight[1] for i in self.Ships])
     
   #region Combat Offensive
-    def attack(self, target: 'HexBase._Hex'):
+    async def attack(self, target: 'HexBase._Hex'):
+        if self.MovementSequence and self.MovementSequence.isPlaying():
+            await self.MovementSequence
+        self.lookAt(target)
+        if self.MovementSequence and self.MovementSequence.isPlaying():
+            await self.MovementSequence
         for i in self.Ships:
             if not i.Destroyed:
                 i.attack(target)
         # Re-highlight everything in case the target was destroyed or moved by the attack or a ship with an inhibitor was destroyed
         self.highlightRanges()
     
+    def getAttackableHexes(self, _hex:'HexBase._Hex'=None) -> typing.Set['HexBase._Hex']:
+        if not _hex:
+            _hex = self.hex()
+        attackRange = min([min([j.Range for j in i.Weapons]) for i in self.Ships])
+        l: typing.Set['HexBase._Hex'] = set()
+        for i in _hex.getDisk(attackRange):
+            if i.fleet:
+                if i.fleet().Team is not self.Team:
+                    l.add(i)
+        return l
   #endregion Combat Offensive
     
   #region Display Information
@@ -434,7 +474,7 @@ class Flotilla(FleetBase):
         self.Widget = AGeWidgets.TightGridFrame()
         self.Label = self.Widget.addWidget(QtWidgets.QLabel(self.Widget))
         for i in self.Ships:
-            self.Widget.addWidget(i.getCombatInterface())
+            self.Widget.addWidget(i.getCombatQuickView())
         return self.Widget
     
   #endregion Display Information

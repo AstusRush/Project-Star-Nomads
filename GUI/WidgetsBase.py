@@ -16,7 +16,6 @@ import weakref
 import inspect
 import importlib
 import textwrap
-from heapq import heappush, heappop
 
 # External imports
 import numpy as np
@@ -101,8 +100,22 @@ class ShipQuickView(AGeWidgets.TightGridFrame): #TODO: Should This be part of th
         #       When pressing the button the full ship interface of the ship should be shown in FleetStats.DetailView
         #       There should also be a way to select ships to only perform actions on these like separating a fleet of flotilla)
         #TODO: When the ship gets destroyed this needs to remove itself and also needs to potentially remove the full interface
-        self.Button = self.addWidget(AGeWidgets.Button(self,"",lambda: self.showFullInterface()))
+        #self.Button = self.addWidget(AGeWidgets.Button(self,"",lambda: self.showFullInterface()),0,0)
+        self.Button = self.addWidget(AGeWidgets.ToolButton(self),0,0)
+        self.Button.clicked.connect(lambda: self.showFullInterface())
         self.Button.setIcon(QtGui.QIcon(self.ship().Model.IconPath))
+        self.Button.setIconSize(60,60)
+        self.Label_Hull = self.addWidget(QtWidgets.QLabel(self),0,1)
+        self.Label_HP = self.addWidget(QtWidgets.QLabel(self),0,2)
+        self.Label_Weapons = self.addWidget(QtWidgets.QLabel(self),0,3)
+        self.updateCombatInterface()
+    
+    def updateCombatInterface(self):
+        self.Label_Hull.setText(f"Name: {self.ship().Name}\nClass: {self.ship().ClassName}")
+        self.Label_HP.setText(f"Hull: {self.ship().Stats.HP_Hull}/{self.ship().Stats.HP_Hull_max}\nShields: {self.ship().Stats.HP_Shields}/{self.ship().Stats.HP_Shields_max}")
+        w = [i for i in self.ship().Modules if hasattr(i,"Ready")]
+        wa = [i for i in w if i.Ready]
+        self.Label_Weapons.setText(f"Weapons: {len(wa)}/{len(w)}")
     
     def showFullInterface(self):
         get.window().UnitStatDisplay.showDetails(self.ship().Interface.getCombatInterface())
@@ -111,6 +124,11 @@ class ShipInterface:
     def __init__(self, ship: 'ShipBase.ShipBase') -> None:
         self.ship = weakref.ref(ship)
         self.Label:QtWidgets.QLabel = None
+        self.QuickView:'ShipQuickView' = None
+    
+    def getCombatQuickView(self) -> QtWidgets.QWidget:
+        self.QuickView = ShipQuickView(self.ship())
+        return self.QuickView
     
     def getCombatInterface(self) -> QtWidgets.QWidget:
         self.Frame = AGeWidgets.TightGridFrame()
@@ -135,5 +153,10 @@ class ShipInterface:
                 for i in self.ship().Modules:
                     if hasattr(i,"updateCombatInterface"):
                         i.updateCombatInterface()
+        except RuntimeError:
+            pass # This usually means that the widget is destroyed but I don't know of a better way to test for it...
+        try:
+            if self.QuickView:
+                self.QuickView.updateCombatInterface()
         except RuntimeError:
             pass # This usually means that the widget is destroyed but I don't know of a better way to test for it...

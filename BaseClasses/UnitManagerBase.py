@@ -51,6 +51,7 @@ if TYPE_CHECKING:
     from BaseClasses import FleetBase
 from BaseClasses import HexBase as Hex
 from BaseClasses import get
+from BaseClasses import BaseAI
 
 class UnitManager():
     def __init__(self) -> None:
@@ -58,7 +59,11 @@ class UnitManager():
         self.Units_Neutral = UnitList()
         self.Units_Team1 = UnitList()
         self.Units_Team2 = UnitList()
+        self.Team2_AI = BaseAI.PlayerAI(self.Units_Team2)
+        self.Units_Team2.AI = self.Team2_AI
         self.Units_Team3 = UnitList()
+        self.Team3_AI = BaseAI.PlayerAI(self.Units_Team3)
+        self.Units_Team3.AI = self.Team3_AI
         self.Teams = {
             -1 : self.Units_Environmental,
             0  : self.Units_Neutral,
@@ -67,7 +72,7 @@ class UnitManager():
             3  : self.Units_Team3,
         }
         self.selectedUnit: weakref.ref['FleetBase.FleetBase'] = None
-        
+    
     def selectUnit(self, unit):
         if isinstance(unit, weakref.ref):
             unit = unit()
@@ -78,7 +83,7 @@ class UnitManager():
             if unit:
                 self.selectedUnit =  weakref.ref(unit)
                 self.selectedUnit().select()
-        
+    
     def isSelectedUnit(self, unit):
         if isinstance(self.selectedUnit, weakref.ref):
             if isinstance(unit, weakref.ref):
@@ -86,35 +91,41 @@ class UnitManager():
             return unit is self.selectedUnit()
         else:
             return False
-        
+    
     def endTurn(self):
+        base().taskMgr.add(self._endTurn())
+    
+    async def _endTurn(self):
         "Ends the player turn, processes all other turns and returns control back to the player"
         self.Units_Team1.endTurn()
         
-        self.Units_Team2.startTurn()
+        await self.Units_Team2.startTurn()
         self.Units_Team2.endTurn()
-        self.Units_Team3.startTurn()
+        await self.Units_Team3.startTurn()
         self.Units_Team3.endTurn()
-        self.Units_Environmental.startTurn()
+        await self.Units_Environmental.startTurn()
         self.Units_Environmental.endTurn()
-        self.Units_Neutral.startTurn()
+        await self.Units_Neutral.startTurn()
         self.Units_Neutral.endTurn()
         
-        self.Units_Team1.startTurn()
+        await self.Units_Team1.startTurn()
         if self.selectedUnit:
             self.selectedUnit().highlightRanges(False)
             self.selectedUnit().highlightRanges(True)
             self.selectedUnit().diplayStats(True)
     
-class UnitList(typing.List['FleetBase.FleetBase']): 
+class UnitList(typing.List['FleetBase.Flotilla']):
+    AI:BaseAI.PlayerAI = None
     def append(self, unit):
         # type: (FleetBase.FleetBase) -> None
         if not unit in self:
             return super().append(unit)
     
-    def startTurn(self):
+    async def startTurn(self):
         for i in self:
             i.startTurn()
+        if self.AI:
+            await self.AI.executeTurn()
     
     def endTurn(self):
         for i in self:

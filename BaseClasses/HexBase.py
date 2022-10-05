@@ -461,7 +461,7 @@ class _Hex():
     
   #endregion Highlighting
   #region Hex Math
-    def getNeighbour(self,direction=-1):
+    def getNeighbour(self,direction=-1) -> typing.Union['_Hex',typing.List['_Hex']]:
         """
         Returns the specified neighbour in direction if 0<=direction<=5 or else all neighbours. \n
         Raises HexInvalidException if the specified neighbour does not exist (which can happen if this hex is at the edge of the map). \n

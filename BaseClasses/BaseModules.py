@@ -16,7 +16,6 @@ import weakref
 import inspect
 import importlib
 import textwrap
-from heapq import heappush, heappop
 
 # External imports
 import numpy as np
@@ -65,6 +64,7 @@ class Module():
     #   required staff (#MAYBE: make a distinction between staff on the strategic map and staff on the tactical map since the crew that usually operates refineries can operate guns during combat)
     #   (Slot type is basically the type of the subclass but maybe it would be helpful to implement it here)
     Name = "Unnamed Generic Module"
+    Mass = 0
     def __init__(self, ship:'ShipBase.ShipBase') -> None:
         self.ship = weakref.ref(ship)
     
@@ -77,6 +77,7 @@ class Hull(Module):
     # Also influences the HP of the ship and the required engine size
     Name = "Unnamed Hull Module"
     Evasion = 0.1
+    Mass = 1
     HP_Hull_max = 100
     HP_Hull = HP_Hull_max
     HP_Hull_Regeneration = HP_Hull_max / 20
@@ -97,15 +98,44 @@ class HullPlating(Module):
 #class PowerGenerator(Module): #MAYBE: I don't see how a power system would help
 #    pass
 
-class Engine(Module):
+class Engine(Module): # FTL Engine
     Name = "Unnamed Engine Module"
-    pass
+    Thrust = 6
+    RemainingThrust = 6
+
+class Thruster(Module): # Sublight Thruster
+    Name = "Unnamed Thruster Module"
+    Thrust = 6
+    RemainingThrust = 6
+    
+    def __init__(self, ship:'ShipBase.ShipBase') -> None:
+        super().__init__(ship)
+        self.Widget = None
+    
+    def handleNewCombatTurn(self):
+        self.RemainingThrust = self.Thrust
+    
+    def getCombatInterface(self) -> QtWidgets.QWidget:
+        self.Widget = QtWidgets.QLabel()
+        return self.Widget
+    
+    def updateCombatInterface(self):
+        if self.Widget:
+            try:
+                c,m = self.ship().Stats.Movement_Sublight
+                self.Widget.setText(f"{self.Name} (Sublight Thruster):\n\tMovement: {c}/{m}\n\tThrust: {self.RemainingThrust}/{self.Thrust}\n\tShip Mass: {self.ship().Stats.Mass}")
+            except RuntimeError:
+                pass # This usually means that the widget is destroyed but I don't know of a better way to test for it...
 
 class Shield(Module):
     Name = "Unnamed Shield Module"
     HP_Shields_max = 400
     HP_Shields = HP_Shields_max
     HP_Shields_Regeneration = HP_Shields_max / 8
+    
+    def __init__(self, ship:'ShipBase.ShipBase') -> None:
+        super().__init__(ship)
+        self.Widget = None
     
     def handleNewCombatTurn(self):
         self.healAtTurnStart()
@@ -115,6 +145,17 @@ class Shield(Module):
         if not self.ship().ShieldsWereOffline:
             regenFactor = 1 if not self.ship().WasHitLastTurn else 0.5
             self.HP_Shields = min(self.HP_Shields + self.HP_Shields_Regeneration*regenFactor , self.HP_Shields_max)
+    
+    def getCombatInterface(self) -> QtWidgets.QWidget:
+        self.Widget = QtWidgets.QLabel()
+        return self.Widget
+    
+    def updateCombatInterface(self):
+        if self.Widget:
+            try:
+                self.Widget.setText(f"{self.Name} (Shield):\n\tHP: {self.HP_Shields}/{self.HP_Shields_max}\n\tRegeneration per turn: {self.HP_Shields_Regeneration} (Halved if damaged last turn)\n\t(It takes one turn to reactivate the shields if their HP reaches 0)")
+            except RuntimeError:
+                pass # This usually means that the widget is destroyed but I don't know of a better way to test for it...
 
 class Quarters(Module):
     # Houses crew and civilians
@@ -170,19 +211,22 @@ class Special(Module):
 
 class Weapon(Module):
     Name = "Unnamed Weapon Module"
+    SoundEffectPath = "tempModels/SFX/phaser.wav"
     Damage = 50
     Accuracy = 1
     ShieldFactor = 1
     HullFactor = 1
+    Range = 3 #TODO: Implement weapon Range
     def __init__(self, ship:'ShipBase.ShipBase') -> None:
         super().__init__(ship)
         self.Widget = None
         self.ShieldPiercing = False
         self.Ready = True
+        self.SFX = base().loader.loadSfx(self.SoundEffectPath)
     
     def handleNewCombatTurn(self):
         self.Ready = True
-        self.updateCombatInterface()
+        #self.updateCombatInterface()
     
     def getCombatInterface(self) -> QtWidgets.QWidget:
         self.Widget = QtWidgets.QLabel()
@@ -191,7 +235,7 @@ class Weapon(Module):
     def updateCombatInterface(self):
         if self.Widget:
             try:
-                self.Widget.setText(f"{'Ready' if self.Ready else 'Used'}")
+                self.Widget.setText(f"{self.Name} is {'Ready' if self.Ready else 'Used'}\n\tRange: {self.Range}\n\tDamage: {self.Damage}\n\tAccuracy: {self.Accuracy}\n\tHullFactor: {self.HullFactor}\n\tShieldFactor: {self.ShieldFactor}")
             except RuntimeError:
                 pass # This usually means that the widget is destroyed but I don't know of a better way to test for it...
     
@@ -199,16 +243,18 @@ class Weapon(Module):
         if self.Ready:
             targetShip = random.choice(target.fleet().Ships)
             if not targetShip.Destroyed:
+                self.SFX.play()
                 hit , targetDestroyed, damageDealt = targetShip.takeDamage(self.Damage,self.Accuracy,self.ShieldFactor,self.HullFactor,self.ShieldPiercing)
                 self.fireEffectAt(targetShip, hit)
                 self.Ready = False
-                self.updateCombatInterface()
+                #self.updateCombatInterface()
     
     def fireEffectAt(self, target:'ShipBase.ShipBase', hit:bool=True):
         raise NotImplementedError(f"fireEffectAt is not implemented for this weapon named {self.Name}")
 
 class Weapon_Beam(Weapon): #TODO: SFX (for now we can reuse the assets from Star Trek Armada 2 for prototyping)
     Name = "Unnamed Weapon_Beam Module"
+    SoundEffectPath = "tempModels/SFX/phaser.wav"
     def __init__(self, ship:'ShipBase.ShipBase') -> None:
         super().__init__(ship)
         self.ModelPath = "Models/Simple Geometry/rod.ply"

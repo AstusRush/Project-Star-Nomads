@@ -16,6 +16,7 @@ import weakref
 import inspect
 import importlib
 import textwrap
+import math
 
 # External imports
 import numpy as np
@@ -46,46 +47,29 @@ else:
     from AstusPandaEngine import window as _window
 
 # Game Imports
+if TYPE_CHECKING:
+    from BaseClasses import ShipBase
+    from BaseClasses import FleetBase
+    from BaseClasses import UnitManagerBase
 from BaseClasses import get
 from BaseClasses import HexBase
-from BaseClasses import ShipBase
-from BaseClasses import ModelBase
-from BaseClasses import BaseModules
-from BaseClasses import FleetBase
 
-class TestHull_M(BaseModules.Hull):
-    Name = "TestHull_M"
-    Evasion = 0.1
-    HP_Hull_max = 100
-    HP_Hull = HP_Hull_max
-    HP_Hull_Regeneration = HP_Hull_max / 20
-    NoticeableDamage = HP_Hull_max / 10
+class PlayerAI():
+    def __init__(self, unitList:'UnitManagerBase.UnitList') -> None:
+        self.unitList = weakref.ref(unitList)
+    
+    async def executeTurn(self):
+        for i in self.unitList():
+            for _ in range(6):
+                destinationHex = random.choice(list(i.getReachableHexes()))
+                if list(i.getAttackableHexes(destinationHex)):
+                    break
+            i.moveTo(destinationHex)
+            attackHexList = list(i.getAttackableHexes())
+            if attackHexList:
+                attackHex = random.choice(attackHexList)
+                await i.attack(attackHex)
 
-class TestShield_L(BaseModules.Shield):
-    Name = "TestShield_L"
-    HP_Shields_max = 400
-    HP_Shields = HP_Shields_max
-    HP_Shields_Regeneration = HP_Shields_max / 8
-
-class TestShield_S(BaseModules.Shield):
-    Name = "TestShield_S"
-    HP_Shields_max = 100
-    HP_Shields = HP_Shields_max
-    HP_Shields_Regeneration = HP_Shields_max / 8
-
-class TestBeam_S(BaseModules.Weapon_Beam):
-    Name = "TestBeam_S"
-    Damage = 50
-    Accuracy = 1
-    ShieldFactor = 1
-    HullFactor = 1
-
-class TestEngine_M(BaseModules.Engine): # FTL Engine
-    Name = "TestEngine_M"
-    Speed = 6
-    RemainingThrust = 6
-
-class TestThruster_M(BaseModules.Thruster): # Sublight Thruster
-    Name = "TestThruster_M"
-    Speed = 6
-    RemainingThrust = 6
+class AI_Base():
+    def __init__(self) -> None:
+        pass

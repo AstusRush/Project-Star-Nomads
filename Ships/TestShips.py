@@ -16,7 +16,6 @@ import weakref
 import inspect
 import importlib
 import textwrap
-from heapq import heappush, heappop
 
 # External imports
 import numpy as np
@@ -57,7 +56,7 @@ import ShipModules
 
 class EnterpriseModel(ModelBase.ShipModel):
     ModelPath = "tempModels/NCC-1701-D.gltf"
-    IconPath = "/home/astus/Games/gog/star-trek-armada-ii/drive_c/GOG Games/Star Trek Armada II/Textures/RGB/gbfgalaxy.tga"
+    IconPath = "tempModels/Icons/gbfgalaxy.tga"
     def resetModel(self):
         self.Model.setH(0) #TODO: Reset all rotations
         self.Model.setPos(0,0,0)
@@ -86,3 +85,5 @@ class Enterprise(ShipBase.Ship):
         self.addModule(ShipModules.TestModules.TestShield_S(self))
         self.addModule(ShipModules.TestModules.TestBeam_S(self))
         self.addModule(ShipModules.TestModules.TestBeam_S(self))
+        self.addModule(ShipModules.TestModules.TestEngine_M(self))
+        self.addModule(ShipModules.TestModules.TestThruster_M(self))

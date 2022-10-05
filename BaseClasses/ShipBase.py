@@ -16,7 +16,6 @@ import weakref
 import inspect
 import importlib
 import textwrap
-from heapq import heappush, heappop
 
 # External imports
 import numpy as np
@@ -78,7 +77,7 @@ class ShipsStats():
     @HP_Shields.setter
     def HP_Shields(self, value:float):
         for i in self.ship().Shields:
-            i.HP_Shields = value/len(self.ship().Shields) #TODO: This is absolutely terrible and does not work!!! It should be percentage based for all shield generators!
+            i.HP_Shields = value * i.HP_Shields_max/self.HP_Shields_max
     
     @property
     def HP_Shields_max(self) -> float:
@@ -87,10 +86,33 @@ class ShipsStats():
     @property
     def HP_Shields_Regeneration(self) -> float:
         return sum([i.HP_Shields_Regeneration for i in self.ship().Shields])
+    
+    @property
+    def Mass(self) -> float:
+        return sum([i.Mass for i in self.ship().Modules])
+    
+    @property
+    def Movement_Sublight(self) -> typing.Tuple[float,float]:
+        "Remaining and maximum movement on the combat map."
+        mass = self.Mass
+        return round(self.ship().thruster().RemainingThrust/mass,2) , round(self.ship().thruster().Thrust/mass,2)
+    
+    def spendMovePoints_Sublight(self, value:float):
+        self.ship().thruster().RemainingThrust -= value*self.Mass
+    
+    @property
+    def Movement_FTL(self) -> typing.Tuple[float,float]:
+        "Remaining and maximum movement on the campaign map."
+        mass = self.Mass
+        return round(self.ship().engine().RemainingThrust/mass,2) , round(self.ship().engine().Thrust/mass,2)
+    
+    def spendMovePoints_FTL(self, value:float):
+        self.ship().engine().RemainingThrust -= value*self.Mass
 
 class ShipBase():
     Name = "Unnamed Entity (ShipBase)"
     ClassName = "Unnamed Entity Class (ShipBase)"
+    ExplosionSoundEffectPath = "tempModels/SFX/arfexpld.wav"
   #region init and destroy
     def __init__(self) -> None:
         self.Interface = WidgetsBase.ShipInterface(self)
@@ -98,11 +120,14 @@ class ShipBase():
         self.fleet = None # type: weakref.ref['FleetBase.FleetBase']
         self.Model: ModelBase.ModelBase = None
         self.hull: 'weakref.ref[BaseModules.Hull]' = None
+        self.thruster: 'weakref.ref[BaseModules.Thruster]' = None
+        self.engine: 'weakref.ref[BaseModules.Engine]' = None
         self.Shields: 'typing.List[BaseModules.Shield]' = []
         self.Weapons: 'typing.List[BaseModules.Weapon]' = []
         self.Node = p3dc.NodePath(p3dc.PandaNode(f"Central node of ship {id(self)}"))
         self.Node.reparentTo(render())
         self.Modules:'typing.List[BaseModules.Module]' = []
+        self.ExplosionSoundEffect = base().loader.loadSfx(self.ExplosionSoundEffectPath)
         self.init_combat()
         self.init_effects()
     
@@ -136,6 +161,12 @@ class ShipBase():
         if isinstance(module, BaseModules.Hull):
             if self.hull: self.Modules.remove(self.hull())
             self.hull = weakref.ref(module)
+        if isinstance(module, BaseModules.Thruster):
+            if self.thruster: self.Modules.remove(self.thruster())
+            self.thruster = weakref.ref(module)
+        if isinstance(module, BaseModules.Engine):
+            if self.engine: self.Modules.remove(self.engine())
+            self.engine = weakref.ref(module)
         if hasattr(module, "HP_Shields"):
             self.Shields.append(module)
         if isinstance(module, BaseModules.Weapon):
@@ -146,15 +177,21 @@ class ShipBase():
         self.Modules.remove(module)
         if module is self.hull():
             self.hull = None
+        if module is self.thruster():
+            self.thruster = None
+        if module is self.engine():
+            self.engine = None
         if hasattr(module, "HP_Shields"):
             self.Shields.remove(module)
         if isinstance(module, BaseModules.Weapon):
             self.Weapons.remove(module)
   #endregion Management
   #region Interface
-    def getCombatInterface(self) -> QtWidgets.QWidget: #TODO: Update this name as there are now 2 Combat interfaces - the QuickView and the detailed view
-        return WidgetsBase.ShipQuickView(self)
-        #return self.Interface.getCombatInterface()
+    def getCombatQuickView(self) -> QtWidgets.QWidget:
+        return self.Interface.getCombatQuickView()
+    
+    def getCombatInterface(self) -> QtWidgets.QWidget:
+        return self.Interface.getCombatInterface()
     
     def updateCombatInterface(self):
         self.Interface.updateCombatInterface()
@@ -163,6 +200,7 @@ class ShipBase():
     def attack(self, hex:'HexBase._Hex'):
         for i in self.Weapons:
             i.attack(hex)
+        self.updateCombatInterface()
   #endregion Interaction
   #region model
     def reparentTo(self, fleet):
@@ -205,6 +243,8 @@ class ShipBase():
         self.Destroyed = True
         explosionDuration = 1.0
         self.Model.Model.setColor((0.1,0.1,0.1,1))
+        
+        self.ExplosionSoundEffect.play()
         
         self.ExplosionEffect:p3dc.NodePath = loader().loadModel("Models/Simple Geometry/sphere.ply")
         if typing.TYPE_CHECKING: self.ExplosionEffect = p3dc.NodePath()
@@ -259,18 +299,6 @@ class ShipBase():
     
   #endregion Effects
   #region Combat Defensive
-    
-    #def healAtTurnStart(self):
-    #    #TODO: This should be 2 methods: One that calculates the healing and one that the first one and then actually updates the values. This way the first method can be used to display a prediction to the user
-    #    #REMINDER: When displaying this to the user there should also be a short text explaining that taking noticeable damage halves the regeneration for one turn and that shields need one turn to restart after being taken down.
-    #    regenFactor = 1 if not self.WasHitLastTurn else 0.5
-    #    # self.HP_Hull = min(self.HP_Hull + self.HP_Hull_Regeneration*regenFactor , self.HP_Hull_max)
-    #    #if self.ShieldsWereOffline:
-    #    #    self.ShieldsWereOffline = False
-    #    #else:
-    #    #    self.Stats.HP_Shields = min(self.Stats.HP_Shields + self.Stats.HP_Shields_Regeneration*regenFactor , self.Stats.HP_Shields_max)
-    #    #self.WasHitLastTurn = False
-    
     def takeDamage(self, damage:float, accuracy:float = 1 ,shieldFactor:float = 1, normalHullFactor:float = 1, shieldPiercing:bool = False) -> typing.Tuple[bool,bool,float]:
         """
         This method handles sustaining damage. \n
@@ -296,8 +324,9 @@ class ShipBase():
                     self.ShieldsWereOffline = True
                 self.showShield()
             self.WasHitLastTurn = finalDamage >= self.hull().NoticeableDamage
-        if self.fleet().isSelected():
-            self.diplayStats(True)
+        #if self.fleet().isSelected():
+        #    self.diplayStats(True)
+        self.updateCombatInterface()
         if destroyed and not self.Destroyed: self.explode()
         return hit, destroyed, finalDamage
     
