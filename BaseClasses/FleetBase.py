@@ -67,6 +67,11 @@ class FleetBase():
         self.Node = p3dc.NodePath(p3dc.PandaNode(f"Central node of fleet {id(self)}"))
         #self.Node.reparentTo(render())
         self.Node.reparentTo(get.engine().getSceneRootNode())
+        self.TeamRing:p3dc.NodePath = loader().loadModel("Models/Simple Geometry/hexagonRing.ply")
+        self.TeamRing.reparentTo(self.Node)
+        self.TeamRing.setColor(ape.colour(get.unitManager(self._IsFleet).TeamColour[team].color()))
+        self.TeamRing.setScale(0.9)
+        self.TeamRing.setPos(p3dc.LPoint3((0,0,-0.02)))
         
         self.Widget = None
         self.MovementSequence:p3ddSequence = None
