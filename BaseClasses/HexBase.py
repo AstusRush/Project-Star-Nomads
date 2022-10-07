@@ -497,7 +497,7 @@ class _Hex():
                     pass
             return l
     
-    def distance(self, other):
+    def distance(self, other:'typing.Union[_Hex,typing.Iterable[int,int,int]]'):
         """
         Returns the distance in number of hexagon steps.
         """

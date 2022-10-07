@@ -260,7 +260,7 @@ class Weapon(Module):
                 pass # This usually means that the widget is destroyed but I don't know of a better way to test for it...
     
     def attack(self, target:'HexBase._Hex'):
-        if self.Ready:
+        if self.Ready and self.ship().fleet().hex().distance(target) <= self.Range:
             targetShip = random.choice(target.fleet().Ships)
             if not targetShip.Destroyed:
                 self.SFX.play()

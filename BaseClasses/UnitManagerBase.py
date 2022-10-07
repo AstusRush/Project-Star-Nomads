@@ -118,18 +118,28 @@ class UnitManager():
     
     async def _endTurn(self):
         "Ends the player turn, processes all other turns and returns control back to the player"
-        self.Units_Team1.endTurn()
+        try: self.Units_Team1.endTurn()
+        except: NC(1,f"Could not fully execute `self.Units_Team1.endTurn()`. This might lead to instability.",exc=True)
         
-        await self.Units_Team2.startTurn()
-        self.Units_Team2.endTurn()
-        await self.Units_Team3.startTurn()
-        self.Units_Team3.endTurn()
-        await self.Units_Environmental.startTurn()
-        self.Units_Environmental.endTurn()
-        await self.Units_Neutral.startTurn()
-        self.Units_Neutral.endTurn()
+        try: await self.Units_Team2.startTurn()
+        except: NC(1,f"Could not fully execute `await self.Units_Team2.startTurn()`. This might lead to instability.",exc=True)
+        try: self.Units_Team2.endTurn()
+        except: NC(1,f"Could not fully execute `self.Units_Team2.endTurn()`. This might lead to instability.",exc=True)
+        try: await self.Units_Team3.startTurn()
+        except: NC(1,f"Could not fully execute `await self.Units_Team3.startTurn()`. This might lead to instability.",exc=True)
+        try: self.Units_Team3.endTurn()
+        except: NC(1,f"Could not fully execute `self.Units_Team3.endTurn()`. This might lead to instability.",exc=True)
+        try: await self.Units_Environmental.startTurn()
+        except: NC(1,f"Could not fully execute `await self.Units_Environmental.startTurn()`. This might lead to instability.",exc=True)
+        try: self.Units_Environmental.endTurn()
+        except: NC(1,f"Could not fully execute `self.Units_Environmental.endTurn()`. This might lead to instability.",exc=True)
+        try: await self.Units_Neutral.startTurn()
+        except: NC(1,f"Could not fully execute `await self.Units_Neutral.startTurn()`. This might lead to instability.",exc=True)
+        try: self.Units_Neutral.endTurn()
+        except: NC(1,f"Could not fully execute `self.Units_Neutral.endTurn()`. This might lead to instability.",exc=True)
         
-        await self.Units_Team1.startTurn()
+        try: await self.Units_Team1.startTurn()
+        except: NC(1,f"Could not fully execute `await self.Units_Team1.startTurn()`. This might lead to instability.",exc=True)
         if self.selectedUnit:
             self.selectedUnit().highlightRanges(False)
             self.selectedUnit().highlightRanges(True)

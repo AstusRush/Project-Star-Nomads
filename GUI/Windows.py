@@ -86,79 +86,62 @@ self.Pawn = Unit((25,24),name="USS Enterprise",model="/Users/Robin/Desktop/Proje
 self.Pawn2 = Unit((25,26),name="USS Galaxy",model="/Users/Robin/Desktop/Projects/AstusGameEngine_dev/3DModels/NCC-1701-D.gltf")
 """
 TEMP_CODE = """
-self.Fleet1 = FleetBase.Fleet(1)
-self.Fleet1.Name = "Fleet 1"
-
-self.Ship11 = Ships.TestShips.Enterprise()
-self.Ship11.Name = "Enterprise 11"
-self.Fleet1.addShip(self.Ship11)
-
-self.Ship12 = Ships.TestShips.Enterprise()
-self.Ship12.Name = "Enterprise 12"
-self.Fleet1.addShip(self.Ship12)
-
-self.Ship13 = Ships.TestShips.Enterprise()
-self.Ship13.Name = "Enterprise 13"
-self.Fleet1.addShip(self.Ship13)
-
-self.Fleet1.moveToHex(self.getHex((25,25)))
-
+self.P1_Fleet1 = FleetBase.Fleet(1)
+self.P1_Fleet1.Name = "Fleet 1"
+for i in range(3):
+    ship = Ships.TestShips.Enterprise()
+    ship.Name = f"Enterprise 1-{i}"
+    self.P1_Fleet1.addShip(ship)
+self.P1_Fleet1.moveToHex(self.getHex((25,25)))
 ###########################################
-
-self.Fleet2 = FleetBase.Fleet(2)
-self.Fleet2.Name = "Fleet 2"
-
-self.Ship21 = Ships.TestShips.Enterprise()
-self.Ship21.Name = "Enterprise 21"
-self.Fleet2.addShip(self.Ship21)
-
-self.Ship22 = Ships.TestShips.Enterprise()
-self.Ship22.Name = "Enterprise 22"
-self.Fleet2.addShip(self.Ship22)
-
-self.Ship23 = Ships.TestShips.Enterprise()
-self.Ship23.Name = "Enterprise 23"
-self.Fleet2.addShip(self.Ship23)
-
-self.Fleet2.moveToHex(self.getHex((25,24)))
-
+self.P1_Fleet2 = FleetBase.Fleet(1)
+self.P1_Fleet2.Name = "Fleet 2"
+for i in range(3):
+    ship = Ships.TestShips.Enterprise()
+    ship.Name = f"Enterprise 2-{i}"
+    self.P1_Fleet2.addShip(ship)
+self.P1_Fleet2.moveToHex(self.getHex((25,26)))
 ###########################################
-
-self.Fleet3 = FleetBase.Fleet(3)
-self.Fleet3.Name = "Fleet 3"
-
-self.Ship31 = Ships.TestShips.Enterprise()
-self.Ship31.Name = "Enterprise 31"
-self.Fleet3.addShip(self.Ship31)
-
-self.Ship32 = Ships.TestShips.Enterprise()
-self.Ship32.Name = "Enterprise 32"
-self.Fleet3.addShip(self.Ship32)
-
-self.Ship33 = Ships.TestShips.Enterprise()
-self.Ship33.Name = "Enterprise 33"
-self.Fleet3.addShip(self.Ship33)
-
-self.Fleet3.moveToHex(self.getHex((24,24)))
-
+self.P2_Fleet1 = FleetBase.Fleet(2)
+self.P2_Fleet1.Name = "P2 Fleet 1"
+for i in range(3):
+    ship = Ships.TestShips.Enterprise()
+    ship.Name = f"Enterprise 1-{i}"
+    self.P2_Fleet1.addShip(ship)
+self.P2_Fleet1.moveToHex(self.getHex((25,24)))
 ###########################################
-
-self.Fleet4 = FleetBase.Fleet(3)
-self.Fleet4.Name = "Fleet 4"
-
-self.Ship41 = Ships.TestShips.Enterprise()
-self.Ship41.Name = "Enterprise 41"
-self.Fleet4.addShip(self.Ship41)
-
-self.Ship42 = Ships.TestShips.Enterprise()
-self.Ship42.Name = "Enterprise 42"
-self.Fleet4.addShip(self.Ship42)
-
-self.Ship43 = Ships.TestShips.Enterprise()
-self.Ship43.Name = "Enterprise 43"
-self.Fleet4.addShip(self.Ship43)
-
-self.Fleet4.moveToHex(self.getHex((26,24)))
+self.P2_Fleet2 = FleetBase.Fleet(2)
+self.P2_Fleet2.Name = "P2 Fleet 2"
+for i in range(3):
+    ship = Ships.TestShips.Enterprise()
+    ship.Name = f"Enterprise 2-{i}"
+    self.P2_Fleet2.addShip(ship)
+self.P2_Fleet2.moveToHex(self.getHex((26,24)))
+###########################################
+self.P2_Fleet3 = FleetBase.Fleet(2)
+self.P2_Fleet3.Name = "P2 Fleet 3"
+for i in range(3):
+    ship = Ships.TestShips.Enterprise()
+    ship.Name = f"Enterprise 3-{i}"
+    self.P2_Fleet3.addShip(ship)
+self.P2_Fleet3.moveToHex(self.getHex((24,24)))
+###########################################
+self.P3_Fleet1 = FleetBase.Fleet(3)
+self.P3_Fleet1.Name = "P3 Fleet 1"
+for i in range(3):
+    ship = Ships.TestShips.Enterprise()
+    ship.Name = f"Enterprise 1-{i}"
+    self.P3_Fleet1.addShip(ship)
+self.P3_Fleet1.moveToHex(self.getHex((26,25)))
+###########################################
+self.P3_Fleet2 = FleetBase.Fleet(3)
+self.P3_Fleet2.Name = "P3 Fleet 2"
+for i in range(3):
+    ship = Ships.TestShips.Enterprise()
+    ship.Name = f"Enterprise 2-{i}"
+    self.P3_Fleet2.addShip(ship)
+self.P3_Fleet2.moveToHex(self.getHex((24,25)))
+###########################################
 """
 
 
