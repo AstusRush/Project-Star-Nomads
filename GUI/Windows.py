@@ -15,7 +15,6 @@ import typing
 import weakref
 import inspect
 import importlib
-from heapq import heappush, heappop
 
 # External imports
 import numpy as np
@@ -46,8 +45,7 @@ else:
 
 # Game Imports
 from BaseClasses import HexBase as Hex
-from BaseClasses.Unit import Unit
-from BaseClasses.get import unitManager, window
+from BaseClasses import get
 from GUI import WidgetsBase
 
 class MainWindowClass(ape.APELabWindow):#APEWindow):
@@ -63,8 +61,8 @@ class MainWindowClass(ape.APELabWindow):#APEWindow):
         #self.genCB = QtWidgets.QCheckBox(self)
         #self.genCB.setText("Use seed 6")
         #genLayout.addWidget(self.genCB)
-        self.EndTurnButton = AGeWidgets.Button(self,"End Turn",lambda: unitManager().endTurn())
-        base().accept("control-enter",lambda: unitManager().endTurn()) # ctrl + Enter
+        self.EndTurnButton = AGeWidgets.Button(self,"End Turn",lambda: get.unitManager().endTurn())
+        base().accept("control-enter",lambda: get.unitManager().endTurn()) # ctrl + Enter
         genLayout.addWidget(self.EndTurnButton)
         
         self.genWidget.setLayout(genLayout)
@@ -74,25 +72,13 @@ class MainWindowClass(ape.APELabWindow):#APEWindow):
         
         #self.Console1.setText("self.Pawn = Unit((25,25),App().MiscColours[\"Self\"])\n")
         self.Console1.setText(TEMP_CODE)
-        self.Console2.setText("self.Pawn.takeDamage(400)\n\n#for i in unitManager().Teams[1]:\n#\ti.takeDamage(400,2)\n#\ti.takeDamage(400,2)\n")
+        self.Console2.setText("engine().endBattleScene()\n")
         
         self.UnitStatDisplay = WidgetsBase.FleetStats(self)
         self.TabWidget.addTab(self.UnitStatDisplay, "Unit Stats")
     
-    def gen(self):
-        self.HexGrid.generateHex()
-            
-    def start(self):
-        self.HexGrid = Hex.HexGrid()
-        #Unit((25,25),name="self"  ,model="Models/Simple Geometry/cube.ply", colour=App().MiscColours["Self"]   )
-        #Unit((27,22),name="a pawn",model="Models/Simple Geometry/cube.ply", colour=App().MiscColours["Neutral"])
-        #Unit((26,23),name="a pawn",model="Models/Simple Geometry/cube.ply", colour=App().MiscColours["Neutral"])
-        #Unit((25,23),name="a pawn",model="Models/Simple Geometry/cube.ply", colour=App().MiscColours["Neutral"])
-        #Unit((24,23),name="a pawn",model="Models/Simple Geometry/cube.ply", colour=App().MiscColours["Neutral"])
-        #Unit((23,22),name="a pawn",model="Models/Simple Geometry/cube.ply", colour=App().MiscColours["Neutral"])
-        
     def getHex(self, i:typing.Tuple[int,int]) -> 'Hex._Hex':
-        return self.HexGrid.getHex(i)
+        return get.engine().getHex(i)
 
 
 ENTERPRISE_IMPORT ="""
@@ -100,7 +86,7 @@ self.Pawn = Unit((25,24),name="USS Enterprise",model="/Users/Robin/Desktop/Proje
 self.Pawn2 = Unit((25,26),name="USS Galaxy",model="/Users/Robin/Desktop/Projects/AstusGameEngine_dev/3DModels/NCC-1701-D.gltf")
 """
 TEMP_CODE = """
-self.Fleet1 = FleetBase.Flotilla(1)
+self.Fleet1 = FleetBase.Fleet(1)
 self.Fleet1.Name = "Fleet 1"
 
 self.Ship11 = Ships.TestShips.Enterprise()
@@ -119,7 +105,7 @@ self.Fleet1.moveToHex(self.getHex((25,25)))
 
 ###########################################
 
-self.Fleet2 = FleetBase.Flotilla(2)
+self.Fleet2 = FleetBase.Fleet(2)
 self.Fleet2.Name = "Fleet 2"
 
 self.Ship21 = Ships.TestShips.Enterprise()
@@ -135,6 +121,44 @@ self.Ship23.Name = "Enterprise 23"
 self.Fleet2.addShip(self.Ship23)
 
 self.Fleet2.moveToHex(self.getHex((25,24)))
+
+###########################################
+
+self.Fleet3 = FleetBase.Fleet(3)
+self.Fleet3.Name = "Fleet 3"
+
+self.Ship31 = Ships.TestShips.Enterprise()
+self.Ship31.Name = "Enterprise 31"
+self.Fleet3.addShip(self.Ship31)
+
+self.Ship32 = Ships.TestShips.Enterprise()
+self.Ship32.Name = "Enterprise 32"
+self.Fleet3.addShip(self.Ship32)
+
+self.Ship33 = Ships.TestShips.Enterprise()
+self.Ship33.Name = "Enterprise 33"
+self.Fleet3.addShip(self.Ship33)
+
+self.Fleet3.moveToHex(self.getHex((24,24)))
+
+###########################################
+
+self.Fleet4 = FleetBase.Fleet(3)
+self.Fleet4.Name = "Fleet 4"
+
+self.Ship41 = Ships.TestShips.Enterprise()
+self.Ship41.Name = "Enterprise 41"
+self.Fleet4.addShip(self.Ship41)
+
+self.Ship42 = Ships.TestShips.Enterprise()
+self.Ship42.Name = "Enterprise 42"
+self.Fleet4.addShip(self.Ship42)
+
+self.Ship43 = Ships.TestShips.Enterprise()
+self.Ship43.Name = "Enterprise 43"
+self.Fleet4.addShip(self.Ship43)
+
+self.Fleet4.moveToHex(self.getHex((26,24)))
 """
 
 

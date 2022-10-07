@@ -65,7 +65,8 @@ class FleetBase():
         self._IsFleet, self._IsFlotilla = strategic, not strategic
         self.Ships:ShipList = ShipList()
         self.Node = p3dc.NodePath(p3dc.PandaNode(f"Central node of fleet {id(self)}"))
-        self.Node.reparentTo(render())
+        #self.Node.reparentTo(render())
+        self.Node.reparentTo(get.engine().getSceneRootNode())
         
         self.Widget = None
         self.MovementSequence:p3ddSequence = None
@@ -73,25 +74,26 @@ class FleetBase():
         self.Name = "name"
         self.Team = team
         self.Destroyed = False
+        self.IsMoving = False
         
         #TEMPORARY
         self.hex: weakref.ref['HexBase._Hex'] = None
         self.ActiveTurn = 1 == 1
-        get.unitManager().Teams[self.Team].append(self)
+        get.unitManager(self._IsFleet).Teams[self.Team].append(self)
     
     def destroy(self):
         self.Destroyed = True
         try:
-            get.unitManager().Teams[self.Team].remove(self)
+            get.unitManager(self._IsFleet).Teams[self.Team].remove(self)
         except:
-            if self in get.unitManager().Teams[self.Team]:
+            if self in get.unitManager(self._IsFleet).Teams[self.Team]:
                 raise
         self.__del__()
     
     def __del__(self):
         self.Destroyed = True
         if self.isSelected():
-            get.unitManager().selectUnit(None)
+            get.unitManager(self._IsFleet).selectUnit(None)
         if self.hex:
             if self.hex().fleet:
                 if self.hex().fleet() is self:
@@ -101,18 +103,26 @@ class FleetBase():
   #endregion init and destroy
   #region manage ship list
     def addShip(self, ship:'ShipBase.ShipBase'):
-        self.Ships.append(ship)
+        if not ship in self.Ships:
+            self.Ships.append(ship)
         ship.reparentTo(self)
         self.arrangeShips()
     
-    def removeShip(self, ship:'ShipBase.ShipBase'):
+    def removeShip(self, ship:'ShipBase.ShipBase', arrange:bool=True) -> bool:
+        """
+        Remove `ship` from this fleet and rearranges the ship positions if `arrange`. \n
+        Returns True if the Fleet still exists afterwards, otherwise returns False
+        """
         if ship in self.Ships:
             self.Ships.remove(ship)
-            if self.Ships: self.arrangeShips()
+            if self.Ships and arrange: self.arrangeShips()
         else:
             NC(1,"SHIP WAS NOT IN SHIP LIST") #TODO: give more info
         if not self.Ships:
             self.destroy()
+            return False
+        else:
+            return True
   #endregion manage ship list
   #region Turn and Selection
     def startTurn(self):
@@ -129,7 +139,7 @@ class FleetBase():
         self.ActiveTurn = False
     
     def isSelected(self): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
-        return get.unitManager().isSelectedUnit(self)
+        return get.unitManager(self._IsFleet).isSelectedUnit(self)
     
     def select(self): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
         self.highlightRanges(True)
@@ -151,7 +161,7 @@ class FleetBase():
         if hex.fleet:
             if not hex.fleet() is self and not hex.fleet().Team is self.Team:
                 base().taskMgr.add(self.attack(hex))
-                self.highlightRanges(True)
+                #self.highlightRanges(True)
             else:
                 self.lookAt(hex)
             return False
@@ -210,20 +220,23 @@ class FleetBase():
             path, cost = HexBase.findPath(self.hex(), hex, self._navigable, self._tileCost)
             if not path or cost > self.MovePoints:
                 # The figure can not move to the hex but we can at least make it look at the hex
-                lastAngle = self.Node.getHpr()[0]
-                theta = np.arctan2(hex.Pos[0] - self.hex().Pos[0], self.hex().Pos[1] - hex.Pos[1])
-                if (theta < 0.0):
-                    theta += 2*np.pi
-                angle = np.rad2deg(theta) + 180
-                #INVESTIGATE: Why do I need to add 180°? The formula above should be correct and the 180° should be wrong here but whitout adding them the object looks in the wrong direction...
-                #       .lookAt makes the object look in the correct direction therefore the object itself is not modeled to look in the wrong direction.
-                #       Furthermore I can pretty much rule out that the further processing of the angle is wrong since the 180° were necessary even before the processing was added.
-                #       Thereby the formula must be mistaken, which, as mentioned, should be the correct formula... So where is the problem?!?
-                angleBefore, angleAfter = self.improveRotation(lastAngle,angle)
-                self.Node.hprInterval(abs(angleBefore - angleAfter)/(360), (angleAfter,0,0), (angleBefore,0,0)).start()
+                self.lookAt(hex)
+                #lastAngle = self.Node.getHpr()[0]
+                #theta = np.arctan2(hex.Pos[0] - self.hex().Pos[0], self.hex().Pos[1] - hex.Pos[1])
+                #if (theta < 0.0):
+                #    theta += 2*np.pi
+                #angle = np.rad2deg(theta) + 180
+                ##INVESTIGATE: Why do I need to add 180°? The formula above should be correct and the 180° should be wrong here but whitout adding them the object looks in the wrong direction...
+                ##       .lookAt makes the object look in the correct direction therefore the object itself is not modeled to look in the wrong direction.
+                ##       Furthermore I can pretty much rule out that the further processing of the angle is wrong since the 180° were necessary even before the processing was added.
+                ##       Thereby the formula must be mistaken, which, as mentioned, should be the correct formula... So where is the problem?!?
+                #angleBefore, angleAfter = self.improveRotation(lastAngle,angle)
+                #self.Node.hprInterval(abs(angleBefore - angleAfter)/(360), (angleAfter,0,0), (angleBefore,0,0)).start()
                 return False
             else:
-                self.highlightRanges(False)
+                if self.isSelected():
+                    self.highlightRanges(False)
+                    self.IsMoving = True
                 seq = p3ddSequence(name = self.Name+" move")
                 lastPos = self.hex().Pos
                 lastAngle = self.Node.getHpr()[0]
@@ -249,13 +262,14 @@ class FleetBase():
                 self.hex = weakref.ref(hex)
                 self.Coordinates = hex.Coordinates
                 self.spendMovePoints(cost)
-                self.highlightRanges(True)
+                #if self.isSelected():
+                #    self.highlightRanges(True) # This is done in the unit manager since the previous hex will get de-highlighted after this method returns
                 self.MovementSequence = seq
                 if not hex.fleet: #TODO: We have a serious problem when this occurs. What do we do in that case?
                     raise Exception("Could not assign unit to Hex")
                 if not hex.fleet() == self: #TODO: We have a serious problem when this occurs. What do we do in that case?
                     raise Exception("Could not assign unit to Hex")
-                return True
+                return self.isSelected()
     
     def improveRotation(self,c,t): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
         """
@@ -273,7 +287,7 @@ class FleetBase():
         return ci,ti
     
     def moveToCoordinates(self,coordinates): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
-        self.moveToHex(get.window().getHex(coordinates))
+        self.moveToHex(get.engine().getHex(coordinates))
     
     def getReachableHexes(self) -> typing.Set['HexBase._Hex']: #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
         #TODO
@@ -377,6 +391,13 @@ class FleetBase():
                 s.setPos((1/num)*((num-1)/2-i),0,0)
                 s.Model.Model.setScale((0.8/num)/(s.Model.Model.getBounds().getRadius()))
   #endregion model
+  #region overwrite
+    async def attack(self, target: 'HexBase._Hex'):
+        pass
+    
+    def diplayStats(self, display=True, forceRebuild=False):
+        pass
+  #endregion overwrite
 
 class Fleet(FleetBase):
     """
@@ -394,31 +415,28 @@ class Fleet(FleetBase):
     def spendMovePoints(self, value:float):
         for i in self.Ships:
             i.Stats.spendMovePoints_FTL(value)
+            i.updateInterface()
     
     @property
     def MovePoints_max(self) -> typing.Tuple[float,float]:
         return min([i.Stats.Movement_FTL[1] for i in self.Ships])
-
-class Flotilla(FleetBase):
-    """
-    A flotilla on the tactical map. \n
-    Every ship on the tactical map is part of a flotilla, therefore one-ship-flotillas are quite common. \n
-    The flotilla object coordinates the UI creation, the movement, and all other interactions of all its ships.
-    """
-    def __init__(self, team = 1) -> None:
-        super().__init__(strategic=False, team=team)
     
-    @property
-    def MovePoints(self) -> typing.Tuple[float,float]:
-        return min([i.Stats.Movement_Sublight[0] for i in self.Ships])
-    
-    def spendMovePoints(self, value:float):
-        for i in self.Ships:
-            i.Stats.spendMovePoints_Sublight(value)
-    
-    @property
-    def MovePoints_max(self) -> typing.Tuple[float,float]:
-        return min([i.Stats.Movement_Sublight[1] for i in self.Ships])
+    def battleEnded(self):
+        print("Battle Ended for", self.Name)
+        print("Ships in fleet before cleanup:", len(self.Ships))
+        ships_to_be_removed = []
+        for ship in self.Ships:
+            if ship.Destroyed:
+                ships_to_be_removed.append(ship)
+        for ship in ships_to_be_removed:
+            self.removeShip(ship,arrange=False)
+        print("Ships in fleet after cleanup:", len(self.Ships))
+        if self.Destroyed:
+            return
+        else:
+            for ship in self.Ships:
+                ship.reparentTo(self)
+            self.arrangeShips()
     
   #region Combat Offensive
     async def attack(self, target: 'HexBase._Hex'):
@@ -427,32 +445,21 @@ class Flotilla(FleetBase):
         self.lookAt(target)
         if self.MovementSequence and self.MovementSequence.isPlaying():
             await self.MovementSequence
-        for i in self.Ships:
-            if not i.Destroyed:
-                i.attack(target)
-        # Re-highlight everything in case the target was destroyed or moved by the attack or a ship with an inhibitor was destroyed
-        self.highlightRanges()
-    
-    def getAttackableHexes(self, _hex:'HexBase._Hex'=None) -> typing.Set['HexBase._Hex']:
-        if not _hex:
-            _hex = self.hex()
-        attackRange = min([min([j.Range for j in i.Weapons]) for i in self.Ships])
-        l: typing.Set['HexBase._Hex'] = set()
-        for i in _hex.getDisk(attackRange):
+        involvedFleets = [self,target.fleet()]
+        for i in self.hex().getNeighbour()+target.getNeighbour():
             if i.fleet:
-                if i.fleet().Team is not self.Team:
-                    l.add(i)
-        return l
+                if not i.fleet() in involvedFleets:
+                    involvedFleets.append(i.fleet())
+        get.engine().startBattleScene(involvedFleets)
   #endregion Combat Offensive
-    
   #region Display Information
-    def diplayStats(self, display=True, forceRebuild=False):
+    def diplayStats(self, display=True, forceRebuild=False): #TODO: Overhaul this! The displayed information should not be the combat interface but the campaign interface!
         if display:
             if forceRebuild or not self.Widget:
-                get.window().UnitStatDisplay.addWidget(self.getCombatInterface())
+                get.window().UnitStatDisplay.addWidget(self.getInterface())
             else:
                 for i in self.Ships:
-                    i.updateCombatInterface()
+                    i.updateInterface()
             text = textwrap.dedent(f"""
             Name: {self.Name}
             Team: {self.Team}
@@ -470,11 +477,94 @@ class Flotilla(FleetBase):
             get.window().UnitStatDisplay.removeWidget(self.Widget)
             self.Widget = None
     
-    def getCombatInterface(self):
+    def getInterface(self): #TODO: Overhaul this! The displayed information should not be the combat interface but the campaign interface!
         self.Widget = AGeWidgets.TightGridFrame()
         self.Label = self.Widget.addWidget(QtWidgets.QLabel(self.Widget))
         for i in self.Ships:
-            self.Widget.addWidget(i.getCombatQuickView())
+            self.Widget.addWidget(i.getQuickView())
+        return self.Widget
+    
+  #endregion Display Information
+
+
+class Flotilla(FleetBase):
+    """
+    A flotilla on the tactical map. \n
+    Every ship on the tactical map is part of a flotilla, therefore one-ship-flotillas are quite common. \n
+    The flotilla object coordinates the UI creation, the movement, and all other interactions of all its ships.
+    """
+    def __init__(self, team = 1) -> None:
+        super().__init__(strategic=False, team=team)
+    
+    @property
+    def MovePoints(self) -> typing.Tuple[float,float]:
+        return min([i.Stats.Movement_Sublight[0] for i in self.Ships])
+    
+    def spendMovePoints(self, value:float):
+        for i in self.Ships:
+            i.Stats.spendMovePoints_Sublight(value)
+            i.updateInterface()
+    
+    @property
+    def MovePoints_max(self) -> typing.Tuple[float,float]:
+        return min([i.Stats.Movement_Sublight[1] for i in self.Ships])
+    
+  #region Combat Offensive
+    async def attack(self, target: 'HexBase._Hex'):
+        if self.MovementSequence and self.MovementSequence.isPlaying():
+            await self.MovementSequence
+        self.lookAt(target)
+        if self.MovementSequence and self.MovementSequence.isPlaying():
+            await self.MovementSequence
+        for i in self.Ships:
+            if not i.Destroyed:
+                i.attack(target)
+        if self.isSelected():
+            # Re-highlight everything in case the target was destroyed or moved by the attack or a ship with an inhibitor was destroyed
+            self.highlightRanges()
+    
+    def getAttackableHexes(self, _hex:'HexBase._Hex'=None) -> typing.Set['HexBase._Hex']:
+        if not _hex:
+            _hex = self.hex()
+        attackRange = min([min([j.Range for j in i.Weapons]) for i in self.Ships])
+        l: typing.Set['HexBase._Hex'] = set()
+        for i in _hex.getDisk(attackRange):
+            if i.fleet:
+                if i.fleet().Team is not self.Team:
+                    l.add(i)
+        return l
+  #endregion Combat Offensive
+    
+  #region Display Information
+    def diplayStats(self, display=True, forceRebuild=False):
+        if display:
+            if forceRebuild or not self.Widget:
+                get.window().UnitStatDisplay.addWidget(self.getInterface())
+            else:
+                for i in self.Ships:
+                    i.updateInterface()
+            text = textwrap.dedent(f"""
+            Name: {self.Name}
+            Team: {self.Team}
+            Positions: {self.hex().Coordinates}
+            Movement Points: {self.MovePoints}/{self.MovePoints_max}
+            """)
+            # Hull HP: {[f"{i.Stats.HP_Hull}/{i.Stats.HP_Hull_max}" for i in self.Ships]}
+            # Shield HP: {[f"{i.Stats.HP_Shields}/{i.Stats.HP_Shields_max}" for i in self.Ships]}
+            #Hull: {self.HP_Hull}/{self.HP_Hull_max} (+{self.HP_Hull_Regeneration} per turn (halved if the ship took a single hit that dealt at least {self.NoticeableDamage} damage last turn))
+            #Shields: {self.HP_Shields}/{self.HP_Shields_max} (+{self.HP_Shields_Regeneration} per turn (halved if the ship took a single hit that dealt at least {self.NoticeableDamage} damage last turn))
+            #get.window().UnitStatDisplay.Text.setText(text)
+            self.Label.setText(text)
+        else:
+            #get.window().UnitStatDisplay.Text.setText("No unit selected")
+            get.window().UnitStatDisplay.removeWidget(self.Widget)
+            self.Widget = None
+    
+    def getInterface(self):
+        self.Widget = AGeWidgets.TightGridFrame()
+        self.Label = self.Widget.addWidget(QtWidgets.QLabel(self.Widget))
+        for i in self.Ships:
+            self.Widget.addWidget(i.getQuickView())
         return self.Widget
     
   #endregion Display Information

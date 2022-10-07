@@ -187,20 +187,26 @@ class ShipBase():
             self.Weapons.remove(module)
   #endregion Management
   #region Interface
-    def getCombatQuickView(self) -> QtWidgets.QWidget:
-        return self.Interface.getCombatQuickView()
+    def getQuickView(self) -> QtWidgets.QWidget:
+        return self.Interface.getQuickView()
     
-    def getCombatInterface(self) -> QtWidgets.QWidget:
-        return self.Interface.getCombatInterface()
+    def getInterface(self) -> QtWidgets.QWidget:
+        if not get.engine().CurrentlyInBattle:
+            return self.Interface.getInterface()
+        else:
+            return self.Interface.getCombatInterface()
     
-    def updateCombatInterface(self):
-        self.Interface.updateCombatInterface()
+    def updateInterface(self):
+        if not get.engine().CurrentlyInBattle:
+            self.Interface.updateInterface()
+        else:
+            self.Interface.updateCombatInterface()
   #endregion Interface
   #region Interaction
     def attack(self, hex:'HexBase._Hex'):
         for i in self.Weapons:
             i.attack(hex)
-        self.updateCombatInterface()
+        self.updateInterface()
   #endregion Interaction
   #region model
     def reparentTo(self, fleet):
@@ -326,7 +332,7 @@ class ShipBase():
             self.WasHitLastTurn = finalDamage >= self.hull().NoticeableDamage
         #if self.fleet().isSelected():
         #    self.diplayStats(True)
-        self.updateCombatInterface()
+        self.updateInterface()
         if destroyed and not self.Destroyed: self.explode()
         return hit, destroyed, finalDamage
     

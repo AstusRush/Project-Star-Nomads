@@ -56,14 +56,14 @@ from BaseClasses import BaseAI
 class UnitManager():
     def __init__(self) -> None:
         self.Units_Environmental = UnitList()
+        self.Units_Environmental.AI = BaseAI.PlayerAI(self.Units_Environmental)
         self.Units_Neutral = UnitList()
+        self.Units_Neutral.AI = BaseAI.PlayerAI(self.Units_Neutral)
         self.Units_Team1 = UnitList()
         self.Units_Team2 = UnitList()
-        self.Team2_AI = BaseAI.PlayerAI(self.Units_Team2)
-        self.Units_Team2.AI = self.Team2_AI
+        self.Units_Team2.AI = BaseAI.PlayerAI(self.Units_Team2)
         self.Units_Team3 = UnitList()
-        self.Team3_AI = BaseAI.PlayerAI(self.Units_Team3)
-        self.Units_Team3.AI = self.Team3_AI
+        self.Units_Team3.AI = BaseAI.PlayerAI(self.Units_Team3)
         self.Teams = {
             -1 : self.Units_Environmental,
             0  : self.Units_Neutral,
@@ -73,16 +73,30 @@ class UnitManager():
         }
         self.selectedUnit: weakref.ref['FleetBase.FleetBase'] = None
     
+    def destroy(self):
+        self.unselectAll()
+        for team in list(self.Teams.values()):
+            team.destroy()
+    
+    def unselectAll(self):
+        if self.selectedUnit:
+            self.selectedUnit().unselect()
+            self.selectedUnit = None
+    
     def selectUnit(self, unit):
         if isinstance(unit, weakref.ref):
             unit = unit()
-        if not ( unit is self.selectedUnit ):
-            if self.selectedUnit:
+        if self.selectedUnit:
+            if self.selectedUnit() is unit:
+                self.selectedUnit().highlightRanges(True)
+            elif not unit and self.selectedUnit().IsMoving:
+                self.selectedUnit().IsMoving = False
+            else:
                 self.selectedUnit().unselect()
                 self.selectedUnit = None
-            if unit:
-                self.selectedUnit =  weakref.ref(unit)
-                self.selectedUnit().select()
+        elif unit:
+            self.selectedUnit =  weakref.ref(unit)
+            self.selectedUnit().select()
     
     def isSelectedUnit(self, unit):
         if isinstance(self.selectedUnit, weakref.ref):
@@ -120,6 +134,13 @@ class UnitList(typing.List['FleetBase.Flotilla']):
         # type: (FleetBase.FleetBase) -> None
         if not unit in self:
             return super().append(unit)
+    
+    def destroy(self):
+        #if hasattr(self, "AI"):
+        #    del self.AI # raises attribute error...
+        #for i in self:
+        #    i.destroy()
+        self.clear()
     
     async def startTurn(self):
         for i in self:

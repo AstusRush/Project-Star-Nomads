@@ -49,6 +49,33 @@ from ApplicationClasses import Camera
 from BaseClasses import HexBase, FleetBase, ShipBase, ModelBase, UnitManagerBase, get
 from GUI import Windows, WidgetsBase
 
+def getSkyboxPathList(sector=True, sun=True):
+    l = []
+    #SKYBOX_PATH_LIST_SECTOR = [ #TODO: automatically scan the folders and populate this list
+    #    "Models/Skyboxes/Sector/GreenSpace1/GreenSpace1.egg",
+    #    "Models/Skyboxes/Sector/BlackOrangeSpace1/BlackOrangeSpace1.egg",
+    #]
+    #SKYBOX_PATH_LIST_SUN = [ #TODO: automatically scan the folders and populate this list
+    #    "Models/Skyboxes/Sun/BlackOrangeSpace1/BlackOrangeSpace1.egg",
+    #]
+    if sector:
+        for folder in os.listdir(os.path.join("Models","Skyboxes","Sector")):
+            for file in os.listdir(os.path.join("Models","Skyboxes","Sector",folder)):
+                if file.endswith(".egg"):
+                    l.append(os.path.join("Models","Skyboxes","Sector",folder,file))
+        #l += SKYBOX_PATH_LIST_SECTOR
+    if sun:
+        for folder in os.listdir(os.path.join("Models","Skyboxes","Sun")):
+            for file in os.listdir(os.path.join("Models","Skyboxes","Sun",folder)):
+                if file.endswith(".egg"):
+                    l.append(os.path.join("Models","Skyboxes","Sun",folder,file))
+        #l += SKYBOX_PATH_LIST_SUN
+    return l
+
+def getRandomSkyboxPath(sector=True, sun=True):
+    l = getSkyboxPathList(sector=sector, sun=sun)
+    return random.choice(l)
+
 class BaseClass(ape.APEPandaBase):
     def start(self):
         if self.render_pipeline:
@@ -79,8 +106,8 @@ class BaseClass(ape.APEPandaBase):
         self.picker.addCollider(self.pickerNP, self.pq)
         # self.picker.showCollisions(render)
 
-class BattleScene(ape.APEScene):
-    
+
+class BaseScene(ape.APEScene):
     def start(self):
         self.Camera = Camera.StrategyCamera()
         ape.base().win.setClearColor(p3dc.Vec4(0,0,0,1))
@@ -90,12 +117,49 @@ class BattleScene(ape.APEScene):
         self.perPixelEnabled = True
         self.shadowsEnabled = True
         
+        self.HexGrid = HexBase.HexGrid()
+        self.HexGrid.generateHex()
+        
         #base().accept("l", self.togglePerPixelLighting)
-        #base().accept("e", self.toggleShadows)
-        
+        #base().accept("e", self.toggleShadows
+    
     def loadSkybox(self):
-        self.Camera.loadSkybox()
-        
+        self.Camera.loadSkybox(getRandomSkyboxPath())
+    
+    def pause(self):
+        self.HexGrid.Root.hide()
+        self.HexGrid.Active = False
+        self.Camera.pause()
+    
+    def continue_(self):
+        self.HexGrid.Root.show()
+        self.HexGrid.Active = True
+        self.HexGrid.bindEvents()
+        self.Camera.continue_()
+    
+    def end(self):
+        self.HexGrid.clearHexes()
+        self.Camera.destroy()
+        del self.HexGrid
+        del self.Camera
+
+class CampaignScene(BaseScene):
+    def loadSkybox(self):
+        self.Camera.loadSkybox(getRandomSkyboxPath(sector=True, sun=False))
+
+class BattleScene(BaseScene):
+    def loadSkybox(self):
+        self.Camera.loadSkybox(getRandomSkyboxPath(sector=True, sun=True))
+
+
+
+
+
+
+
+
+
+
     #region For future use: These methods are not used currently but will probably be useful in the future. Ignore them for now
     #def makeStatusLabel(self, i):
     #    """

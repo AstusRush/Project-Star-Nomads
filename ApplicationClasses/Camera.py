@@ -45,9 +45,13 @@ else:
     from AstusPandaEngine import engine, base, render, loader
     from AstusPandaEngine import window as _window
 
+if TYPE_CHECKING:
+    from BaseClasses import HexBase
+
 class StrategyCamera():
     def __init__(self):
         ape.base().win.setClearColor(p3dc.Vec4(0,0,0,1))
+        self.Active = True
         self.Plane = p3dc.Plane(p3dc.Vec3(0, 0, 1), p3dc.Point3(0, 0, 0))
         
         self.SpaceSkyBoxCentre = None
@@ -71,6 +75,9 @@ class StrategyCamera():
         self.CamMouseControl = False
         self.CamMouseControlRotate = False
         self.CamMouseControlCentre = p3dc.Vec3(0,0,0)
+        self.bindEvents()
+    
+    def bindEvents(self):
         self.mouseTask = base().taskMgr.add(lambda task: self._mouseTask(task), 'mouseTask')
         
         self.KeyMap = {"cam-left":0, "cam-right":0, "cam-forward":0, "cam-backward":0, "cam-rot-left":0, "cam-rot-right":0}
@@ -107,7 +114,42 @@ class StrategyCamera():
         base().accept("mouse2-up", lambda: self.setCamMouseControl(False,False,False)) # MMB
         
     
-    def loadSkybox(self):
+    def destroy(self):
+        self.Active = False
+        if self.SpaceSkyBox:
+            self.SpaceSkyBox.removeNode()
+        if self.SpaceSkyBoxCentre:
+            self.SpaceSkyBoxCentre.removeNode()
+        self.CameraRotCenter.removeNode()
+        self.CameraCenter.removeNode()
+        #TODO: unbind all of the event bindings
+    
+    def pause(self):
+        self.Active = False
+        if self.SpaceSkyBoxCentre:
+            self.SpaceSkyBoxCentre.hide()
+    
+    def continue_(self):
+        if self.SpaceSkyBoxCentre:
+            self.SpaceSkyBoxCentre.show()
+        
+        self.CameraCenter = p3dc.NodePath(p3dc.PandaNode("CameraCenter"))
+        self.CameraCenter.reparentTo(ape.render())
+        self.CameraCenter.setPos(p3dc.Vec3(0,0,0))
+        self.CameraRotCenter = p3dc.NodePath(p3dc.PandaNode("CameraRotCenter"))
+        self.CameraRotCenter.reparentTo(self.CameraCenter)
+        self.CameraRotCenter.setPos(p3dc.Vec3(0,0,0))
+        self.CameraRotCenter.setP(-45)
+        ape.base().camera.reparentTo(self.CameraRotCenter)
+        ape.base().camera.setPos(0,-15,0)
+        ape.base().camera.lookAt(self.CameraCenter)
+        self.Active = True
+        self.bindEvents()
+    
+    def moveToHex(self, hex_:'HexBase._Hex'):
+        self.CameraCenter.setPos(hex_.Pos)
+    
+    def loadSkybox(self, skyboxPath='Models/Skyboxes/Sector/GreenSpace1/GreenSpace1.egg'):
         if self.SpaceSkyBox:
             self.SpaceSkyBox.removeNode()
         if self.SpaceSkyBoxCentre:
@@ -115,7 +157,7 @@ class StrategyCamera():
         size = 500
         self.SpaceSkyBoxCentre = p3dc.NodePath(p3dc.PandaNode("SpaceSkyBoxCentre"))
         self.SpaceSkyBoxCentre.reparentTo(ape.render())
-        self.SpaceSkyBox = loader().loadModel('Models/Skyboxes/Green Space 1/GreenSpace1.egg')
+        self.SpaceSkyBox = loader().loadModel(skyboxPath)
         self.SpaceSkyBox.setScale(size)
         self.SpaceSkyBox.setBin('background', 0)
         self.SpaceSkyBox.setDepthWrite(0)
@@ -123,18 +165,24 @@ class StrategyCamera():
         self.SpaceSkyBox.setTexGen(p3dc.TextureStage.getDefault(),p3dc.TexGenAttrib.MWorldCubeMap)
         self.SpaceSkyBox.reparentTo(self.SpaceSkyBoxCentre)
         #self.SpaceSkyBox.setPos((-size/2,-size/2,-size/2)) #VALIDATE: I think it already is centred correctly...
-        
+    
     def acceptAllCombinations(self, key, *args):
+        if not self.Active:
+            return
         base().accept(key, *args)
         base().accept("control-"+key, *args)
         base().accept("alt-"+key, *args)
         base().accept("shift-"+key, *args)
-        
+    
     def setLimits(self, limitX: typing.Tuple[float,float], limitY: typing.Tuple[float,float]):
+        if not self.Active:
+            return
         self.LimitX = (min(limitX),max(limitX))
         self.LimitY = (min(limitY),max(limitY))
-        
+    
     def _enforceLimits(self):
+        if not self.Active:
+            return
         if   self.CameraCenter.getX() < self.LimitX[0]:
             self .CameraCenter.setX(    self.LimitX[0])
         elif self.CameraCenter.getX() > self.LimitX[1]:
@@ -147,9 +195,13 @@ class StrategyCamera():
     
     def setKey(self, key, value):
         """Records the state of camera movement keys"""
+        if not self.Active:
+            return
         self.KeyMap[key] = value
     
     def moveCamera(self, task):
+        if not self.Active:
+            return
         if (self.KeyMap["cam-rot-left"]!=0):
             self.CameraCenter.setH(self.CameraCenter, +100 * p3dc.ClockObject.getGlobalClock().getDt())
         if (self.KeyMap["cam-rot-right"]!=0):
@@ -166,6 +218,8 @@ class StrategyCamera():
         return task.cont
     
     def zoomCamera(self, sign): #TODO: Support zoom-to-cursor and use it as a standard as it feels way more intuitive. Make a flag (as a member) that governs this behaviour
+        if not self.Active:
+            return
         y = -ape.base().camera.getY() + sign*5
         if y > 100: y = 100
         elif y < 5: y = 5
@@ -173,6 +227,8 @@ class StrategyCamera():
         ape.base().camera.lookAt(self.CameraCenter)
     
     def setCamMouseControl(self, active, rotate, smooth):
+        if not self.Active:
+            return
         self.SmoothCam = smooth
         if active and base().mouseWatcherNode.hasMouse():
             mpos = tuple(base().mouseWatcherNode.getMouse())
@@ -200,6 +256,8 @@ class StrategyCamera():
             self.CamMouseControlRotate = False
     
     def _mouseTask(self, task):
+        if not self.Active:
+            return
         if base().mouseWatcherNode.hasMouse() and self.CamMouseControl:
             mpos = base().mouseWatcherNode.getMouse()
             if self.CamMouseControlRotate:

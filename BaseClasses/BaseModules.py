@@ -102,6 +102,26 @@ class Engine(Module): # FTL Engine
     Name = "Unnamed Engine Module"
     Thrust = 6
     RemainingThrust = 6
+    
+    def __init__(self, ship:'ShipBase.ShipBase') -> None:
+        super().__init__(ship)
+        self.Widget = None
+    
+    def handleNewCombatTurn(self):
+        if not get.engine().CurrentlyInBattle:
+            self.RemainingThrust = self.Thrust
+    
+    def getInterface(self) -> QtWidgets.QWidget:
+        self.Widget = QtWidgets.QLabel()
+        return self.Widget
+    
+    def updateInterface(self):
+        if self.Widget:
+            try:
+                c,m = self.ship().Stats.Movement_Sublight
+                self.Widget.setText(f"{self.Name} (Sublight Thruster):\n\tMovement: {c}/{m}\n\tThrust: {self.RemainingThrust}/{self.Thrust}\n\tShip Mass: {self.ship().Stats.Mass}")
+            except RuntimeError:
+                pass # This usually means that the widget is destroyed but I don't know of a better way to test for it...
 
 class Thruster(Module): # Sublight Thruster
     Name = "Unnamed Thruster Module"

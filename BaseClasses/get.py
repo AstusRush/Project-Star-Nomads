@@ -35,30 +35,36 @@ if TYPE_CHECKING:
     # These imports make the IDE happy
     from ...AstusPandaEngine.AGeLib import *
     from ...AstusPandaEngine import AstusPandaEngine as ape
-    from ...AstusPandaEngine.AstusPandaEngine import engine, base, render, loader
+    from ...AstusPandaEngine.AstusPandaEngine import base, render, loader
     from ...AstusPandaEngine.AstusPandaEngine import window as _window
+    from ...AstusPandaEngine.AstusPandaEngine import engine as _engine
 else:
     # These imports make Python happy
     #sys.path.append('../AstusPandaEngine')
     from AGeLib import *
     import AstusPandaEngine as ape
-    from AstusPandaEngine import engine, base, render, loader
+    from AstusPandaEngine import base, render, loader
     from AstusPandaEngine import window as _window
+    from AstusPandaEngine import engine as _engine
 
 if TYPE_CHECKING:
     # These imports make the IDE happy
     from GUI.Windows import MainWindowClass
-    from Main_temp import * #TODO: This is temporary
+    #from Main_temp import * #TODO: This is temporary
+    from BaseClasses import UnitManagerBase
+    from ApplicationClasses import MainAppClass
 
 def window():
     # type: () -> MainWindowClass
     #w:MainWindowClass = _window()
     return _window()#w
 
-def unitManager():
-    # type: () -> UnitManager
-    return engine().UnitManager
-    
+def engine() -> 'MainAppClass.EngineClass':
+    return _engine()
+
+def unitManager(campaign = None) -> 'UnitManagerBase.UnitManager':
+    return engine().getUnitManager(campaign)
+
 
 __all__ = ["window",
            "unitManager",

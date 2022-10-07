@@ -107,8 +107,11 @@ class ShipQuickView(AGeWidgets.TightGridFrame): #TODO: Should This be part of th
         self.Button.setIconSize(60,60)
         self.Label_Hull = self.addWidget(QtWidgets.QLabel(self),0,1)
         self.Label_HP = self.addWidget(QtWidgets.QLabel(self),0,2)
-        self.Label_Weapons = self.addWidget(QtWidgets.QLabel(self),0,3)
-        self.updateCombatInterface()
+        if not get.engine().CurrentlyInBattle:
+            self.updateInterface()
+        else:
+            self.Label_Weapons = self.addWidget(QtWidgets.QLabel(self),0,3)
+            self.updateCombatInterface()
     
     def updateCombatInterface(self):
         self.Label_Hull.setText(f"Name: {self.ship().Name}\nClass: {self.ship().ClassName}")
@@ -117,8 +120,17 @@ class ShipQuickView(AGeWidgets.TightGridFrame): #TODO: Should This be part of th
         wa = [i for i in w if i.Ready]
         self.Label_Weapons.setText(f"Weapons: {len(wa)}/{len(w)}")
     
+    def updateInterface(self):
+        self.Label_Hull.setText(f"Name: {self.ship().Name}\nClass: {self.ship().ClassName}")
+        self.Label_HP.setText(f"Hull: {self.ship().Stats.HP_Hull}/{self.ship().Stats.HP_Hull_max}\nShields: {self.ship().Stats.HP_Shields}/{self.ship().Stats.HP_Shields_max}")
+        #w = [i for i in self.ship().Modules if hasattr(i,"Ready")]
+        #wa = [i for i in w if i.Ready]
+    
     def showFullInterface(self):
-        get.window().UnitStatDisplay.showDetails(self.ship().Interface.getCombatInterface())
+        if not get.engine().CurrentlyInBattle:
+            get.window().UnitStatDisplay.showDetails(self.ship().Interface.getInterface())
+        else:
+            get.window().UnitStatDisplay.showDetails(self.ship().Interface.getCombatInterface())
 
 class ShipInterface:
     def __init__(self, ship: 'ShipBase.ShipBase') -> None:
@@ -126,9 +138,40 @@ class ShipInterface:
         self.Label:QtWidgets.QLabel = None
         self.QuickView:'ShipQuickView' = None
     
-    def getCombatQuickView(self) -> QtWidgets.QWidget:
+    def getQuickView(self) -> QtWidgets.QWidget:
         self.QuickView = ShipQuickView(self.ship())
         return self.QuickView
+    
+    def getInterface(self) -> QtWidgets.QWidget:
+        self.Frame = AGeWidgets.TightGridFrame()
+        # Movement Points: {self.fleet().MovePoints}/{self.fleet().MovePoints_max}
+        self.Label = self.Frame.addWidget(QtWidgets.QLabel(self.Frame))
+        for i in self.ship().Modules:
+            if hasattr(i,"getInterface"):
+                self.Frame.addWidget(i.getInterface())
+        self.updateInterface()
+        return self.Frame
+    
+    def updateInterface(self):
+        text = textwrap.dedent(f"""
+        Class: {self.ship().ClassName}
+        Name: {self.ship().Name}
+        Hull: {self.ship().Stats.HP_Hull}/{self.ship().Stats.HP_Hull_max}
+        Shields: {self.ship().Stats.HP_Shields}/{self.ship().Stats.HP_Shields_max}
+        """)
+        try:
+            if self.Label:
+                self.Label.setText(text)
+                for i in self.ship().Modules:
+                    if hasattr(i,"updateInterface"):
+                        i.updateInterface()
+        except RuntimeError:
+            pass # This usually means that the widget is destroyed but I don't know of a better way to test for it...
+        try:
+            if self.QuickView:
+                self.QuickView.updateInterface()
+        except RuntimeError:
+            pass # This usually means that the widget is destroyed but I don't know of a better way to test for it...
     
     def getCombatInterface(self) -> QtWidgets.QWidget:
         self.Frame = AGeWidgets.TightGridFrame()

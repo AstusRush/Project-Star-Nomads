@@ -55,11 +55,11 @@ class Object():
         try:
             self.Node.reparentTo(render())
             self.Node.setColor(ape.colour(colour))
-            self.Node.setPos(get.window().getHex(coordinates).Pos)
+            self.Node.setPos(get.engine().getHex(coordinates).Pos)
         except Exception as inst:
             self.Node.removeNode()
             raise inst
-        get.window().getHex(coordinates).content.append(self)
+        get.engine().getHex(coordinates).content.append(self)
         
     def moveToPos(self,pos):
         self.setPos(pos)
@@ -300,7 +300,7 @@ class Unit():
         return ci,ti
     
     def moveToCoordinates(self,coordinates):
-        self.moveToHex(get.window().getHex(coordinates))
+        self.moveToHex(get.engine().getHex(coordinates))
     
     def getReachableHexes(self):
         #TODO

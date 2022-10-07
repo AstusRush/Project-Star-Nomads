@@ -92,7 +92,7 @@ def PointAtZ(z, point, vec):
 
 def getHexPos(i:typing.Tuple[int,int]):
     """A handy little function for getting the proper position for a given square1"""
-    return get.window().getHex(i).Pos
+    return get.engine().getHex(i).Pos
 
 def getHex(i:typing.Tuple[int,int]):
     """
@@ -100,13 +100,14 @@ def getHex(i:typing.Tuple[int,int]):
     To properly get a hex you should always use the method of the HexGrid instance. \n
     Furthermore the HexGrid instance should be accessed unambiguously (optimally by getting it from another Hex._Hex instace) since we might have two hex grids in the future (one for the main game and one for battles)!
     """
-    return get.window().getHex(i)
+    return get.engine().getHex(i)
 
 #endregion Helper Functions
 
 #region Hex Map
 class HexGrid():
     def __init__(self, scene:ape.APEScene=None, root:p3dc.NodePath = None, size: typing.Tuple[int,int] = (50,50), TransparentHexRings=True) -> None:
+        self.Active = True
         self.Scene = scene if scene else engine().Scene
         if root:
             self.Root = root
@@ -125,12 +126,14 @@ class HexGrid():
         # This wil represent the index of the hex where currently dragged piece was grabbed from
         self.SelectedHex = False # type: _Hex
         
+        self.bindEvents()
+    
+    def bindEvents(self):
         # Start the task that handles the picking
         self.mouseTask = base().taskMgr.add(self._mouseTask, 'mouseTask')
-        
         base().accept("mouse1", lambda: self._selectHighlightedHex()) # LMB
         base().accept("mouse3", lambda: self._interactWithHighlightedHex()) # RMB
-        
+    
     def clearHexes(self):
         self.HighlightedHex = False # type: _Hex
         self.SelectedHex = False # type: _Hex
@@ -140,7 +143,7 @@ class HexGrid():
             del i
         del self.Hexes
         self.Hexes = []
-        
+    
     def generateHex(self):
         self.clearHexes()
         #TODO: When the number oh Hexes is even the offset must be subtracted from the first limit but if it is odd half the offset bust be +/- to both!
@@ -156,7 +159,7 @@ class HexGrid():
                     y += np.sqrt(3)/2
                 l.append(_Hex(self, self.Scene, self.Root, f"Hex ({i},{j})", (i,j), (y,x,0)))
             self.Hexes.append(l)
-            
+    
     def getHex(self, i):
         # type: ( typing.Union[typing.Tuple[int,int], typing.Tuple[int,int,int]] ) -> _Hex
         if len(i) == 3:
@@ -169,7 +172,7 @@ class HexGrid():
             return self.Hexes[i[0]][i[1]]
         else:
             raise HexInvalidException(i)
-            
+    
     def _isValidCoordinate(self, i):
         # type: ( typing.Union[typing.Tuple[int,int], typing.Tuple[int,int,int]] ) -> bool
         if len(i) == 3:
@@ -194,17 +197,25 @@ class HexGrid():
         z = round(coord[1]) - (round(coord[0]) - (round(coord[0])&1)) / 2
         y = -x-z
         return (round(x), round(y), round(z))
-        
+    
     def highlightHexes(self, hexes = [], edge = False, face = False, clearFirst = True):
         # type: (typing.List[_Hex], typing.Union[QtGui.QColor,QtGui.QBrush,typing.Tuple[int,int,int,int],str,False], typing.Union[QtGui.QColor,QtGui.QBrush,typing.Tuple[int,int,int,int],str,False], bool) -> None
         if clearFirst:
-            for i in self.Hexes:
-                for ii in i:
-                    if ii.Highlighted:
-                        ii.highlight(edge = False, face = False)
+            self.clearAllHexHighlighting()
         if (edge or face) or not clearFirst:
             for i in hexes:
                 i.highlight(edge = edge, face = face)
+    
+    def clearAllHexHighlighting(self):
+        for i in self.Hexes:
+            for ii in i:
+                if ii.Highlighted:
+                    ii.highlight(edge = False, face = False)
+    
+    def clearAllSelections(self):
+        for i in self.Hexes:
+            for ii in i:
+                ii.select(False)
     
   #region Interaction
     def _mouseTask(self, task):
@@ -238,6 +249,7 @@ class HexGrid():
         return Task.cont
     
     def _selectHighlightedHex(self):
+        if not self.Active: return
         if self.SelectedHex is not False:
             if self.SelectedHex is self.HighlightedHex:
                 self.SelectedHex.select(False)
@@ -256,6 +268,7 @@ class HexGrid():
             #unitManager().selectUnit(None)
     
     def _interactWithHighlightedHex(self):
+        if not self.Active: return
         if self.SelectedHex is not False and self.HighlightedHex is not False:
             if self.SelectedHex.interactWith(self.HighlightedHex):
                 self._selectHighlightedHex()
@@ -352,7 +365,7 @@ class _Hex():
             get.unitManager().selectUnit(self.fleet)
         else:
             get.unitManager().selectUnit(None)
-        
+    
     def addContent(self, content): #TODO:OVERHAUL
         #TODO: If the this is already selected while new content is added the new content should be informed about this and act accordingly (display/update movement range, add/update UI elements, etc).
         #       Furthermore the other content might need to be informed that there is new content which might require them to update their UI elements or highlighting
@@ -397,7 +410,7 @@ class _Hex():
         self.Face.setColor(ape.colour(colour))
   #endregion Colour
   #region Highlighting
-        
+    
     def hoverHighlight(self, highlight:bool = True):
         if highlight:
             if self.TransparentHexRings:
@@ -407,7 +420,7 @@ class _Hex():
             if self.TransparentHexRings and not self.CurrentColour_Edge == self.COLOUR_SELECT:
                 self.Model.setTransparency(p3dc.TransparencyAttrib.MAlpha)
             self._setColor(self.CurrentColour_Edge)
-            
+    
     def highlight(self, edge = False, face = False):
         if not face and not edge:
             if self.TransparentHexRings and not self.CurrentColour_Edge == self.COLOUR_SELECT:

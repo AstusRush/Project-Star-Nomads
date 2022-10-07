@@ -51,11 +51,69 @@ from GUI import Windows, WidgetsBase
 
 class EngineClass(ape.APE):
     def start(self):
+        self.Scene:'Scene.CampaignScene' = None
+        self.BattleScene:'Scene.BattleScene' = None
+        self.UnitManager:'UnitManagerBase.UnitManager' = None
+        self.BattleUnitManager:'UnitManagerBase.UnitManager' = None
+        self.FleetsInBattle:typing.List[FleetBase.Fleet] = []
         self.base.start()
+        self.startCampaignScene()
+        self.CurrentlyInBattle = False
+    
+    def startCampaignScene(self):
         self.UnitManager = UnitManagerBase.UnitManager()
-        self.Scene = Scene.BattleScene()
+        self.Scene = Scene.CampaignScene()
         self.Scene.start()
-        get.window().start()
+    
+    def startBattleScene(self, fleets:typing.List[FleetBase.Fleet]):
+        if self.CurrentlyInBattle: raise Exception("A battle is already happening")
+        self.CurrentlyInBattle = True
+        self.UnitManager.unselectAll()
+        self.FleetsInBattle = fleets
+        self.Scene.pause()
+        self.BattleUnitManager = UnitManagerBase.UnitManager()
+        self.BattleScene = Scene.BattleScene()
+        self.BattleScene.start()
+        for fleet in fleets:
+            flotilla = FleetBase.Flotilla(fleet.Team)
+            flotilla.Name = f"Flotilla of {fleet.Name}"
+            for ship in fleet.Ships:
+                flotilla.addShip(ship)
+            while True:
+                hex_ = random.choice(random.choice(self.BattleScene.HexGrid.Hexes))
+                if flotilla._navigable(hex_):
+                    break
+            flotilla.moveToHex(hex_,animate=False)
+        self.BattleScene.Camera.moveToHex(random.choice(self.BattleUnitManager.Teams[1]).hex())
+    
+    def endBattleScene(self):
+        self.BattleUnitManager.unselectAll()
+        for fleet in self.FleetsInBattle:
+            fleet.battleEnded()
+        self.BattleUnitManager.destroy()
+        self.BattleUnitManager = None
+        self.BattleScene.end()
+        self.BattleScene = None
+        self.Scene.continue_()
+        self.CurrentlyInBattle = False
+    
+    def getSceneRootNode(self):
+        if self.BattleScene:
+            return self.BattleScene.HexGrid.Root
+        else:
+            return self.Scene.HexGrid.Root
+    
+    def getHex(self, i:typing.Tuple[int,int]) -> 'HexBase._Hex':
+        if self.BattleScene:
+            return self.BattleScene.HexGrid.getHex(i)
+        else:
+            return self.Scene.HexGrid.getHex(i)
+    
+    def getUnitManager(self, campaign = None) -> 'UnitManagerBase.UnitManager':
+        if campaign is None:
+            campaign = not bool(self.BattleScene)
+            
+        return self.UnitManager if campaign else self.BattleUnitManager
 
 class AppClass(ape.APEApp):
     pass
