@@ -60,6 +60,7 @@ class PlayerAI():
     
     async def executeTurn(self):
         for i in self.unitList():
+            if i.isDestroyed(): continue
             for _ in range(6):
                 destinationHex = random.choice(list(i.getReachableHexes()))
                 if list(i.getAttackableHexes(destinationHex)):

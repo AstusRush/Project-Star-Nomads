@@ -128,6 +128,15 @@ class FleetBase():
             return False
         else:
             return True
+    
+    def isDestroyed(self):
+        """
+        Returns `True` if `self.Ships` is empty or all ships in `self.Ships` have the attribute `Destroyed` set to `True` or `self.Destroyed` is `True`. Otherwise returns False.\n
+        This if different to the attribute `self.Destroyed` which is only set to True when the fleet AND ITS MODELS no longer exist.
+        """
+        if self.Destroyed: return True
+        return all([i.Destroyed for i in self.Ships])
+    
   #endregion manage ship list
   #region Turn and Selection
     def startTurn(self):
