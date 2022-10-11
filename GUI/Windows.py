@@ -89,8 +89,8 @@ TEMP_CODE = """
 self.P1_Fleet1 = FleetBase.Fleet(1)
 self.P1_Fleet1.Name = "Fleet 1"
 for i in range(3):
-    ship = Ships.TestShips.Enterprise()
-    ship.Name = f"Enterprise 1-{i}"
+    ship = Ships.TestShips.Prometheus()
+    ship.Name = f"Prometheus 1-{i}"
     self.P1_Fleet1.addShip(ship)
 self.P1_Fleet1.moveToHex(self.getHex((25,25)))
 ###########################################
@@ -98,15 +98,15 @@ self.P1_Fleet2 = FleetBase.Fleet(1)
 self.P1_Fleet2.Name = "Fleet 2"
 for i in range(3):
     ship = Ships.TestShips.Enterprise()
-    ship.Name = f"Enterprise 2-{i}"
+    ship.Name = f"Enterprise 1-{i}"
     self.P1_Fleet2.addShip(ship)
 self.P1_Fleet2.moveToHex(self.getHex((25,26)))
 ###########################################
 self.P2_Fleet1 = FleetBase.Fleet(2)
 self.P2_Fleet1.Name = "P2 Fleet 1"
 for i in range(3):
-    ship = Ships.TestShips.Enterprise()
-    ship.Name = f"Enterprise 1-{i}"
+    ship = Ships.TestShips.Prometheus()
+    ship.Name = f"Prometheus 1-{i}"
     self.P2_Fleet1.addShip(ship)
 self.P2_Fleet1.moveToHex(self.getHex((25,24)))
 ###########################################

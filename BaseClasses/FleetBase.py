@@ -51,6 +51,8 @@ if TYPE_CHECKING:
     from BaseClasses import ShipBase
 from BaseClasses import get
 from BaseClasses import HexBase
+from BaseClasses import AI_Base
+from BaseClasses import AI_Fleet
 
 class ShipList(typing.List['ShipBase.ShipBase']):
     pass
@@ -63,6 +65,7 @@ class FleetBase():
         otherwise the 'fleet' is a flotilla on the tactical map.
         """
         self._IsFleet, self._IsFlotilla = strategic, not strategic
+        self.AI = AI_Fleet.FleetAI(self) if strategic else AI_Fleet.FlotillaAI(self)
         self.Ships:ShipList = ShipList()
         self.Node = p3dc.NodePath(p3dc.PandaNode(f"Central node of fleet {id(self)}"))
         #self.Node.reparentTo(render())
@@ -105,6 +108,15 @@ class FleetBase():
                     self.hex().fleet = None
         self.Node.removeNode()
     
+    @property
+    def MovePoints(self) -> float:
+        raise NotImplementedError()
+    def spendMovePoints(self, value:float):
+        raise NotImplementedError()
+    @property
+    def MovePoints_max(self) -> float:
+        raise NotImplementedError()
+    
   #endregion init and destroy
   #region manage ship list
     def addShip(self, ship:'ShipBase.ShipBase'):
@@ -145,7 +157,7 @@ class FleetBase():
         for i in self.Ships:
             i.handleNewCombatTurn()
         if self.isSelected():
-            self.diplayStats(True)
+            self.displayStats(True)
         
         #self.healAtTurnStart()
     
@@ -157,11 +169,11 @@ class FleetBase():
     
     def select(self): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
         self.highlightRanges(True)
-        self.diplayStats(True)
+        self.displayStats(True)
     
     def unselect(self): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
         self.highlightRanges(False)
-        self.diplayStats(False)
+        self.displayStats(False)
     
   #endregion Turn and Selection
   #region Interaction
@@ -173,7 +185,7 @@ class FleetBase():
         if self.Destroyed:
             return False
         if hex.fleet:
-            if not hex.fleet() is self and not hex.fleet().Team is self.Team:
+            if not hex.fleet() is self and not get.unitManager().isAllied(hex.fleet().Team, self.Team):
                 base().taskMgr.add(self.attack(hex))
                 #self.highlightRanges(True)
             else:
@@ -225,13 +237,17 @@ class FleetBase():
         #CRITICAL: In order to not break other animations we must usually wait before other animations until this animation is completed. How can we do that!?!
         #       This will probably be necessary for other animations, too... For example a ship should only explode once a rocket has hit it - not when the rocket was fired by the other ship...
     
+    def findPath(self,hex:'HexBase._Hex') -> typing.Tuple[typing.List['HexBase._Hex'],float]:
+        "returns (path, cost)"
+        return HexBase.findPath(self.hex(), hex, self._navigable, self._tileCost)
+    
     def moveTo(self, hex:'HexBase._Hex'): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
         if not self._navigable(hex):
             # The figure can not move to the hex but we can at least make it look at the hex
             self.lookAt(hex)
             return False
         else:
-            path, cost = HexBase.findPath(self.hex(), hex, self._navigable, self._tileCost)
+            path, cost = self.findPath(hex)
             if not path or cost > self.MovePoints:
                 # The figure can not move to the hex but we can at least make it look at the hex
                 self.lookAt(hex)
@@ -284,6 +300,40 @@ class FleetBase():
                 if not hex.fleet() == self: #TODO: We have a serious problem when this occurs. What do we do in that case?
                     raise Exception("Could not assign unit to Hex")
                 return self.isSelected()
+    
+    def moveClose(self, hex:'HexBase._Hex', distance:int = 3, tries:int = 8):
+        """
+        Tries to get within `distance` tiles of `hex` but will only try to navigate to `tries` random tiles within this distance.
+        Returns a tuple of 2 bools. The first bool tells you if the fleet is within `distance` tiles and the second bool tells you if the fleet has moved.
+        """
+        distance, tries = int(distance), int(tries)
+        startMovePoints = self.MovePoints
+        #TODO: What if the fleet and the target hex are on 2 different sides of a wall? We need a method to figure out that distance and use that for the first check. Otherwise we will never get around that wall...
+        #       But we should not count other fleets as part of a wall, otherwise we will run into problems with tight formations and cluttered maps...
+        if self.hex().distance(hex)<=distance: return True, False # Are we already close enough?
+        path, cost = self.findPath(hex)
+        if path and cost <= self.MovePoints: # Can we just move to the hex?
+            self.moveTo(hex)
+            return self.hex().distance(hex)<=distance, self.MovePoints<startMovePoints
+        targetOptions = hex.getDisk(distance)
+        path, cost = [], float("inf")
+        newHex = hex
+        for _ in range(tries):
+            newHex = random.choice(targetOptions)
+            path, cost = self.findPath(newHex)
+            if path:
+                break
+        if not path: # Did we find a way to get Close?
+            NC(4,f"{self.Name} @{self.hex().Coordinates} could not find a path near {hex.Coordinates}!",input=f"{distance = }\n{tries = }")
+            return False, False
+        else:
+            if cost <= self.MovePoints: # Can we move to that close hex?
+                self.moveTo(newHex)
+                return self.hex().distance(hex)<=distance, self.MovePoints<startMovePoints
+            else: # Let's move closer to that close hex
+                _, cost = self.findPath(path[int(self.MovePoints)-1])
+                self.moveTo(path[int(self.MovePoints)-1])
+                return self.hex().distance(hex)<=distance, self.MovePoints<startMovePoints
     
     def improveRotation(self,c,t): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
         """
@@ -405,11 +455,57 @@ class FleetBase():
                 s.setPos((1/num)*((num-1)/2-i),0,0)
                 s.Model.Model.setScale((0.8/num)/(s.Model.Model.getBounds().getRadius()))
   #endregion model
+    
+  #endregion Detection #TODO: Should we distinguish between campaign and battle sensors? These are different scales but I can't think of a good gameplay reason...
+    def getSensorRanges(self) -> typing.Tuple[float,float,float,float,float]: #TODO: The sensors of the ships in the fleet should enhance each other
+        """
+        Sensor ranges: no resolution, low resolution, medium resolution, high resolution, perfect resolution \n
+        Note: no resolution is always infinite and only exist so that the indices match with the information levels 0='Not visible' to 4='Fully visible' \n
+        """
+        ranges = np.asarray([i.Stats.SensorRanges for i in self.Ships])
+        return float("inf"), max(ranges[:,1]), max(ranges[:,2]), max(ranges[:,3]), max(ranges[:,4])
+        
+    def getSensorRanges_Int(self) -> typing.Tuple[int,int,int,int,int]: #TODO: The sensors of the ships in the fleet should enhance each other
+        """
+        Sensor ranges: no resolution, low resolution, medium resolution, high resolution, perfect resolution \n
+        But as integers \n
+        Note: no resolution is always 10000 and only exist so that the indices match with the information levels 0='Not visible' to 4='Fully visible' \n
+        """
+        ranges = self.getSensorRanges()
+        return int(10000), int(ranges[1]), int(ranges[2]), int(ranges[3]), int(ranges[4])
+    
+    def detectEnemies(self) -> typing.List[typing.Tuple[int,'FleetBase']]:
+        "Returns a list of tuples with the detection level of a fleet and the fleet in question. Only considers hostile fleets"
+        ranges = list(self.getSensorRanges_Int())+[0,]
+        fleets:typing.List[typing.Tuple[int,'FleetBase']] = []
+        for i,r in enumerate(ranges):
+            if i == 0 or i == 5: continue
+            potentialFleets = [h.fleet() for h in self.hex().getDisk(r,ranges[i+1]) if h.fleet]
+            fleets += [(f.detectCheck(i), f) for f in potentialFleets if f.detectCheck(i) and not get.unitManager().isAllied(self.Team,f.Team)]
+        return fleets
+    
+    def findClosestEnemy(self) -> typing.Union['FleetBase',bool]:
+        "Returns the closest enemy fleet or False if none is detected"
+        detectedEnemies = []
+        for team in get.unitManager().getAllies(self.Team):
+            for fleet in get.unitManager().Teams[team]:
+                detectedEnemies += fleet.detectEnemies()
+        if not detectedEnemies:
+            return False
+        f = min([(self.hex().distance(f[1].hex()), f[1]) for f in detectedEnemies], key=lambda i:i[0])[1]
+        return f
+    
+    def detectCheck(self, level:int) -> int:
+        """Returns which information level a scan at `level` can procure. 0 means that it can not detect this fleet at all and 4 means that all information are visible"""
+        #TODO: make some checks for the ships stealth capabilities
+        return level
+  #region Detection
+    
   #region overwrite
     async def attack(self, target: 'HexBase._Hex'):
         pass
     
-    def diplayStats(self, display=True, forceRebuild=False):
+    def displayStats(self, display=True, forceRebuild=False):
         pass
   #endregion overwrite
 
@@ -423,7 +519,7 @@ class Fleet(FleetBase):
         super().__init__(strategic=True, team=team)
     
     @property
-    def MovePoints(self) -> typing.Tuple[float,float]:
+    def MovePoints(self) -> float:
         return min([i.Stats.Movement_FTL[0] for i in self.Ships])
     
     def spendMovePoints(self, value:float):
@@ -432,7 +528,7 @@ class Fleet(FleetBase):
             i.updateInterface()
     
     @property
-    def MovePoints_max(self) -> typing.Tuple[float,float]:
+    def MovePoints_max(self) -> float:
         return min([i.Stats.Movement_FTL[1] for i in self.Ships])
     
     def battleEnded(self):
@@ -453,7 +549,7 @@ class Fleet(FleetBase):
             self.arrangeShips()
     
   #region Combat Offensive
-    async def attack(self, target: 'HexBase._Hex'):
+    async def attack(self, target: 'HexBase._Hex', orders:AI_Base.Orders = None):
         if self.MovementSequence and self.MovementSequence.isPlaying():
             await self.MovementSequence
         self.lookAt(target)
@@ -467,7 +563,7 @@ class Fleet(FleetBase):
         get.engine().startBattleScene(involvedFleets)
   #endregion Combat Offensive
   #region Display Information
-    def diplayStats(self, display=True, forceRebuild=False): #TODO: Overhaul this! The displayed information should not be the combat interface but the campaign interface!
+    def displayStats(self, display=True, forceRebuild=False): #TODO: Overhaul this! The displayed information should not be the combat interface but the campaign interface!
         if display:
             if forceRebuild or not self.Widget:
                 get.window().UnitStatDisplay.addWidget(self.getInterface())
@@ -511,7 +607,7 @@ class Flotilla(FleetBase):
         super().__init__(strategic=False, team=team)
     
     @property
-    def MovePoints(self) -> typing.Tuple[float,float]:
+    def MovePoints(self) -> float:
         return min([i.Stats.Movement_Sublight[0] for i in self.Ships])
     
     def spendMovePoints(self, value:float):
@@ -520,11 +616,11 @@ class Flotilla(FleetBase):
             i.updateInterface()
     
     @property
-    def MovePoints_max(self) -> typing.Tuple[float,float]:
+    def MovePoints_max(self) -> float:
         return min([i.Stats.Movement_Sublight[1] for i in self.Ships])
     
   #region Combat Offensive
-    async def attack(self, target: 'HexBase._Hex'):
+    async def attack(self, target: 'HexBase._Hex', orders:AI_Base.Orders = None):
         if self.MovementSequence and self.MovementSequence.isPlaying():
             await self.MovementSequence
         self.lookAt(target)
@@ -537,12 +633,20 @@ class Flotilla(FleetBase):
             # Re-highlight everything in case the target was destroyed or moved by the attack or a ship with an inhibitor was destroyed
             self.highlightRanges()
     
+    def getAttackRange(self) -> typing.Tuple[int,int,int]:
+        "returns minimum, median and maximum weapon ranges"
+        ranges = []
+        for ship in self.Ships:
+            for weapon in ship.Weapons:
+                ranges.append(weapon.Range)
+        return int(min(ranges)), int(np.median(ranges)), int(max(ranges))
+        # min([min([j.Range for j in i.Weapons]) for i in self.Ships])
+    
     def getAttackableHexes(self, _hex:'HexBase._Hex'=None) -> typing.Set['HexBase._Hex']:
         if not _hex:
             _hex = self.hex()
-        attackRange = min([min([j.Range for j in i.Weapons]) for i in self.Ships])
         l: typing.Set['HexBase._Hex'] = set()
-        for i in _hex.getDisk(attackRange):
+        for i in _hex.getDisk(self.getAttackRange()[2]):
             if i.fleet:
                 if i.fleet().Team is not self.Team:
                     l.add(i)
@@ -550,7 +654,7 @@ class Flotilla(FleetBase):
   #endregion Combat Offensive
     
   #region Display Information
-    def diplayStats(self, display=True, forceRebuild=False):
+    def displayStats(self, display=True, forceRebuild=False):
         if display:
             if forceRebuild or not self.Widget:
                 get.window().UnitStatDisplay.addWidget(self.getInterface())

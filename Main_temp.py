@@ -394,7 +394,7 @@ class UnitManager():
         if self.selectedUnit:
             self.selectedUnit().highlightRanges(False)
             self.selectedUnit().highlightRanges(True)
-            self.selectedUnit().diplayStats(True)
+            self.selectedUnit().displayStats(True)
     
 class UnitList(typing.List[Unit]): 
     def append(self, unit):

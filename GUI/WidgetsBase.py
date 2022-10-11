@@ -166,12 +166,12 @@ class ShipInterface:
                     if hasattr(i,"updateInterface"):
                         i.updateInterface()
         except RuntimeError:
-            pass # This usually means that the widget is destroyed but I don't know of a better way to test for it...
+            self.Label = None # This usually means that the widget is destroyed but I don't know of a better way to test for it...
         try:
             if self.QuickView:
                 self.QuickView.updateInterface()
         except RuntimeError:
-            pass # This usually means that the widget is destroyed but I don't know of a better way to test for it...
+            self.QuickView = None # This usually means that the widget is destroyed but I don't know of a better way to test for it...
     
     def getCombatInterface(self) -> QtWidgets.QWidget:
         self.Frame = AGeWidgets.TightGridFrame()
@@ -197,9 +197,9 @@ class ShipInterface:
                     if hasattr(i,"updateCombatInterface"):
                         i.updateCombatInterface()
         except RuntimeError:
-            pass # This usually means that the widget is destroyed but I don't know of a better way to test for it...
+            self.Label = None # This usually means that the widget is destroyed but I don't know of a better way to test for it...
         try:
             if self.QuickView:
                 self.QuickView.updateCombatInterface()
         except RuntimeError:
-            pass # This usually means that the widget is destroyed but I don't know of a better way to test for it...
+            self.QuickView = None # This usually means that the widget is destroyed but I don't know of a better way to test for it...

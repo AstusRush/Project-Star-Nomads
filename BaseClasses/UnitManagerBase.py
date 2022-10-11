@@ -51,19 +51,16 @@ if TYPE_CHECKING:
     from BaseClasses import FleetBase
 from BaseClasses import HexBase as Hex
 from BaseClasses import get
-from BaseClasses import BaseAI
+from BaseClasses import AI_Player
 
 class UnitManager():
+    Strategic:bool = False
     def __init__(self) -> None:
         self.Units_Environmental = UnitList()
-        self.Units_Environmental.AI = BaseAI.PlayerAI(self.Units_Environmental)
         self.Units_Neutral = UnitList()
-        self.Units_Neutral.AI = BaseAI.PlayerAI(self.Units_Neutral)
         self.Units_Team1 = UnitList()
         self.Units_Team2 = UnitList()
-        self.Units_Team2.AI = BaseAI.PlayerAI(self.Units_Team2)
         self.Units_Team3 = UnitList()
-        self.Units_Team3.AI = BaseAI.PlayerAI(self.Units_Team3)
         self.Teams = {
             -1 : self.Units_Environmental,
             0  : self.Units_Neutral,
@@ -78,6 +75,10 @@ class UnitManager():
             2  : App().MiscColours["Hostile"],
             3  : App().PenColours["Magenta"],
         }
+        for teamID, team in self.Teams.items():
+            team.ID = teamID
+            if teamID > 1:
+                team.AI = AI_Player.PlayerAI_Campaign(team) if self.Strategic else AI_Player.PlayerAI_Combat(team)
         self.selectedUnit: weakref.ref['FleetBase.FleetBase'] = None
     
     def destroy(self):
@@ -121,32 +122,53 @@ class UnitManager():
         try: self.Units_Team1.endTurn()
         except: NC(1,f"Could not fully execute `self.Units_Team1.endTurn()`. This might lead to instability.",exc=True)
         
-        try: await self.Units_Team2.startTurn()
-        except: NC(1,f"Could not fully execute `await self.Units_Team2.startTurn()`. This might lead to instability.",exc=True)
-        try: self.Units_Team2.endTurn()
-        except: NC(1,f"Could not fully execute `self.Units_Team2.endTurn()`. This might lead to instability.",exc=True)
-        try: await self.Units_Team3.startTurn()
-        except: NC(1,f"Could not fully execute `await self.Units_Team3.startTurn()`. This might lead to instability.",exc=True)
-        try: self.Units_Team3.endTurn()
-        except: NC(1,f"Could not fully execute `self.Units_Team3.endTurn()`. This might lead to instability.",exc=True)
-        try: await self.Units_Environmental.startTurn()
-        except: NC(1,f"Could not fully execute `await self.Units_Environmental.startTurn()`. This might lead to instability.",exc=True)
-        try: self.Units_Environmental.endTurn()
-        except: NC(1,f"Could not fully execute `self.Units_Environmental.endTurn()`. This might lead to instability.",exc=True)
-        try: await self.Units_Neutral.startTurn()
-        except: NC(1,f"Could not fully execute `await self.Units_Neutral.startTurn()`. This might lead to instability.",exc=True)
-        try: self.Units_Neutral.endTurn()
-        except: NC(1,f"Could not fully execute `self.Units_Neutral.endTurn()`. This might lead to instability.",exc=True)
+        for teamID, team in self.Teams.items():
+            if teamID != 1: # Team 1 is the Player
+                try: await team.startTurn()
+                except: NC(1,f"Could not fully handle the start of the Turn of {team.name()} ({teamID=}). This might lead to instability.",exc=True)
+                try: team.endTurn()
+                except: NC(1,f"Could not fully handle the start of the Turn of {team.name()} ({teamID=}). This might lead to instability.",exc=True)
+        # try: await self.Units_Team2.startTurn()
+        # except: NC(1,f"Could not fully execute `await self.Units_Team2.startTurn()`. This might lead to instability.",exc=True)
+        # try: self.Units_Team2.endTurn()
+        # except: NC(1,f"Could not fully execute `self.Units_Team2.endTurn()`. This might lead to instability.",exc=True)
+        # try: await self.Units_Team3.startTurn()
+        # except: NC(1,f"Could not fully execute `await self.Units_Team3.startTurn()`. This might lead to instability.",exc=True)
+        # try: self.Units_Team3.endTurn()
+        # except: NC(1,f"Could not fully execute `self.Units_Team3.endTurn()`. This might lead to instability.",exc=True)
+        # try: await self.Units_Environmental.startTurn()
+        # except: NC(1,f"Could not fully execute `await self.Units_Environmental.startTurn()`. This might lead to instability.",exc=True)
+        # try: self.Units_Environmental.endTurn()
+        # except: NC(1,f"Could not fully execute `self.Units_Environmental.endTurn()`. This might lead to instability.",exc=True)
+        # try: await self.Units_Neutral.startTurn()
+        # except: NC(1,f"Could not fully execute `await self.Units_Neutral.startTurn()`. This might lead to instability.",exc=True)
+        # try: self.Units_Neutral.endTurn()
+        # except: NC(1,f"Could not fully execute `self.Units_Neutral.endTurn()`. This might lead to instability.",exc=True)
         
         try: await self.Units_Team1.startTurn()
         except: NC(1,f"Could not fully execute `await self.Units_Team1.startTurn()`. This might lead to instability.",exc=True)
         if self.selectedUnit:
             self.selectedUnit().highlightRanges(False)
             self.selectedUnit().highlightRanges(True)
-            self.selectedUnit().diplayStats(True)
+            self.selectedUnit().displayStats(True)
+    
+    def isAllied(self, team1:int, team2:int) -> bool:
+        return team2 in self.getAllies(team1)
+    
+    def getAllies(self, team:int) -> typing.List[int]:
+        return [team,] #TODO: implement Alliances
     
 class UnitList(typing.List['FleetBase.Flotilla']):
-    AI:BaseAI.PlayerAI = None
+    AI:AI_Player.PlayerAI = None
+    _name:str = ""
+    ID:int = 0
+    
+    def name(self):
+        if not self._name:
+            return f"team {self.ID}"
+        else:
+            return self._name
+    
     def append(self, unit):
         # type: (FleetBase.FleetBase) -> None
         if not unit in self:
@@ -171,3 +193,10 @@ class UnitList(typing.List['FleetBase.Flotilla']):
             
     def __str__(self) -> str:
         return f"Unit list:\n\t"+"\n\t".join([str(i) for i in self])+"\n"
+
+
+class CampaignUnitManager(UnitManager):
+    Strategic = True
+
+class CombatUnitManager(UnitManager):
+    Strategic = False

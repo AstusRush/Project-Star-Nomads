@@ -81,9 +81,47 @@ class Enterprise(ShipBase.Ship):
         self.Model = EnterpriseModel()
         self.setModel(self.Model)
         self.addModule(ShipModules.TestModules.TestHull_M(self))
+        self.addModule(ShipModules.TestModules.TestSensors_M(self))
         self.addModule(ShipModules.TestModules.TestShield_L(self))
+        self.addModule(ShipModules.TestModules.TestShield_M(self))
         self.addModule(ShipModules.TestModules.TestShield_S(self))
+        self.addModule(ShipModules.TestModules.TestBeam_S(self))
+        self.addModule(ShipModules.TestModules.TestBeam_S(self))
         self.addModule(ShipModules.TestModules.TestBeam_S(self))
         self.addModule(ShipModules.TestModules.TestBeam_S(self))
         self.addModule(ShipModules.TestModules.TestEngine_M(self))
         self.addModule(ShipModules.TestModules.TestThruster_M(self))
+
+class PrometheusModel(ModelBase.ShipModel):
+    ModelPath = "tempModels/Prometheus NX 59650/prometheus.obj"
+    IconPath = "tempModels/Prometheus NX 59650/Prometheus1.jpg"
+    def resetModel(self):
+        self.Model.setH(0) #TODO: Reset all rotations
+        self.Model.setPos(0,0,0)
+        self.Model.setScale(1)
+        self.Model.setP(90)
+    
+    def centreModel(self):
+        self.Model.setH(0)
+        self.Model.setP(90)
+        self.Model.setPos(0,0,0)
+        self.Model.setScale(1)
+        self.Model.setScale(0.8/self.Model.getBounds().getRadius())
+        self.Model.setPos(-self.Model.getBounds().getApproxCenter())
+
+class Prometheus(ShipBase.Ship):
+    Name = "Prometheus"
+    ClassName = "Prometheus Class"
+    def __init__(self) -> None:
+        super().__init__()
+        self.Model = PrometheusModel()
+        self.setModel(self.Model)
+        self.addModule(ShipModules.TestModules.TestHull_M(self))
+        self.addModule(ShipModules.TestModules.TestSensors_M(self))
+        self.addModule(ShipModules.TestModules.TestShield_L(self))
+        self.addModule(ShipModules.TestModules.TestShield_M(self))
+        self.addModule(ShipModules.TestModules.TestBeam_M(self))
+        self.addModule(ShipModules.TestModules.TestBeam_M(self))
+        self.addModule(ShipModules.TestModules.TestEngine_L(self))
+        self.addModule(ShipModules.TestModules.TestThruster_L(self))
+

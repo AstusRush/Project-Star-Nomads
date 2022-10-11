@@ -53,15 +53,15 @@ class EngineClass(ape.APE):
     def start(self):
         self.Scene:'Scene.CampaignScene' = None
         self.BattleScene:'Scene.BattleScene' = None
-        self.UnitManager:'UnitManagerBase.UnitManager' = None
-        self.BattleUnitManager:'UnitManagerBase.UnitManager' = None
+        self.UnitManager:'UnitManagerBase.CampaignUnitManager' = None
+        self.BattleUnitManager:'UnitManagerBase.CombatUnitManager' = None
         self.FleetsInBattle:typing.List[FleetBase.Fleet] = []
         self.base.start()
         self.startCampaignScene()
         self.CurrentlyInBattle = False
     
     def startCampaignScene(self):
-        self.UnitManager = UnitManagerBase.UnitManager()
+        self.UnitManager = UnitManagerBase.CampaignUnitManager()
         self.Scene = Scene.CampaignScene()
         self.Scene.start()
     
@@ -71,7 +71,7 @@ class EngineClass(ape.APE):
         self.UnitManager.unselectAll()
         self.FleetsInBattle = fleets
         self.Scene.pause()
-        self.BattleUnitManager = UnitManagerBase.UnitManager()
+        self.BattleUnitManager = UnitManagerBase.CombatUnitManager()
         self.BattleScene = Scene.BattleScene()
         self.BattleScene.start()
         for fleet in fleets:

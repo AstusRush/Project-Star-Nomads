@@ -166,11 +166,11 @@ class Unit():
     
     def select(self):
         self.highlightRanges(True)
-        self.diplayStats(True)
+        self.displayStats(True)
     
     def unselect(self):
         self.highlightRanges(False)
-        self.diplayStats(False)
+        self.displayStats(False)
     
   #endregion Turn and Selection
   #region Interaction
@@ -439,7 +439,7 @@ class Unit():
                 self.showShield()
             self.WasHitLastTurn = finalDamage >= self.NoticeableDamage
         if self.isSelected():
-            self.diplayStats(True)
+            self.displayStats(True)
         if destroyed and not self.Destroyed: self.explode()
         return hit, destroyed, finalDamage
   #endregion Combat Defensive
@@ -574,7 +574,7 @@ class Unit():
     
   #endregion Effects
   #region Display Information
-    def diplayStats(self, display=True):
+    def displayStats(self, display=True):
         if display:
             text = textwrap.dedent(f"""
             Name: {self.Name}

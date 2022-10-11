@@ -54,23 +54,22 @@ if TYPE_CHECKING:
 from BaseClasses import get
 from BaseClasses import HexBase
 
-class PlayerAI():
-    def __init__(self, unitList:'UnitManagerBase.UnitList') -> None:
-        self.unitList = weakref.ref(unitList)
-    
-    async def executeTurn(self):
-        for i in self.unitList():
-            if i.isDestroyed(): continue
-            for _ in range(6):
-                destinationHex = random.choice(list(i.getReachableHexes()))
-                if list(i.getAttackableHexes(destinationHex)):
-                    break
-            i.moveTo(destinationHex)
-            attackHexList = list(i.getAttackableHexes())
-            if attackHexList:
-                attackHex = random.choice(attackHexList)
-                await i.attack(attackHex)
-
 class AI_Base():
     def __init__(self) -> None:
         pass
+
+class Orders(dict):
+    """
+    This class is used to store orders. \n
+    If a key does not have a value it returns `None`.
+    Only `__getitem__` is overwritten thus `.get` can still be used to detect if an key was actually filled with `None` intentionally if that would make a difference at some point.
+    """
+    def __getitem__(self, key):
+        try:
+            return dict.__getitem__(self, key)
+        except:
+            return None
+    
+    def copyFromDict(self, dict:dict):
+        for i,v in dict.items():
+            self[i] = v

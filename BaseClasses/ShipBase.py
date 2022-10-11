@@ -92,6 +92,14 @@ class ShipsStats():
         return sum([i.Mass for i in self.ship().Modules])
     
     @property
+    def SensorRanges(self) -> typing.Tuple[float,float,float,float,float]:
+        """
+        Sensor ranges: no resolution, low resolution, medium resolution, high resolution, perfect resolution
+        Note: no resolution is always infinite and only exist so that the indices match with the information levels 0='Not visible' to 4='Fully visible'
+        """
+        return float("inf"), self.ship().sensor().LowRange, self.ship().sensor().MediumRange, self.ship().sensor().HighRange, self.ship().sensor().PerfectRange
+    
+    @property
     def Movement_Sublight(self) -> typing.Tuple[float,float]:
         "Remaining and maximum movement on the combat map."
         mass = self.Mass
@@ -121,6 +129,7 @@ class ShipBase():
         self.Model: ModelBase.ModelBase = None
         self.hull: 'weakref.ref[BaseModules.Hull]' = None
         self.thruster: 'weakref.ref[BaseModules.Thruster]' = None
+        self.sensor: 'weakref.ref[BaseModules.Sensor]' = None
         self.engine: 'weakref.ref[BaseModules.Engine]' = None
         self.Shields: 'typing.List[BaseModules.Shield]' = []
         self.Weapons: 'typing.List[BaseModules.Weapon]' = []
@@ -128,6 +137,7 @@ class ShipBase():
         self.Node.reparentTo(render())
         self.Modules:'typing.List[BaseModules.Module]' = []
         self.ExplosionSoundEffect = base().loader.loadSfx(self.ExplosionSoundEffectPath)
+        self.ExplosionSoundEffect.setVolume(0.5)
         self.init_combat()
         self.init_effects()
     
@@ -157,23 +167,30 @@ class ShipBase():
     
     def addModule(self, module:'BaseModules.Module'):
         from BaseClasses import BaseModules
+        if module in self.Modules:
+            NC(1,f"The module {module.Name} is already in the modules list! It can not be added again! That this was even possible is a bug! Adding this module again will be skipped to keep the game stable.", tb=True)
+            return
         self.Modules.append(module)
         if isinstance(module, BaseModules.Hull):
-            if self.hull: self.Modules.remove(self.hull())
+            if self.hull: self.Modules.remove(self.hull(),warn=True)
             self.hull = weakref.ref(module)
         if isinstance(module, BaseModules.Thruster):
-            if self.thruster: self.Modules.remove(self.thruster())
+            if self.thruster: self.Modules.remove(self.thruster(),warn=True)
             self.thruster = weakref.ref(module)
         if isinstance(module, BaseModules.Engine):
-            if self.engine: self.Modules.remove(self.engine())
+            if self.engine: self.Modules.remove(self.engine(),warn=True)
             self.engine = weakref.ref(module)
+        if isinstance(module, BaseModules.Sensor):
+            if self.sensor: self.Modules.remove(self.sensor(),warn=True)
+            self.sensor = weakref.ref(module)
         if hasattr(module, "HP_Shields"):
             self.Shields.append(module)
         if isinstance(module, BaseModules.Weapon):
             self.Weapons.append(module)
     
-    def removeModule(self, module:'BaseModules.Module'):
+    def removeModule(self, module:'BaseModules.Module', warn=False):
         from BaseClasses import BaseModules
+        if warn: NC(2,f"Removing module {module.Name} from modules!")
         self.Modules.remove(module)
         if module is self.hull():
             self.hull = None
@@ -181,6 +198,8 @@ class ShipBase():
             self.thruster = None
         if module is self.engine():
             self.engine = None
+        if module is self.sensor():
+            self.sensor = None
         if hasattr(module, "HP_Shields"):
             self.Shields.remove(module)
         if isinstance(module, BaseModules.Weapon):
@@ -331,7 +350,7 @@ class ShipBase():
                 self.showShield()
             self.WasHitLastTurn = finalDamage >= self.hull().NoticeableDamage
         #if self.fleet().isSelected():
-        #    self.diplayStats(True)
+        #    self.displayStats(True)
         self.updateInterface()
         if destroyed and not self.Destroyed: self.explode()
         return hit, destroyed, finalDamage

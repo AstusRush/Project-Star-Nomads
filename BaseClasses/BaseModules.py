@@ -121,7 +121,7 @@ class Engine(Module): # FTL Engine
                 c,m = self.ship().Stats.Movement_Sublight
                 self.Widget.setText(f"{self.Name} (Sublight Thruster):\n\tMovement: {c}/{m}\n\tThrust: {self.RemainingThrust}/{self.Thrust}\n\tShip Mass: {self.ship().Stats.Mass}")
             except RuntimeError:
-                pass # This usually means that the widget is destroyed but I don't know of a better way to test for it...
+                self.Widget = None # This usually means that the widget is destroyed but I don't know of a better way to test for it...
 
 class Thruster(Module): # Sublight Thruster
     Name = "Unnamed Thruster Module"
@@ -145,7 +145,7 @@ class Thruster(Module): # Sublight Thruster
                 c,m = self.ship().Stats.Movement_Sublight
                 self.Widget.setText(f"{self.Name} (Sublight Thruster):\n\tMovement: {c}/{m}\n\tThrust: {self.RemainingThrust}/{self.Thrust}\n\tShip Mass: {self.ship().Stats.Mass}")
             except RuntimeError:
-                pass # This usually means that the widget is destroyed but I don't know of a better way to test for it...
+                self.Widget = None # This usually means that the widget is destroyed but I don't know of a better way to test for it...
 
 class Shield(Module):
     Name = "Unnamed Shield Module"
@@ -175,7 +175,7 @@ class Shield(Module):
             try:
                 self.Widget.setText(f"{self.Name} (Shield):\n\tHP: {self.HP_Shields}/{self.HP_Shields_max}\n\tRegeneration per turn: {self.HP_Shields_Regeneration} (Halved if damaged last turn)\n\t(It takes one turn to reactivate the shields if their HP reaches 0)")
             except RuntimeError:
-                pass # This usually means that the widget is destroyed but I don't know of a better way to test for it...
+                self.Widget = None # This usually means that the widget is destroyed but I don't know of a better way to test for it...
 
 class Quarters(Module):
     # Houses crew and civilians
@@ -205,7 +205,10 @@ class ConstructionModule(Module):
 class Sensor(Module):
     # Includes sensors that increase weapon accuracy
     Name = "Unnamed Sensor Module"
-    pass
+    LowRange = 20
+    MediumRange = 12
+    HighRange = 4
+    PerfectRange = 1
 
 class Economic(Module):
     # Modules for economic purposes like educating and entertaining people (civilians and crew), harvesting or processing resources, growing food, and researching stuff.
@@ -243,6 +246,7 @@ class Weapon(Module):
         self.ShieldPiercing = False
         self.Ready = True
         self.SFX = base().loader.loadSfx(self.SoundEffectPath)
+        self.SFX.setVolume(0.5)
     
     def handleNewCombatTurn(self):
         self.Ready = True
@@ -257,7 +261,7 @@ class Weapon(Module):
             try:
                 self.Widget.setText(f"{self.Name} is {'Ready' if self.Ready else 'Used'}\n\tRange: {self.Range}\n\tDamage: {self.Damage}\n\tAccuracy: {self.Accuracy}\n\tHullFactor: {self.HullFactor}\n\tShieldFactor: {self.ShieldFactor}")
             except RuntimeError:
-                pass # This usually means that the widget is destroyed but I don't know of a better way to test for it...
+                self.Widget = None # This usually means that the widget is destroyed but I don't know of a better way to test for it...
     
     def attack(self, target:'HexBase._Hex'):
         if self.Ready and self.ship().fleet().hex().distance(target) <= self.Range:
