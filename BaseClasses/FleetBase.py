@@ -106,6 +106,7 @@ class FleetBase():
             if self.hex().fleet:
                 if self.hex().fleet() is self:
                     self.hex().fleet = None
+        self.TeamRing.removeNode()
         self.Node.removeNode()
     
     @property
@@ -125,7 +126,7 @@ class FleetBase():
         ship.reparentTo(self)
         self.arrangeShips()
     
-    def removeShip(self, ship:'ShipBase.ShipBase', arrange:bool=True) -> bool:
+    def removeShip(self, ship:'ShipBase.ShipBase', arrange:bool=True, notifyIfNotContained:bool=True) -> bool:
         """
         Remove `ship` from this fleet and rearranges the ship positions if `arrange`. \n
         Returns True if the Fleet still exists afterwards, otherwise returns False
@@ -134,7 +135,7 @@ class FleetBase():
             self.Ships.remove(ship)
             if self.Ships and arrange: self.arrangeShips()
         else:
-            NC(1,"SHIP WAS NOT IN SHIP LIST") #TODO: give more info
+            if notifyIfNotContained: NC(2,f"SHIP WAS NOT IN SHIP LIST\nFleet name: {self.Name}\nShip name: {ship.Name}", tb=True) #TODO: give more info
         if not self.Ships:
             self.destroy()
             return False
@@ -152,10 +153,13 @@ class FleetBase():
   #endregion manage ship list
   #region Turn and Selection
     def startTurn(self):
+        if not self.Ships:
+            self.destroy()
         self.ActiveTurn = True
         
         for i in self.Ships:
-            i.handleNewCombatTurn()
+            if get.engine().CurrentlyInBattle: i.handleNewCombatTurn()
+            else: i.handleNewCampaignTurn()
         if self.isSelected():
             self.displayStats(True)
         
@@ -212,7 +216,7 @@ class FleetBase():
             if not hex.fleet: #TODO: We have a serious problem when this occurs. What do we do in that case?
                 raise Exception("Could not assign unit to Hex")
             if hex.fleet() != self: #TODO: We have a serious problem when this occurs. What do we do in that case?
-                raise Exception("Could not assign unit to Hex")
+                raise Exception(f"Could not assign unit to Hex. (The Hex has a different fleet assigned that is named {hex.fleet()})")
             self.hex = weakref.ref(hex)
     
     def _navigable(self, hex:'HexBase._Hex'): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
@@ -441,6 +445,11 @@ class FleetBase():
         # https://github.com/topics/packing-algorithm?o=desc&s=forks
         # https://github.com/jerry800416/3D-bin-packing
         num = len(self.Ships)
+        if not num:
+            self.destroy()
+            return
+        for i,s in enumerate(self.Ships):
+            s.Model.centreModel()
         if num == 1:
             self.Ships[0].setPos(0,0,0)
         else:
@@ -531,22 +540,31 @@ class Fleet(FleetBase):
     def MovePoints_max(self) -> float:
         return min([i.Stats.Movement_FTL[1] for i in self.Ships])
     
-    def battleEnded(self):
+    def battleEnded(self) -> float:
+        """
+        Handles the End of the Battle for this Fleet. \n
+        This Includes removing all destroyed ships and re-parenting all other ships from their flotillas back to this fleet. \n
+        If all ships were destroyed this fleet will delete itself. \n
+        Returns the salvage Value of all destroyed ships.
+        """
         print("Battle Ended for", self.Name)
         print("Ships in fleet before cleanup:", len(self.Ships))
-        ships_to_be_removed = []
+        ships_to_be_removed:typing.List['ShipBase.ShipBase'] = []
         for ship in self.Ships:
             if ship.Destroyed:
                 ships_to_be_removed.append(ship)
+        salvageValue = 0
         for ship in ships_to_be_removed:
+            salvageValue += ship.Stats.Value/5
             self.removeShip(ship,arrange=False)
         print("Ships in fleet after cleanup:", len(self.Ships))
         if self.Destroyed:
-            return
+            return salvageValue
         else:
             for ship in self.Ships:
                 ship.reparentTo(self)
             self.arrangeShips()
+        return salvageValue
     
   #region Combat Offensive
     async def attack(self, target: 'HexBase._Hex', orders:AI_Base.Orders = None):
@@ -648,7 +666,7 @@ class Flotilla(FleetBase):
         l: typing.Set['HexBase._Hex'] = set()
         for i in _hex.getDisk(self.getAttackRange()[2]):
             if i.fleet:
-                if i.fleet().Team is not self.Team:
+                if not get.unitManager().isAllied(self.Team, i.fleet().Team):
                     l.add(i)
         return l
   #endregion Combat Offensive

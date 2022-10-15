@@ -120,6 +120,8 @@ class BaseScene(ape.APEScene):
         self.HexGrid = HexBase.HexGrid()
         self.HexGrid.generateHex()
         
+        #CRITICAL: use self.Camera.setLimits
+        
         #base().accept("l", self.togglePerPixelLighting)
         #base().accept("e", self.toggleShadows
     

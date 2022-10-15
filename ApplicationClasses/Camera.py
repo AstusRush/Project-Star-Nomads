@@ -101,6 +101,7 @@ class StrategyCamera():
         self.acceptAllCombinations("e", self.setKey, ["cam-rot-right",1])
         self.acceptAllCombinations("q-up", self.setKey, ["cam-rot-left",0])
         self.acceptAllCombinations("e-up", self.setKey, ["cam-rot-right",0])
+        base().accept("home", lambda: self.resetCameraOrientation())
         
         base().taskMgr.add(lambda task: self.moveCamera(task), "moveCamereTask")
         self.acceptAllCombinations("wheel_up",   lambda: self.zoomCamera(-1))
@@ -145,6 +146,13 @@ class StrategyCamera():
         ape.base().camera.lookAt(self.CameraCenter)
         self.Active = True
         self.bindEvents()
+    
+    def resetCameraOrientation(self):
+        self.CameraRotCenter.setPos(p3dc.Vec3(0,0,0))
+        self.CameraRotCenter.setP(-45)
+        self.CameraCenter.setH(0)
+        ape.base().camera.setPos(0,-15,0)
+        ape.base().camera.lookAt(self.CameraCenter)
     
     def moveToHex(self, hex_:'HexBase._Hex'):
         self.CameraCenter.setPos(hex_.Pos)
@@ -220,9 +228,18 @@ class StrategyCamera():
     def zoomCamera(self, sign): #TODO: Support zoom-to-cursor and use it as a standard as it feels way more intuitive. Make a flag (as a member) that governs this behaviour
         if not self.Active:
             return
-        y = -ape.base().camera.getY() + sign*5
-        if y > 100: y = 100
-        elif y < 5: y = 5
+        if -ape.base().camera.getY() <= 5:
+            y = -ape.base().camera.getY() + sign
+            if y > 5: y = 10
+            elif y < 1: y = 1
+        elif -ape.base().camera.getY() <= 50:
+            y = -ape.base().camera.getY() + sign*5
+            if y > 50: y = 60
+            elif y < 5: y = 5
+        else:
+            y = -ape.base().camera.getY() + sign*10
+            if y > 130: y = 130
+            elif y < 55: y = 50
         ape.base().camera.setY(-y)
         ape.base().camera.lookAt(self.CameraCenter)
     

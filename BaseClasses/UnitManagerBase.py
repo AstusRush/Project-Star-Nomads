@@ -158,7 +158,7 @@ class UnitManager():
     def getAllies(self, team:int) -> typing.List[int]:
         return [team,] #TODO: implement Alliances
     
-class UnitList(typing.List['FleetBase.Flotilla']):
+class UnitList(typing.List['FleetBase.FleetBase']):
     AI:AI_Player.PlayerAI = None
     _name:str = ""
     ID:int = 0
@@ -190,9 +190,12 @@ class UnitList(typing.List['FleetBase.Flotilla']):
     def endTurn(self):
         for i in self:
             i.endTurn()
-            
+    
     def __str__(self) -> str:
         return f"Unit list:\n\t"+"\n\t".join([str(i) for i in self])+"\n"
+    
+    def numberOfShips(self):
+        return sum([len(fleet.Ships) for fleet in self])
 
 
 class CampaignUnitManager(UnitManager):

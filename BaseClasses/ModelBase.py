@@ -52,12 +52,12 @@ from BaseClasses import get
 from BaseClasses import HexBase
 
 class ModelBase():
-    IconPath = ""
-    "tempModels/NCC-1701-D.gltf"
+    IconPath = "" #TODO: we need a default icon for ships
+    ModelPath = "Models/Simple Geometry/cube.ply"
     def __init__(self) -> None:
         self.Model:p3dc.NodePath = None
         self._init_model()
-        
+    
     def _init_model(self):
         self.Node = p3dc.NodePath(p3dc.PandaNode(f"Central node of model: {id(self)}"))
         try:
@@ -77,12 +77,12 @@ class ModelBase():
             self.Model.removeNode()
             self.Node.removeNode()
             raise
-        
+    
     def resetModel(self):
         self.Model.setH(0) #TODO: Reset all rotations
         self.Model.setPos(0,0,0)
         self.Model.setScale(1)
-        
+    
     def centreModel(self):
         self.resetModel()
         #REMINDER: Use the next line to make shields (adjust the scale factor here accordingly so that the shields have a decend distance to the ship but are smaller than 1.0 to avoid clipping)

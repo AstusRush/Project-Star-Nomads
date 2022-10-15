@@ -1,5 +1,9 @@
 import typing
+from BaseClasses import ListLoader
 if typing.TYPE_CHECKING:
+    from BaseClasses import ShipBase
+    from BaseClasses import ModelBase
+    #
     import TestShips
 else:
     """Import all modules that exist in the current directory."""
@@ -13,3 +17,23 @@ else:
             import_module(f".{module_name}", __package__)
         del f, module_name
     del import_module, Path
+
+def getShips() -> typing.Dict[str,type['ShipBase.ShipBase']]:
+    from BaseClasses import ShipBase
+    Ships:typing.Dict[str,type['ShipBase.ShipBase']] = {}
+    ListLoader.fillWithType(Ships, globals(), ShipBase.ShipBase)
+    #for m in globals().values():
+    #    if hasattr(m,"__dict__"):
+    #        for k,v in m.__dict__.items():
+    #            if isinstance(v, type) and issubclass(v, ShipBase.ShipBase):
+    #                Ships[k] = v
+    return Ships
+
+def getShipModels() -> typing.Dict[str,type['ModelBase.ShipModel']]:
+    from BaseClasses import ModelBase
+    ShipModels:typing.Dict[str,type['ModelBase.ShipModel']] = {}
+    ListLoader.fillWithType(ShipModels, globals(), ModelBase.ShipModel)
+    #for k,v in globals().items():
+    #    if isinstance(v, type) and issubclass(v, ModelBase.ShipModel):
+    #        ShipModels[k] = v
+    return ShipModels

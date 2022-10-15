@@ -114,19 +114,78 @@ class ShipsStats():
         mass = self.Mass
         return round(self.ship().engine().RemainingThrust/mass,2) , round(self.ship().engine().Thrust/mass,2)
     
+    @property
+    def Movement(self) -> typing.Tuple[float,float]:
+        "Remaining and maximum movement on the current map."
+        if get.engine().CurrentlyInBattle: return self.Movement_Sublight
+        else: return self.Movement_FTL
+    
     def spendMovePoints_FTL(self, value:float):
         self.ship().engine().RemainingThrust -= value*self.Mass
+    
+    def spendMovePoints(self, value:float):
+        if get.engine().CurrentlyInBattle: self.spendMovePoints_Sublight(value)
+        else: self.spendMovePoints_FTL(value)
+    
+    @property
+    def Evasion(self) -> float:
+        """
+        This is the evasion chance of the ship. It is influenced by the hull, the maximum movement range, and the remaining movement range\n
+        You get the most evasion bonus if a ship has used half of its movement points with diminishing returns for more or less\n
+            If a ship has moved less it is relatively stationary and therefore easier to hit\n
+            If a ship has moved more it is too focused on reaching its destination to evade and is instead going in a predictable straight line\n
+        This evasion chance is also influenced by the maximum speed\n
+        If you have used exactly halve of your movement points you will get an evasion bonus of you maximum movement points in percent. The chance is distributed by using a cosine function.\n
+            i.e. if you have 10 maximum movement points and have 5 remaining movement points you will get an additional 10% evasion chance on top of your hull evasion chance\n
+            if you have used none or all of your movement points you will get no evasion bonus at all.\n
+            and if you have used a 1/4 or 3/4 of your movement points you will get about 0.7 of the evasion chance bonus.\n
+        The following code can be used to generate plots for all reasonable scenarios.\n
+        (The code uses standard AGeLib plotter commands but `plot` and `draw` are equivalent to the matplotlib functions and `dpl` is equivalent to `print` (and the first two lines can be ignored))\n
+        ```
+        display()
+        clear()
+        for m in range(20):
+            m += 1
+            pl = []
+            for c in range(m+1):
+                #v = m/50*(1/2**(1+abs(c-m/2))) # an earlier attempt that produces undesirable results
+                v = m/100*np.cos( abs(c-m/2)/m *np.pi )
+                dpl(m,c,0.1+v )#,1/2**(1+abs(c-m/2)) )
+                pl.append(v)
+            plot(range(m+1),pl,label=str(m))
+            dpl()
+        draw()
+        ```
+        """
+        #MAYBE: This formula can probably rewritten without the abs and maybe even using a sine which should allow to simplify the formula
+        c,m = self.Movement_Sublight
+        return self.ship().hull().Evasion + m/100*np.cos( abs(c-m/2)/m *np.pi )
+    
+    @property
+    def Value(self) -> float:
+        return sum([i.Value for i in self.ship().Modules])
+    
+    @property
+    def Threat(self) -> float:
+        return sum([i.Threat for i in self.ship().Modules])
+    
+    @property
+    def Defensiveness(self) -> float:
+        return ((self.HP_Shields+self.HP_Shields_max)/2 + (self.HP_Hull+self.HP_Hull_max)/2)*(1/self.Evasion)
 
 class ShipBase():
     Name = "Unnamed Entity (ShipBase)"
     ClassName = "Unnamed Entity Class (ShipBase)"
     ExplosionSoundEffectPath = "tempModels/SFX/arfexpld.wav"
+    
+    Model: ModelBase.ModelBase = None
+    campaignFleet:typing.Union[weakref.ref['FleetBase.Fleet'],None] = None
+    battleFleet:typing.Union[weakref.ref['FleetBase.Flotilla'],None] = None
   #region init and destroy
     def __init__(self) -> None:
         self.Interface = WidgetsBase.ShipInterface(self)
         self.Stats = ShipsStats(self)
         self.fleet = None # type: weakref.ref['FleetBase.FleetBase']
-        self.Model: ModelBase.ModelBase = None
         self.hull: 'weakref.ref[BaseModules.Hull]' = None
         self.thruster: 'weakref.ref[BaseModules.Thruster]' = None
         self.sensor: 'weakref.ref[BaseModules.Sensor]' = None
@@ -137,7 +196,7 @@ class ShipBase():
         self.Node.reparentTo(render())
         self.Modules:'typing.List[BaseModules.Module]' = []
         self.ExplosionSoundEffect = base().loader.loadSfx(self.ExplosionSoundEffectPath)
-        self.ExplosionSoundEffect.setVolume(0.5)
+        self.ExplosionSoundEffect.setVolume(0.35)
         self.init_combat()
         self.init_effects()
     
@@ -164,6 +223,14 @@ class ShipBase():
         self.WasHitLastTurn = False
         if self.ShieldsWereOffline:
             self.ShieldsWereOffline = False
+    
+    def handleNewCampaignTurn(self):
+        self.WasHitLastTurn = False
+        if self.ShieldsWereOffline:
+            self.ShieldsWereOffline = False
+        #TODO: What do we do about healing?
+        for i in self.Modules:
+            i.handleNewCampaignTurn()
     
     def addModule(self, module:'BaseModules.Module'):
         from BaseClasses import BaseModules
@@ -222,6 +289,28 @@ class ShipBase():
             self.Interface.updateCombatInterface()
   #endregion Interface
   #region Interaction
+    def interactWith(self, hex:'HexBase._Hex'):
+        if hex.fleet:
+            if get.engine().CurrentlyInBattle and not get.unitManager().isAllied(self.fleet().Team, hex.fleet().Team):
+                #TODO: The fleet should look at that hex before this attack is executed
+                self.attack(hex)
+                return False, True
+            elif hex.distance(self.fleet().hex()) == 1 and self.fleet().Team == hex.fleet().Team and self.Stats.Movement[0] >= 1:
+                self.fleet().removeShip(self)
+                hex.fleet().addShip(self)
+                self.Stats.spendMovePoints(1)
+                return True, True
+        elif hex.distance(self.fleet().hex()) == 1 and self.fleet()._navigable(hex) and self.Stats.Movement[0] >= 1:
+            from BaseClasses import FleetBase
+            if get.engine().CurrentlyInBattle: f = FleetBase.Flotilla(self.fleet().Team)
+            else: f = FleetBase.Fleet(self.fleet().Team)
+            f.moveToHex(hex,False)
+            self.fleet().removeShip(self)
+            hex.fleet().addShip(self)
+            self.Stats.spendMovePoints(1)
+            return True, True
+        return False, True
+    
     def attack(self, hex:'HexBase._Hex'):
         for i in self.Weapons:
             i.attack(hex)
@@ -230,7 +319,19 @@ class ShipBase():
   #region model
     def reparentTo(self, fleet):
         # type: (FleetBase.FleetBase) -> None
-        self.fleet = weakref.ref(fleet)
+        if fleet._IsFleet:
+            if self.campaignFleet and self.campaignFleet() and self.campaignFleet() is not fleet:
+                try: self.campaignFleet().removeShip(self, notifyIfNotContained=False)
+                except: NC(1,exc=True) # This should mean that the fleet no longer exists and the weakref therefore no longer points to anything... #VALIDATE: is this correct? Can we intercept that exception specifically? What other exceptions could be thrown when removing the ship? Are any of these important?
+            self.fleet = self.campaignFleet = weakref.ref(fleet)
+        elif fleet._IsFlotilla:
+            if self.battleFleet and self.battleFleet() and self.battleFleet() is not fleet:
+                try: self.battleFleet().removeShip(self, notifyIfNotContained=False)
+                except: NC(1,exc=True) # This should mean that the fleet no longer exists and the weakref therefore no longer points to anything... #VALIDATE: is this correct? Can we intercept that exception specifically? What other exceptions could be thrown when removing the ship? Are any of these important?
+            self.fleet = self.battleFleet = weakref.ref(fleet)
+        else:
+            self.destroy()
+            raise Exception(f"Fleet '{fleet.Name}' is neither a fleet nor a flotilla! This should not be possible! This ship will self-destruct as a response to this!")
         self.Node.reparentTo(fleet.Node)
         self.Node.setPos(0,0,0)
     
@@ -332,7 +433,7 @@ class ShipBase():
         """
         #FEATURE:HULLTYPES
         #FEATURE:WEAPONSTRUCTURES: instead of handing over a bazillion parameters there should be a class for weapons which can handle everything. That class should probably replace this takeDamage method all together
-        hit = np.random.random_sample() < accuracy-self.hull().Evasion
+        hit = np.random.random_sample() < accuracy-self.Stats.Evasion
         finalDamage = 0
         destroyed = False
         if hit:
@@ -362,7 +463,8 @@ class ShipBase():
         #except:
         #    if self in get.unitManager().Teams[self.fleet().Team]:
         #        raise
-        self.fleet().removeShip(self)
+        if self.fleet:
+            self.fleet().removeShip(self)
         self.__del__()
         #if task:
         #    return Task.cont
@@ -380,7 +482,8 @@ class ShipBase():
         #        if self.hex().unit() is self:
         #            self.hex().unit = None
         #CRITICAL: Ensure that all Nodes get cleaned up!
-        self.Model.Model.removeNode()
+        if self.Model:
+            self.Model.Model.removeNode()
         self.Node.removeNode()
     
   #endregion Combat Defensive

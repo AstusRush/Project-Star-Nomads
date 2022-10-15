@@ -61,7 +61,7 @@ class BaseFleetAI(AI_Base.AI_Base):
         super().__init__()
         self.fleet = weakref.ref(fleet)
     
-    def getRandomReachableHex(self) -> HexBase._Hex:
+    def getRandomReachableHex(self) -> HexBase._Hex: #CRITICAL: What happens if we find none?! This currently happens rarely but it is still bad!
         return random.choice(list(self.fleet().getReachableHexes()))
 
 class FleetAI(BaseFleetAI):
@@ -70,11 +70,22 @@ class FleetAI(BaseFleetAI):
     async def executeTurn(self, orders:AI_Base.Orders):
         if self.fleet().isDestroyed(): return
         attackableHexes:typing.List[HexBase._Hex] = []
-        for _ in range(6):
-            destinationHex = self.getRandomReachableHex()
-            if attackableHexes := self.getAttackableHexes(destinationHex, orders) :
-                break
-        self.fleet().moveTo(destinationHex)
+        moved, isClose = False, False
+        if (closestEnemy:=self.fleet().findClosestEnemy()):
+            isClose, moved = self.fleet().moveClose(closestEnemy.hex(), 1)
+            print(f"{self.fleet().Name} tries to move to a close enemy {isClose=} {moved=}")
+            if not isClose and (closestEnemy:=self.fleet().findClosestEnemy()):
+                isClose, moved = self.fleet().moveClose(closestEnemy.hex(), 5)
+                print(f"{self.fleet().Name} tries to move to a close enemy {isClose=} {moved=}")
+        if self.fleet().MovePoints >= 1 and not moved and (not isClose or (closestEnemy and closestEnemy.Team != 1)):
+            for _ in range(6):
+                destinationHex = self.getRandomReachableHex()
+                if attackableHexes := self.getAttackableHexes(destinationHex, orders) :
+                    break
+            self.fleet().moveTo(destinationHex)
+        return
+        #TODO: This would currently break everything as the UnitManager can not pause to wait for a battle to conclude...
+        #       I am uncertain in general as to how to handle this... But at least the code exists in some form for when I am ready
         if attackableHexes:
             attackHex = random.choice(attackableHexes)
             await self.fleet().attack(attackHex, orders)
@@ -90,8 +101,10 @@ class FlotillaAI(BaseFleetAI):
     
     async def executeTurn(self, orders:AI_Base.Orders):
         if self.fleet().isDestroyed(): return
+        #TODO: The next line should only be activated once the attack-method waits for the attack-animation to end before returning
+        #if attackableHexes := self.getAttackableHexes(self.fleet().hex(), orders): await self.fleet().attack(random.choice(attackableHexes), orders) #TODO: This should be randomized but it should always trigger when fleeing
         #TODO: if multiple ships in the fleet are heavily damaged we should try to flee and try to seek help
-        if orders["movement strategy"] is "formation" and orders["formation leader"] is not self.fleet():
+        if orders["movement strategy"] == "formation" and orders["formation leader"] is not self.fleet():
             isClose, moved = self.fleet().moveClose(orders["formation leader"].hex(), self.fleet().MovePoints_max)
         attackableHexes:typing.List[HexBase._Hex] = self.getAttackableHexes(self.fleet().hex(), orders)
         if self.fleet().MovePoints >= 1:

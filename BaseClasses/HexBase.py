@@ -106,9 +106,14 @@ def getHex(i:typing.Tuple[int,int]):
 
 #region Hex Map
 class HexGrid():
+    OnHoverDo:typing.Union[None,typing.Callable[['_Hex'],None]]
     def __init__(self, scene:ape.APEScene=None, root:p3dc.NodePath = None, size: typing.Tuple[int,int] = (50,50), TransparentHexRings=True) -> None:
         self.Active = True
-        self.Scene = scene if scene else engine().Scene
+        self.OnHoverDo:typing.Union[typing.Callable[['_Hex'],None],None] = None # This must be a function that takes a hexagon and does stuff. This member can be set on demand to, for example, preview things
+        self.OnLMBDo:typing.Union[typing.Callable[['_Hex'],None],typing.Tuple[bool,bool]] = None # This must be a function that takes a hexagon and does stuff. This member can be set on demand to, for example, target abilities
+        self.OnRMBDo:typing.Union[typing.Callable[['_Hex'],None],typing.Tuple[bool,bool]] = None # This must be a function that takes a hexagon and does stuff. This member can be set on demand to, for example, cancel abilities
+        self.OnClearDo: typing.Union[typing.Callable[[None],None],None] = None # This must be a function that takes nothing and is called when the other interactions get reset. Used to clean up i.e. highlighting
+        self.Scene = scene if scene else get.engine().Scene
         if root:
             self.Root = root
         else:
@@ -131,8 +136,8 @@ class HexGrid():
     def bindEvents(self):
         # Start the task that handles the picking
         self.mouseTask = base().taskMgr.add(self._mouseTask, 'mouseTask')
-        base().accept("mouse1", lambda: self._selectHighlightedHex()) # LMB
-        base().accept("mouse3", lambda: self._interactWithHighlightedHex()) # RMB
+        base().accept("mouse1", lambda: self._lmbOnHex()) # LMB
+        base().accept("mouse3", lambda: self._rmbOnHex()) # RMB
     
     def clearHexes(self):
         self.HighlightedHex = False # type: _Hex
@@ -245,11 +250,38 @@ class HexGrid():
                 i.hoverHighlight()
                 self.HighlightedHex = i
                 get.window().Statusbar.showMessage(i.Name)
+                if self.OnHoverDo:
+                    self.OnHoverDo(i)
         
         return Task.cont
     
+    def clearInteractionFunctions(self):
+        if self.OnClearDo:
+            self.OnClearDo()
+        self.OnLMBDo = None
+        self.OnRMBDo = None
+        self.OnHoverDo = None
+        self.OnClearDo = None
+    
+    def _lmbOnHex(self):
+        select = True
+        if self.OnLMBDo:
+            select, clear = self.OnLMBDo(self.HighlightedHex)
+            if clear: self.clearInteractionFunctions()
+        if select:
+            self._selectHighlightedHex()
+    
+    def _rmbOnHex(self):
+        if self.OnRMBDo:
+            select, clear = self.OnRMBDo(self.HighlightedHex)
+            if clear: self.clearInteractionFunctions()
+            if select: self._selectHighlightedHex()
+        else:
+            self._interactWithHighlightedHex()
+    
     def _selectHighlightedHex(self):
         if not self.Active: return
+        self.clearInteractionFunctions()
         if self.SelectedHex is not False:
             if self.SelectedHex is self.HighlightedHex:
                 self.SelectedHex.select(False)

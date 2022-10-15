@@ -46,12 +46,13 @@ else:
     from AstusPandaEngine import window as _window
 
 # Game Imports
-from BaseClasses import get
 if TYPE_CHECKING:
     from BaseClasses import FleetBase
     from BaseClasses import ShipBase
     from BaseClasses import ModelBase
+from BaseClasses import get
 from BaseClasses import HexBase
+from GUI import ModuleWidgets
 
 class Module():
     # Should at least implement:
@@ -65,10 +66,19 @@ class Module():
     #   (Slot type is basically the type of the subclass but maybe it would be helpful to implement it here)
     Name = "Unnamed Generic Module"
     Mass = 0
+    Value = 0.1
+    Threat = 0
     def __init__(self, ship:'ShipBase.ShipBase') -> None:
         self.ship = weakref.ref(ship)
+        if self.Threat == Module.Threat and hasattr(self, "calculateThreat"):
+            self.Threat = self.calculateThreat()
+        if self.Value == Module.Value and hasattr(self, "calculateValue"):
+            self.Value = self.calculateValue()
     
     def handleNewCombatTurn(self):
+        pass
+    
+    def handleNewCampaignTurn(self):
         pass
 
 class Hull(Module):
@@ -82,6 +92,15 @@ class Hull(Module):
     HP_Hull = HP_Hull_max
     HP_Hull_Regeneration = HP_Hull_max / 20
     NoticeableDamage = HP_Hull_max / 10
+    
+    def __init__(self, ship:'ShipBase.ShipBase') -> None:
+        super().__init__(ship)
+    
+    def calculateValue(self): #TODO: Come up with a better formula for this that takes evasion, mass, etc. into account
+        return self.HP_Hull_max / 100
+    
+    def handleNewCampaignTurn(self):
+        self.HP_Hull = self.HP_Hull_max
     
     def handleNewCombatTurn(self):
         self.healAtTurnStart()
@@ -105,21 +124,22 @@ class Engine(Module): # FTL Engine
     
     def __init__(self, ship:'ShipBase.ShipBase') -> None:
         super().__init__(ship)
-        self.Widget = None
+        self.Widget:ModuleWidgets.EngineWidget = None
     
-    def handleNewCombatTurn(self):
-        if not get.engine().CurrentlyInBattle:
-            self.RemainingThrust = self.Thrust
+    def calculateValue(self): #TODO: Come up with a better formula for this
+        return self.Thrust / 10
+    
+    def handleNewCampaignTurn(self):
+        self.RemainingThrust = self.Thrust
     
     def getInterface(self) -> QtWidgets.QWidget:
-        self.Widget = QtWidgets.QLabel()
+        self.Widget = ModuleWidgets.EngineWidget(self)
         return self.Widget
     
     def updateInterface(self):
         if self.Widget:
             try:
-                c,m = self.ship().Stats.Movement_Sublight
-                self.Widget.setText(f"{self.Name} (Sublight Thruster):\n\tMovement: {c}/{m}\n\tThrust: {self.RemainingThrust}/{self.Thrust}\n\tShip Mass: {self.ship().Stats.Mass}")
+                self.Widget.updateInterface()
             except RuntimeError:
                 self.Widget = None # This usually means that the widget is destroyed but I don't know of a better way to test for it...
 
@@ -130,20 +150,25 @@ class Thruster(Module): # Sublight Thruster
     
     def __init__(self, ship:'ShipBase.ShipBase') -> None:
         super().__init__(ship)
-        self.Widget = None
+        self.Widget:ModuleWidgets.ThrusterWidget = None
+    
+    def calculateValue(self): #TODO: Come up with a better formula for this
+        return self.Thrust / 10
+    
+    def handleNewCampaignTurn(self):
+        self.RemainingThrust = self.Thrust
     
     def handleNewCombatTurn(self):
         self.RemainingThrust = self.Thrust
     
     def getCombatInterface(self) -> QtWidgets.QWidget:
-        self.Widget = QtWidgets.QLabel()
+        self.Widget = ModuleWidgets.ThrusterWidget(self)
         return self.Widget
     
     def updateCombatInterface(self):
         if self.Widget:
             try:
-                c,m = self.ship().Stats.Movement_Sublight
-                self.Widget.setText(f"{self.Name} (Sublight Thruster):\n\tMovement: {c}/{m}\n\tThrust: {self.RemainingThrust}/{self.Thrust}\n\tShip Mass: {self.ship().Stats.Mass}")
+                self.Widget.updateInterface()
             except RuntimeError:
                 self.Widget = None # This usually means that the widget is destroyed but I don't know of a better way to test for it...
 
@@ -155,7 +180,13 @@ class Shield(Module):
     
     def __init__(self, ship:'ShipBase.ShipBase') -> None:
         super().__init__(ship)
-        self.Widget = None
+        self.Widget:ModuleWidgets.ShieldWidget = None
+    
+    def calculateValue(self): #TODO: Come up with a better formula for this that takes HP_Shields_Regeneration into account
+        return self.HP_Shields_max / 400
+    
+    def handleNewCampaignTurn(self):
+        self.HP_Shields = self.HP_Shields_max
     
     def handleNewCombatTurn(self):
         self.healAtTurnStart()
@@ -167,13 +198,13 @@ class Shield(Module):
             self.HP_Shields = min(self.HP_Shields + self.HP_Shields_Regeneration*regenFactor , self.HP_Shields_max)
     
     def getCombatInterface(self) -> QtWidgets.QWidget:
-        self.Widget = QtWidgets.QLabel()
+        self.Widget = ModuleWidgets.ShieldWidget(self)
         return self.Widget
     
     def updateCombatInterface(self):
         if self.Widget:
             try:
-                self.Widget.setText(f"{self.Name} (Shield):\n\tHP: {self.HP_Shields}/{self.HP_Shields_max}\n\tRegeneration per turn: {self.HP_Shields_Regeneration} (Halved if damaged last turn)\n\t(It takes one turn to reactivate the shields if their HP reaches 0)")
+                self.Widget.updateInterface()
             except RuntimeError:
                 self.Widget = None # This usually means that the widget is destroyed but I don't know of a better way to test for it...
 
@@ -200,7 +231,27 @@ class ConstructionModule(Module):
     # Modules to construct new ships.
     #TODO: Make 2 variants: Enclosed (can move while constructing) and open (can not move while constructing)
     Name = "Unnamed ConstructionModule Module"
-    pass
+    Value = 10
+    ConstructionResourcesGeneratedPerTurn = 0.2 #NOTE: This is only a temporary system
+    
+    def __init__(self, ship:'ShipBase.ShipBase') -> None:
+        super().__init__(ship)
+        self.Widget:ModuleWidgets.ConstructionModuleWidget = None
+        self.ConstructionResourcesStored = 0 #NOTE: This is only a temporary system
+    
+    def handleNewCampaignTurn(self):
+        self.ConstructionResourcesStored += self.ConstructionResourcesGeneratedPerTurn #NOTE: This is only a temporary system
+    
+    def getInterface(self) -> QtWidgets.QWidget:
+        self.Widget = ModuleWidgets.ConstructionModuleWidget(self)
+        return self.Widget
+    
+    def updateInterface(self):
+        if self.Widget:
+            try:
+                self.Widget.updateInterface()
+            except RuntimeError:
+                self.Widget = None # This usually means that the widget is destroyed but I don't know of a better way to test for it...
 
 class Sensor(Module):
     # Includes sensors that increase weapon accuracy
@@ -239,31 +290,46 @@ class Weapon(Module):
     Accuracy = 1
     ShieldFactor = 1
     HullFactor = 1
-    Range = 3 #TODO: Implement weapon Range
+    Range = 3
+    ShieldPiercing = False
+    
     def __init__(self, ship:'ShipBase.ShipBase') -> None:
         super().__init__(ship)
-        self.Widget = None
-        self.ShieldPiercing = False
+        self.Widget:ModuleWidgets.WeaponWidget = None
         self.Ready = True
         self.SFX = base().loader.loadSfx(self.SoundEffectPath)
-        self.SFX.setVolume(0.5)
+        self.SFX.setVolume(0.2)
+        print(f"{self.Name = }\n{self.Threat = }\n{self.Value = }\n")
+    
+    def calculateThreat(self): #TODO: Come up with a formula for this
+        return self.Damage/100 * self.Accuracy * ((10 if self.ShieldPiercing else self.ShieldFactor) + self.HullFactor)/2 * (1.5+self.Range/3)/2.5
+    
+    def calculateValue(self): #TODO: Come up with a formula for this
+        return self.calculateThreat()/3
+    
+    def handleNewCampaignTurn(self):
+        self.Ready = True
     
     def handleNewCombatTurn(self):
         self.Ready = True
         #self.updateCombatInterface()
     
     def getCombatInterface(self) -> QtWidgets.QWidget:
-        self.Widget = QtWidgets.QLabel()
+        self.Widget = ModuleWidgets.WeaponWidget(self)
         return self.Widget
     
     def updateCombatInterface(self):
         if self.Widget:
             try:
-                self.Widget.setText(f"{self.Name} is {'Ready' if self.Ready else 'Used'}\n\tRange: {self.Range}\n\tDamage: {self.Damage}\n\tAccuracy: {self.Accuracy}\n\tHullFactor: {self.HullFactor}\n\tShieldFactor: {self.ShieldFactor}")
+                self.Widget.updateInterface()
             except RuntimeError:
                 self.Widget = None # This usually means that the widget is destroyed but I don't know of a better way to test for it...
     
     def attack(self, target:'HexBase._Hex'):
+        if not target.fleet or target.fleet().isDestroyed():
+            #TODO: Do we want a notification?
+            #NC(2, "A weapon was fired on a hex with no fleet or an already destroyed fleet." ,input=f"Fleet: {self.ship().fleet().Name}\nShip: {self.ship().Name}\nModule: {self.Name}\nTarget coordinates: {target.Coordinates}")
+            return
         if self.Ready and self.ship().fleet().hex().distance(target) <= self.Range:
             targetShip = random.choice(target.fleet().Ships)
             if not targetShip.Destroyed:

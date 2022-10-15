@@ -37,7 +37,6 @@ if TYPE_CHECKING:
     from ...AstusPandaEngine import AstusPandaEngine as ape
     from ...AstusPandaEngine.AstusPandaEngine import engine, base, render, loader
     from ...AstusPandaEngine.AstusPandaEngine import window as _window
-    from BaseClasses import ShipBase, FleetBase, BaseModules, HexBase
 else:
     # These imports make Python happy
     #sys.path.append('../AstusPandaEngine')
@@ -46,10 +45,22 @@ else:
     from AstusPandaEngine import engine, base, render, loader
     from AstusPandaEngine import window as _window
 
+if TYPE_CHECKING:
+    from BaseClasses import ShipBase, FleetBase, BaseModules, HexBase
+
 from BaseClasses import get
+
+#TODO: All widgets for ships and modules etc should be of a special class that resets the reference of the parent to itself to None when it gets destroyed
+#       (and can do other cleanup work like clearing the Hex interaction functions)
 
 class PandaWidget(ape.PandaWidget):
     pass
+
+class ModuleWidget(AGeWidgets.TightGridWidget):
+    module: weakref.ref['BaseModules.Module'] = None
+    def __init__(self, parent: typing.Optional['QtWidgets.QWidget'] = None, module:typing.Optional['BaseModules.Module'] = None) -> None:
+        super().__init__(parent=parent)
+        self.module = weakref.ref(module)
 
 class FleetStats(QtWidgets.QSplitter):
     def __init__(self, parent: typing.Optional['QtWidgets.QWidget']) -> None:
@@ -133,6 +144,9 @@ class ShipQuickView(AGeWidgets.TightGridFrame): #TODO: Should This be part of th
             get.window().UnitStatDisplay.showDetails(self.ship().Interface.getCombatInterface())
 
 class ShipInterface:
+    #TODO: There should be a way to show the FULL interface for all modules so that one can see the combat stats while on the Campaign map and vice versa.
+    #       But this should be an extra view so that the standard view only shows the relevant information for the current situation to not clutter the UI.
+    #       This also means that all actions for the UI must be inoperable while in this special view to not allow a ship to fire its weapons on the campaign map...
     def __init__(self, ship: 'ShipBase.ShipBase') -> None:
         self.ship = weakref.ref(ship)
         self.Label:QtWidgets.QLabel = None
@@ -142,10 +156,17 @@ class ShipInterface:
         self.QuickView = ShipQuickView(self.ship())
         return self.QuickView
     
+    def select(self):
+        #TODO: onHover should give a tooltip that informs the user about the interaction
+        #TODO: The select button should be marked to signal that the ship is selected, clicking the button again should cancel the selection,
+        #       and onClear should remove the marking of the button (if it still exists since the selection could have changed and thus removed the button!)
+        get.engine().setHexInteractionFunctions(lambda h: (True,True), self.ship().interactWith, None, None)
+    
     def getInterface(self) -> QtWidgets.QWidget:
         self.Frame = AGeWidgets.TightGridFrame()
         # Movement Points: {self.fleet().MovePoints}/{self.fleet().MovePoints_max}
         self.Label = self.Frame.addWidget(QtWidgets.QLabel(self.Frame))
+        self.SelectButton = self.Frame.addWidget(AGeWidgets.Button(self.Frame, "Select", lambda: self.select()))
         for i in self.ship().Modules:
             if hasattr(i,"getInterface"):
                 self.Frame.addWidget(i.getInterface())
@@ -158,6 +179,7 @@ class ShipInterface:
         Name: {self.ship().Name}
         Hull: {self.ship().Stats.HP_Hull}/{self.ship().Stats.HP_Hull_max}
         Shields: {self.ship().Stats.HP_Shields}/{self.ship().Stats.HP_Shields_max}
+        Movement: {self.ship().Stats.Movement_FTL[0]}/{self.ship().Stats.Movement_FTL[1]}
         """)
         try:
             if self.Label:
@@ -177,6 +199,7 @@ class ShipInterface:
         self.Frame = AGeWidgets.TightGridFrame()
         # Movement Points: {self.fleet().MovePoints}/{self.fleet().MovePoints_max}
         self.Label = self.Frame.addWidget(QtWidgets.QLabel(self.Frame))
+        self.SelectButton = self.Frame.addWidget(AGeWidgets.Button(self.Frame, "Select", lambda: self.select()))
         for i in self.ship().Modules:
             if hasattr(i,"getCombatInterface"):
                 self.Frame.addWidget(i.getCombatInterface())
@@ -189,6 +212,8 @@ class ShipInterface:
         Name: {self.ship().Name}
         Hull: {self.ship().Stats.HP_Hull}/{self.ship().Stats.HP_Hull_max}
         Shields: {self.ship().Stats.HP_Shields}/{self.ship().Stats.HP_Shields_max}
+        Movement: {self.ship().Stats.Movement_Sublight[0]}/{self.ship().Stats.Movement_Sublight[1]}
+        Evasion: {self.ship().Stats.Evasion}
         """)
         try:
             if self.Label:

@@ -64,19 +64,34 @@ class PlayerAI(AI_Base.AI_Base):
 class PlayerAI_Campaign(PlayerAI):
     
     async def executeTurn(self):
-        return
-        #TODO: This would currently break everything as the UnitManager can not pause to wait for a battle to conclude...
-        #       I am uncertain in general as to how to handle this... But at least the code exists in some form for when I am ready
+        print(f"Start of turn for {self.unitList().name()}")
+        self.spawnFleets()
         orders = AI_Base.Orders()
         for i in self.unitList():
             await i.AI.executeTurn(orders)
+    
+    def spawnFleets(self):
+        from BaseClasses import FleetBase
+        if self.unitList().ID > 1 and self.unitList().numberOfShips() < get.unitManager().Teams[1].numberOfShips():
+            fleet = FleetBase.Fleet(self.unitList().ID)
+            fleet.Name = f"{self.unitList().name()} Fleet"
+            for i in range(6 if get.unitManager().Teams[1].numberOfShips() > 4 else 3):
+                ship = get.shipClasses()["TestShips: Enterprise"]()
+                ship.Name = f"{ship.Name} {i}"
+                fleet.addShip(ship)
+            while True:
+                #TODO: This should be a bit more structured. For example, fleets should only spawn at the map border.
+                hex_ = random.choice(random.choice(get.hexGrid().Hexes))
+                if fleet._navigable(hex_):
+                    break
+            fleet.moveToHex(hex_,animate=False)
 
 class PlayerAI_Combat(PlayerAI):
     
     async def executeTurn(self):
         if self.unitList():
             orders = AI_Base.Orders()
-            if self.unitList().ID is 2:
+            if self.unitList().ID == 2:
                 orders["movement strategy"] = "formation"
                 orders["formation leader"] = self.unitList()[0]
             orders["aggressive"] = True

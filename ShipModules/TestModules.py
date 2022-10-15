@@ -94,7 +94,7 @@ class TestBeam_S(BaseModules.Weapon_Beam):
     HullFactor = 1
 
 class TestBeam_M(BaseModules.Weapon_Beam):
-    Name = "TestBeam_S"
+    Name = "TestBeam_M"
     Damage = 75
     Accuracy = 1
     ShieldFactor = 1
@@ -120,3 +120,6 @@ class TestThruster_L(BaseModules.Thruster): # Sublight Thruster
     Name = "TestThruster_L"
     Thrust = 10
     RemainingThrust = 10
+
+class TestConstructionModule(BaseModules.ConstructionModule): # ConstructionModule
+    Name = "TestConstructionModule"

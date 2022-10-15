@@ -76,10 +76,11 @@ class EnterpriseModel(ModelBase.ShipModel):
 class Enterprise(ShipBase.Ship):
     Name = "Enterprise"
     ClassName = "Galaxy Class"
-    def __init__(self) -> None:
+    def __init__(self, generateModel=True) -> None:
         super().__init__()
-        self.Model = EnterpriseModel()
-        self.setModel(self.Model)
+        if generateModel:
+            self.Model = EnterpriseModel()
+            self.setModel(self.Model)
         self.addModule(ShipModules.TestModules.TestHull_M(self))
         self.addModule(ShipModules.TestModules.TestSensors_M(self))
         self.addModule(ShipModules.TestModules.TestShield_L(self))
@@ -112,10 +113,11 @@ class PrometheusModel(ModelBase.ShipModel):
 class Prometheus(ShipBase.Ship):
     Name = "Prometheus"
     ClassName = "Prometheus Class"
-    def __init__(self) -> None:
+    def __init__(self, generateModel=True) -> None:
         super().__init__()
-        self.Model = PrometheusModel()
-        self.setModel(self.Model)
+        if generateModel:
+            self.Model = PrometheusModel()
+            self.setModel(self.Model)
         self.addModule(ShipModules.TestModules.TestHull_M(self))
         self.addModule(ShipModules.TestModules.TestSensors_M(self))
         self.addModule(ShipModules.TestModules.TestShield_L(self))
@@ -124,4 +126,37 @@ class Prometheus(ShipBase.Ship):
         self.addModule(ShipModules.TestModules.TestBeam_M(self))
         self.addModule(ShipModules.TestModules.TestEngine_L(self))
         self.addModule(ShipModules.TestModules.TestThruster_L(self))
+
+class SpaceDockModel(ModelBase.ShipModel):
+    ModelPath = "tempModels/SpaceDockNar30974/spacedock.obj"
+    IconPath = "tempModels/SpaceDockNar30974/dock3.jpg"
+    def resetModel(self):
+        self.Model.setH(0) #TODO: Reset all rotations
+        self.Model.setPos(0,0,0)
+        self.Model.setScale(1)
+        self.Model.setP(90)
+    
+    def centreModel(self):
+        self.Model.setH(0)
+        self.Model.setP(90)
+        self.Model.setPos(0,0,0)
+        self.Model.setScale(1)
+        self.Model.setScale(0.8/self.Model.getBounds().getRadius())
+        self.Model.setPos(-self.Model.getBounds().getApproxCenter())
+
+class SpaceDock(ShipBase.Ship):
+    Name = "Space Dock"
+    ClassName = "SpaceDock Class"
+    def __init__(self, generateModel=True) -> None:
+        super().__init__()
+        if generateModel:
+            self.Model = SpaceDockModel()
+            self.setModel(self.Model)
+        self.addModule(ShipModules.TestModules.TestHull_M(self))
+        self.addModule(ShipModules.TestModules.TestSensors_M(self))
+        self.addModule(ShipModules.TestModules.TestShield_L(self))
+        self.addModule(ShipModules.TestModules.TestBeam_M(self))
+        self.addModule(ShipModules.TestModules.TestEngine_M(self))
+        self.addModule(ShipModules.TestModules.TestThruster_M(self))
+        self.addModule(ShipModules.TestModules.TestConstructionModule(self))
 

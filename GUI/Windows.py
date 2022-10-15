@@ -92,56 +92,63 @@ for i in range(3):
     ship = Ships.TestShips.Prometheus()
     ship.Name = f"Prometheus 1-{i}"
     self.P1_Fleet1.addShip(ship)
+
+ship = Ships.TestShips.SpaceDock()
+ship.Name = f"SpaceDock 1-{i}"
+self.P1_Fleet1.addShip(ship)
+
 self.P1_Fleet1.moveToHex(self.getHex((25,25)))
-###########################################
-self.P1_Fleet2 = FleetBase.Fleet(1)
-self.P1_Fleet2.Name = "Fleet 2"
-for i in range(3):
-    ship = Ships.TestShips.Enterprise()
-    ship.Name = f"Enterprise 1-{i}"
-    self.P1_Fleet2.addShip(ship)
-self.P1_Fleet2.moveToHex(self.getHex((25,26)))
-###########################################
-self.P2_Fleet1 = FleetBase.Fleet(2)
-self.P2_Fleet1.Name = "P2 Fleet 1"
-for i in range(3):
-    ship = Ships.TestShips.Prometheus()
-    ship.Name = f"Prometheus 1-{i}"
-    self.P2_Fleet1.addShip(ship)
-self.P2_Fleet1.moveToHex(self.getHex((25,24)))
-###########################################
-self.P2_Fleet2 = FleetBase.Fleet(2)
-self.P2_Fleet2.Name = "P2 Fleet 2"
-for i in range(3):
-    ship = Ships.TestShips.Enterprise()
-    ship.Name = f"Enterprise 2-{i}"
-    self.P2_Fleet2.addShip(ship)
-self.P2_Fleet2.moveToHex(self.getHex((26,24)))
-###########################################
-self.P2_Fleet3 = FleetBase.Fleet(2)
-self.P2_Fleet3.Name = "P2 Fleet 3"
-for i in range(3):
-    ship = Ships.TestShips.Enterprise()
-    ship.Name = f"Enterprise 3-{i}"
-    self.P2_Fleet3.addShip(ship)
-self.P2_Fleet3.moveToHex(self.getHex((24,24)))
-###########################################
-self.P3_Fleet1 = FleetBase.Fleet(3)
-self.P3_Fleet1.Name = "P3 Fleet 1"
-for i in range(3):
-    ship = Ships.TestShips.Enterprise()
-    ship.Name = f"Enterprise 1-{i}"
-    self.P3_Fleet1.addShip(ship)
-self.P3_Fleet1.moveToHex(self.getHex((26,25)))
-###########################################
-self.P3_Fleet2 = FleetBase.Fleet(3)
-self.P3_Fleet2.Name = "P3 Fleet 2"
-for i in range(3):
-    ship = Ships.TestShips.Enterprise()
-    ship.Name = f"Enterprise 2-{i}"
-    self.P3_Fleet2.addShip(ship)
-self.P3_Fleet2.moveToHex(self.getHex((24,25)))
-###########################################
+
+if False:
+    ###########################################
+    self.P1_Fleet2 = FleetBase.Fleet(1)
+    self.P1_Fleet2.Name = "Fleet 2"
+    for i in range(3):
+        ship = Ships.TestShips.Enterprise()
+        ship.Name = f"Enterprise 1-{i}"
+        self.P1_Fleet2.addShip(ship)
+    self.P1_Fleet2.moveToHex(self.getHex((25,26)))
+    ###########################################
+    self.P2_Fleet1 = FleetBase.Fleet(2)
+    self.P2_Fleet1.Name = "P2 Fleet 1"
+    for i in range(3):
+        ship = Ships.TestShips.Prometheus()
+        ship.Name = f"Prometheus 1-{i}"
+        self.P2_Fleet1.addShip(ship)
+    self.P2_Fleet1.moveToHex(self.getHex((25,24)))
+    ###########################################
+    self.P2_Fleet2 = FleetBase.Fleet(2)
+    self.P2_Fleet2.Name = "P2 Fleet 2"
+    for i in range(3):
+        ship = Ships.TestShips.Enterprise()
+        ship.Name = f"Enterprise 2-{i}"
+        self.P2_Fleet2.addShip(ship)
+    self.P2_Fleet2.moveToHex(self.getHex((26,24)))
+    ###########################################
+    self.P2_Fleet3 = FleetBase.Fleet(2)
+    self.P2_Fleet3.Name = "P2 Fleet 3"
+    for i in range(3):
+        ship = Ships.TestShips.Enterprise()
+        ship.Name = f"Enterprise 3-{i}"
+        self.P2_Fleet3.addShip(ship)
+    self.P2_Fleet3.moveToHex(self.getHex((24,24)))
+    ###########################################
+    self.P3_Fleet1 = FleetBase.Fleet(3)
+    self.P3_Fleet1.Name = "P3 Fleet 1"
+    for i in range(3):
+        ship = Ships.TestShips.Enterprise()
+        ship.Name = f"Enterprise 1-{i}"
+        self.P3_Fleet1.addShip(ship)
+    self.P3_Fleet1.moveToHex(self.getHex((26,25)))
+    ###########################################
+    self.P3_Fleet2 = FleetBase.Fleet(3)
+    self.P3_Fleet2.Name = "P3 Fleet 2"
+    for i in range(3):
+        ship = Ships.TestShips.Enterprise()
+        ship.Name = f"Enterprise 2-{i}"
+        self.P3_Fleet2.addShip(ship)
+    self.P3_Fleet2.moveToHex(self.getHex((24,25)))
+    ###########################################
 """
 
 
