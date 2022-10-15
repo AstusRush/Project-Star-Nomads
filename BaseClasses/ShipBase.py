@@ -157,7 +157,8 @@ class ShipsStats():
         draw()
         ```
         """
-        #MAYBE: This formula can probably rewritten without the abs and maybe even using a sine which should allow to simplify the formula
+        #MAYBE: This formula can probably be rewritten without the abs and maybe even using a sine which should allow to simplify the formula
+        #REMINDER: Make a manual folder and put a well formatted and labelled plot of the evasion bonus into it
         c,m = self.Movement_Sublight
         return self.ship().hull().Evasion + m/100*np.cos( abs(c-m/2)/m *np.pi )
     

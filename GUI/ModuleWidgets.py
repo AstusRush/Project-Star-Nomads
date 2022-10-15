@@ -154,7 +154,7 @@ class ConstructionModuleWidget(WidgetsBase.ModuleWidget):
         self.ShipComboBox.addItems(l)
     
     def build(self):
-        ship = get.shipClasses()[self.ShipComboBox.currentText()]()
+        ship = get.shipClasses()[self.ShipComboBox.currentText().split(" - ",1)[1]]()
         if ship.Stats.Value > self.module().ConstructionResourcesStored:
             message = f"Not enough resources to build that ship! The ship costs {ship.Stats.Value} but you only have {self.module().ConstructionResourcesStored}"
             self.MessageLabel.setText(message)
