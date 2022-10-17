@@ -51,6 +51,7 @@ from GUI import Windows, WidgetsBase
 
 class EngineClass(ape.APE):
     def start(self):
+        self._NumHexGridsCampaign, self._NumHexGridsBattle = 0, 0
         self.Scene:'Scene.CampaignScene' = None
         self.BattleScene:'Scene.BattleScene' = None
         self.UnitManager:'UnitManagerBase.CampaignUnitManager' = None
@@ -189,6 +190,19 @@ class EngineClass(ape.APE):
             return ships
         else:
             return [fleet.Ships]
+    
+    def _getNumOfGridsFormatted(self):
+        return f"There have been a total of {self._NumHexGridsCampaign} campaign grids and {self._NumHexGridsBattle} battle grids since this application started."
+    
+    def _increaseAndGetNumOfGridsOfType(self, type_:str):
+        if type_ == "Campaign":
+            self._NumHexGridsCampaign += 1
+            return self._NumHexGridsCampaign
+        elif type_ == "Battle":
+            self._NumHexGridsBattle += 1
+            return self._NumHexGridsBattle
+        else:
+            raise Exception(f"{type_} is an unknown hex grid type! Only Campaign and Battle are valid options!")
 
 class AppClass(ape.APEApp):
     pass

@@ -108,6 +108,7 @@ class BaseClass(ape.APEPandaBase):
 
 
 class BaseScene(ape.APEScene):
+    _SCENE_TYPE_STR = "Unknown"
     def start(self):
         self.Camera = Camera.StrategyCamera()
         ape.base().win.setClearColor(p3dc.Vec4(0,0,0,1))
@@ -117,7 +118,7 @@ class BaseScene(ape.APEScene):
         self.perPixelEnabled = True
         self.shadowsEnabled = True
         
-        self.HexGrid = HexBase.HexGrid()
+        self.HexGrid = HexBase.HexGrid(name=f"{self._SCENE_TYPE_STR} Hex Grid number {get.engine()._increaseAndGetNumOfGridsOfType(self._SCENE_TYPE_STR)}")
         self.HexGrid.generateHex()
         
         #CRITICAL: use self.Camera.setLimits
@@ -146,10 +147,12 @@ class BaseScene(ape.APEScene):
         del self.Camera
 
 class CampaignScene(BaseScene):
+    _SCENE_TYPE_STR = "Campaign"
     def loadSkybox(self):
         self.Camera.loadSkybox(getRandomSkyboxPath(sector=True, sun=False))
 
 class BattleScene(BaseScene):
+    _SCENE_TYPE_STR = "Battle"
     def loadSkybox(self):
         self.Camera.loadSkybox(getRandomSkyboxPath(sector=True, sun=True))
 

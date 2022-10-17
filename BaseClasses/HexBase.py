@@ -70,11 +70,15 @@ class HexInvalidException(HexException):
     """
     This exception is raised when a hex does not exist.
     """
-    def __init__(self, coords:typing.Tuple[int,int] = None):
+    def __init__(self, coords:typing.Tuple[int,int] = None, hexGrid:'HexGrid' = None):
         if coords:
-            super().__init__(f"There is no hex at {coords}.")
+            message = f"There is no hex at {coords}."
         else:
-            super().__init__(f"The specified hex does not exist.")
+            message = f"The specified hex does not exist."
+        if hexGrid:
+            message += f" The hex grid in question is named {hexGrid.Name}."
+        message += get.engine()._getNumOfGridsFormatted()
+        super().__init__(message)
 #endregion Exceptions
 
 #region Helper Functions
@@ -105,10 +109,11 @@ def getHex(i:typing.Tuple[int,int]):
 #endregion Helper Functions
 
 #region Hex Map
-class HexGrid():
+class HexGrid(DirectObject):
     OnHoverDo:typing.Union[None,typing.Callable[['_Hex'],None]]
-    def __init__(self, scene:ape.APEScene=None, root:p3dc.NodePath = None, size: typing.Tuple[int,int] = (50,50), TransparentHexRings=True) -> None:
+    def __init__(self, scene:ape.APEScene=None, root:p3dc.NodePath = None, size: typing.Tuple[int,int] = (50,50), TransparentHexRings=True, name:str="Unnamed Hex Grid") -> None:
         self.Active = True
+        self.Name = name
         self.OnHoverDo:typing.Union[typing.Callable[['_Hex'],None],None] = None # This must be a function that takes a hexagon and does stuff. This member can be set on demand to, for example, preview things
         self.OnLMBDo:typing.Union[typing.Callable[['_Hex'],None],typing.Tuple[bool,bool]] = None # This must be a function that takes a hexagon and does stuff. This member can be set on demand to, for example, target abilities
         self.OnRMBDo:typing.Union[typing.Callable[['_Hex'],None],typing.Tuple[bool,bool]] = None # This must be a function that takes a hexagon and does stuff. This member can be set on demand to, for example, cancel abilities
@@ -124,22 +129,31 @@ class HexGrid():
         self.m_material = None
         self.m_colour = None
         self.TransparentHexRings = TransparentHexRings
-        self.generateHex()
+        
+        self._MouseTask = None
         
         # This will represent the index of the currently highlighted hex
         self.HighlightedHex = False # type: _Hex
         # This wil represent the index of the hex where currently dragged piece was grabbed from
         self.SelectedHex = False # type: _Hex
         
-        self.bindEvents()
+        self.generateHex()
     
     def bindEvents(self):
         # Start the task that handles the picking
-        self.mouseTask = base().taskMgr.add(self._mouseTask, 'mouseTask')
-        base().accept("mouse1", lambda: self._lmbOnHex()) # LMB
-        base().accept("mouse3", lambda: self._rmbOnHex()) # RMB
+        self._MouseTask = base().taskMgr.add(self._mouseTask, 'mouseTask')
+        self.accept("mouse1", lambda: self._lmbOnHex()) # LMB
+        self.accept("mouse3", lambda: self._rmbOnHex()) # RMB
+    
+    def unbindEvents(self):
+        if self._MouseTask:
+            base().taskMgr.remove(self._MouseTask)
+            self._MouseTask = None
+        self.ignore("mouse1") # LMB
+        self.ignore("mouse3") # RMB
     
     def clearHexes(self):
+        self.unbindEvents()
         self.HighlightedHex = False # type: _Hex
         self.SelectedHex = False # type: _Hex
         for i in self.Hexes:
@@ -164,6 +178,7 @@ class HexGrid():
                     y += np.sqrt(3)/2
                 l.append(_Hex(self, self.Scene, self.Root, f"Hex ({i},{j})", (i,j), (y,x,0)))
             self.Hexes.append(l)
+        self.bindEvents()
     
     def getHex(self, i):
         # type: ( typing.Union[typing.Tuple[int,int], typing.Tuple[int,int,int]] ) -> _Hex
@@ -172,11 +187,11 @@ class HexGrid():
         if len(i) == 2:
             i = ( round(i[0]) , round(i[1]) )
         else:
-            raise HexInvalidException(i)
+            raise HexInvalidException(i ,self)
         if self._isValidCoordinate(i):
             return self.Hexes[i[0]][i[1]]
         else:
-            raise HexInvalidException(i)
+            raise HexInvalidException(i ,self)
     
     def _isValidCoordinate(self, i):
         # type: ( typing.Union[typing.Tuple[int,int], typing.Tuple[int,int,int]] ) -> bool

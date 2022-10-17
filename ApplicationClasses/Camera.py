@@ -48,7 +48,7 @@ else:
 if TYPE_CHECKING:
     from BaseClasses import HexBase
 
-class StrategyCamera():
+class StrategyCamera(DirectObject):
     def __init__(self):
         ape.base().win.setClearColor(p3dc.Vec4(0,0,0,1))
         self.Active = True
@@ -56,6 +56,9 @@ class StrategyCamera():
         
         self.SpaceSkyBoxCentre = None
         self.SpaceSkyBox = None
+        
+        self._MouseTask = None
+        self._MoveCameraTask = None
         
         self.CameraCenter = p3dc.NodePath(p3dc.PandaNode("CameraCenter"))
         self.CameraCenter.reparentTo(ape.render())
@@ -78,7 +81,7 @@ class StrategyCamera():
         self.bindEvents()
     
     def bindEvents(self):
-        self.mouseTask = base().taskMgr.add(lambda task: self._mouseTask(task), 'mouseTask')
+        self._MouseTask = base().taskMgr.add(lambda task: self._mouseTask(task), 'mouseTask')
         
         self.KeyMap = {"cam-left":0, "cam-right":0, "cam-forward":0, "cam-backward":0, "cam-rot-left":0, "cam-rot-right":0}
         self.acceptAllCombinations("a", self.setKey, ["cam-left",1])
@@ -101,21 +104,30 @@ class StrategyCamera():
         self.acceptAllCombinations("e", self.setKey, ["cam-rot-right",1])
         self.acceptAllCombinations("q-up", self.setKey, ["cam-rot-left",0])
         self.acceptAllCombinations("e-up", self.setKey, ["cam-rot-right",0])
-        base().accept("home", lambda: self.resetCameraOrientation())
+        self.accept("home", lambda: self.resetCameraOrientation())
         
-        base().taskMgr.add(lambda task: self.moveCamera(task), "moveCamereTask")
+        self._MoveCameraTask = base().taskMgr.add(lambda task: self.moveCamera(task), "moveCameraTask")
         self.acceptAllCombinations("wheel_up",   lambda: self.zoomCamera(-1))
         self.acceptAllCombinations("wheel_down", lambda: self.zoomCamera(+1))
         # When the MMB (middle mouse button) is pressed the camera control is started depending on which modifier key was pressed
-        base().accept("mouse2",        lambda: self.setCamMouseControl(True,False,False)) # only MMB    -- drag   movement
-        base().accept("shift-mouse2",  lambda: self.setCamMouseControl(True,False,True )) # shift + MMB -- smooth movement
-        base().accept("control-mouse2",lambda: self.setCamMouseControl(True,True, False)) # ctrl + MMB  -- drag   rotation
-        base().accept("alt-mouse2",    lambda: self.setCamMouseControl(True,True, True )) # alt + MMB   -- smooth rotation
+        self.accept("mouse2",        lambda: self.setCamMouseControl(True,False,False)) # only MMB    -- drag   movement
+        self.accept("shift-mouse2",  lambda: self.setCamMouseControl(True,False,True )) # shift + MMB -- smooth movement
+        self.accept("control-mouse2",lambda: self.setCamMouseControl(True,True, False)) # ctrl + MMB  -- drag   rotation
+        self.accept("alt-mouse2",    lambda: self.setCamMouseControl(True,True, True )) # alt + MMB   -- smooth rotation
         # When the MMB is released the camera control is ended
-        base().accept("mouse2-up", lambda: self.setCamMouseControl(False,False,False)) # MMB
-        
+        self.accept("mouse2-up", lambda: self.setCamMouseControl(False,False,False)) # MMB
+    
+    def unbindEvents(self):
+        if self._MouseTask:
+            base().taskMgr.remove(self._MouseTask)
+            self._MouseTask = None
+        if self._MoveCameraTask:
+            base().taskMgr.remove(self._MoveCameraTask)
+            self._MoveCameraTask = None
+        self.ignoreAll()
     
     def destroy(self):
+        self.unbindEvents()
         self.Active = False
         if self.SpaceSkyBox:
             self.SpaceSkyBox.removeNode()
@@ -126,6 +138,7 @@ class StrategyCamera():
         #TODO: unbind all of the event bindings
     
     def pause(self):
+        self.unbindEvents()
         self.Active = False
         if self.SpaceSkyBoxCentre:
             self.SpaceSkyBoxCentre.hide()
@@ -133,6 +146,7 @@ class StrategyCamera():
     def continue_(self):
         if self.SpaceSkyBoxCentre:
             self.SpaceSkyBoxCentre.show()
+        self.bindEvents()
         
         self.CameraCenter = p3dc.NodePath(p3dc.PandaNode("CameraCenter"))
         self.CameraCenter.reparentTo(ape.render())
@@ -177,10 +191,10 @@ class StrategyCamera():
     def acceptAllCombinations(self, key, *args):
         if not self.Active:
             return
-        base().accept(key, *args)
-        base().accept("control-"+key, *args)
-        base().accept("alt-"+key, *args)
-        base().accept("shift-"+key, *args)
+        self.accept(key, *args)
+        self.accept("control-"+key, *args)
+        self.accept("alt-"+key, *args)
+        self.accept("shift-"+key, *args)
     
     def setLimits(self, limitX: typing.Tuple[float,float], limitY: typing.Tuple[float,float]):
         if not self.Active:
