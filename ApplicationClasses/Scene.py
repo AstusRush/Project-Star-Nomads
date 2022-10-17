@@ -59,16 +59,18 @@ def getSkyboxPathList(sector=True, sun=True):
     #    "Models/Skyboxes/Sun/BlackOrangeSpace1/BlackOrangeSpace1.egg",
     #]
     if sector:
-        for folder in os.listdir(os.path.join("Models","Skyboxes","Sector")):
-            for file in os.listdir(os.path.join("Models","Skyboxes","Sector",folder)):
+        specFolder = os.path.join("Models","Skyboxes","Sector")
+        for folder in os.listdir(specFolder):
+            for file in os.listdir(os.path.join(specFolder,folder)):
                 if file.endswith(".egg"):
-                    l.append(os.path.join("Models","Skyboxes","Sector",folder,file))
+                    l.append(os.path.join(specFolder,folder,file))
         #l += SKYBOX_PATH_LIST_SECTOR
     if sun:
-        for folder in os.listdir(os.path.join("Models","Skyboxes","Sun")):
-            for file in os.listdir(os.path.join("Models","Skyboxes","Sun",folder)):
+        specFolder = os.path.join("Models","Skyboxes","Sun")
+        for folder in os.listdir(specFolder):
+            for file in os.listdir(os.path.join(specFolder,folder)):
                 if file.endswith(".egg"):
-                    l.append(os.path.join("Models","Skyboxes","Sun",folder,file))
+                    l.append(os.path.join(specFolder,folder,file))
         #l += SKYBOX_PATH_LIST_SUN
     return l
 
@@ -141,7 +143,7 @@ class BaseScene(ape.APEScene):
         self.Camera.continue_()
     
     def end(self):
-        self.HexGrid.clearHexes()
+        self.HexGrid.destroy()
         self.Camera.destroy()
         del self.HexGrid
         del self.Camera

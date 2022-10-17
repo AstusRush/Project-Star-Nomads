@@ -2,42 +2,42 @@
 
 <Comment> { "A Green Space Skybox" }
 
-<Texture> front.png {
+<Texture> frontTexture {
   "front.png"
   <Scalar> wrap    { CLAMP }
   <Scalar> magfilter { BILINEAR }
   <Scalar> uv-name { UVTex }
   <Scalar> envtype { modulate }
 }
-<Texture> back.png {
+<Texture> backTexture {
   "back.png"
   <Scalar> wrap    { CLAMP }
   <Scalar> magfilter { BILINEAR }
   <Scalar> uv-name { UVTex }
   <Scalar> envtype { modulate }
 }
-<Texture> top.png {
+<Texture> topTexture {
   "top.png"
   <Scalar> wrap    { CLAMP }
   <Scalar> magfilter { BILINEAR }
   <Scalar> uv-name { UVTex }
   <Scalar> envtype { modulate }
 }
-<Texture> right.png {
+<Texture> rightTexture {
   "right.png"
   <Scalar> wrap    { CLAMP }
   <Scalar> magfilter { BILINEAR }
   <Scalar> uv-name { UVTex }
   <Scalar> envtype { modulate }
 }
-<Texture> left.png {
+<Texture> leftTexture {
   "left.png"
   <Scalar> wrap    { CLAMP }
   <Scalar> magfilter { BILINEAR }
   <Scalar> uv-name { UVTex }
   <Scalar> envtype { modulate }
 }
-<Texture> bottom.png {
+<Texture> bottomTexture {
   "bottom.png"
   <Scalar> wrap    { CLAMP }
   <Scalar> magfilter { BILINEAR }
@@ -145,32 +145,32 @@
     }
   }
   <Polygon> {
-    <TRef> { bottom.png }
+    <TRef> { bottomTexture }
     <Normal> { 0.0 0.0 1.0 }
     <VertexRef> { 0 1 2 3 <Ref> { Cube } }
   }
   <Polygon> {
-    <TRef> { top.png }
+    <TRef> { topTexture }
     <Normal> { 0.0 0.0 -1.0 }
     <VertexRef> { 4 5 6 7 <Ref> { Cube } }
   }
   <Polygon> {
-    <TRef> { right.png }
+    <TRef> { rightTexture }
     <Normal> { -1.0 0.0 -0.0 }
     <VertexRef> { 8 9 10 11 <Ref> { Cube } }
   }
   <Polygon> {
-    <TRef> { back.png }
+    <TRef> { backTexture }
     <Normal> { 0.0 1.0 0.0 }
     <VertexRef> { 12 13 14 15 <Ref> { Cube } }
   }
   <Polygon> {
-    <TRef> { left.png }
+    <TRef> { leftTexture }
     <Normal> { 1.0 -0.0 0.0 }
     <VertexRef> { 16 17 18 19 <Ref> { Cube } }
   }
   <Polygon> {
-    <TRef> { front.png }
+    <TRef> { frontTexture }
     <Normal> { -0.0 -1.0 -0.0 }
     <VertexRef> { 20 21 22 23 <Ref> { Cube } }
   }

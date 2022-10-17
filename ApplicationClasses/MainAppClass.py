@@ -52,6 +52,7 @@ from GUI import Windows, WidgetsBase
 class EngineClass(ape.APE):
     def start(self):
         self._NumHexGridsCampaign, self._NumHexGridsBattle = 0, 0
+        self._HexToLookAtAfterBattle = (0,0)
         self.Scene:'Scene.CampaignScene' = None
         self.BattleScene:'Scene.BattleScene' = None
         self.UnitManager:'UnitManagerBase.CampaignUnitManager' = None
@@ -69,6 +70,8 @@ class EngineClass(ape.APE):
     def startBattleScene(self, fleets:typing.List[FleetBase.Fleet]):
         if self.CurrentlyInBattle: raise Exception("A battle is already happening")
         #TODO: What happens when no player fleet is involved?!
+        #self._CameraPositionBeforeBattle = self.Scene.Camera.CameraCenter.getPos()
+        self._HexToLookAtAfterBattle = fleets[0].hex().Coordinates
         self.setHexInteractionFunctions()
         self.CurrentlyInBattle = True
         self.UnitManager.unselectAll()
@@ -104,6 +107,8 @@ class EngineClass(ape.APE):
         self.BattleScene = None
         self.Scene.continue_()
         self.CurrentlyInBattle = False
+        #self.Scene.Camera.CameraCenter.setPos(self._CameraPositionBeforeBattle)
+        self.Scene.Camera.moveToHex(self.getHex(self._HexToLookAtAfterBattle))
         NC(3, f"The battle has ended!\n{salvageMessage}") #TODO: Give more information about the battle
     
     def distributeSalvage(self, salvage:float) -> str:

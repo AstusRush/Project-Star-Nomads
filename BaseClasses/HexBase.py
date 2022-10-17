@@ -158,10 +158,15 @@ class HexGrid(DirectObject):
         self.SelectedHex = False # type: _Hex
         for i in self.Hexes:
             for j in i:
-                del j
+                del j #TODO: we might want a destroy method
             del i
         del self.Hexes
         self.Hexes = []
+    
+    def destroy(self):
+        self.Active = False
+        self.clearHexes()
+        #TODO: If we have created the self.Root node we should also destroy it. But what if we were given one? We should probably not destroy it then because we don't know anything about it
     
     def generateHex(self):
         self.clearHexes()
