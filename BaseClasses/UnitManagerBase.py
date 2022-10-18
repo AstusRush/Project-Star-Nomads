@@ -151,6 +151,10 @@ class UnitManager():
             self.selectedUnit().highlightRanges(False)
             self.selectedUnit().highlightRanges(True)
             self.selectedUnit().displayStats(True)
+        self.checkAndHandleTeamDefeat()
+    
+    def checkAndHandleTeamDefeat(self):
+        pass
     
     def isAllied(self, team1:int, team2:int) -> bool:
         return team2 in self.getAllies(team1)
@@ -200,6 +204,15 @@ class UnitList(typing.List['FleetBase.FleetBase']):
 
 class CampaignUnitManager(UnitManager):
     Strategic = True
+    
+    def checkAndHandleTeamDefeat(self):
+        if self.Teams[1].numberOfShips() == 0:
+            NC(1,"You have lost!",DplStr="You have lost!")
 
 class CombatUnitManager(UnitManager):
     Strategic = False
+    
+    def checkAndHandleTeamDefeat(self):
+        if self.Teams[1].numberOfShips() == 0 or sum([v.numberOfShips() for k,v in self.Teams.items() if k > 1 and not self.isAllied(1,k)]) == 0:
+            get.engine().endBattleScene()
+            return

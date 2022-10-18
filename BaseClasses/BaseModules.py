@@ -177,6 +177,7 @@ class Engine(Module): # FTL Engine
     RemainingThrust = 6
     
     def __init__(self) -> None:
+        super().__init__()
         self.Widget:ModuleWidgets.EngineWidget = None
     
     def calculateValue(self): #TODO: Come up with a better formula for this
@@ -213,6 +214,7 @@ class Thruster(Module): # Sublight Thruster
     RemainingThrust = 6
     
     def __init__(self) -> None:
+        super().__init__()
         self.Widget:ModuleWidgets.ThrusterWidget = None
     
     def calculateValue(self): #TODO: Come up with a better formula for this
@@ -253,6 +255,7 @@ class Shield(Module):
     HP_Shields_Regeneration = HP_Shields_max / 8
     
     def __init__(self) -> None:
+        super().__init__()
         self.Widget:ModuleWidgets.ShieldWidget = None
     
     def calculateValue(self): #TODO: Come up with a better formula for this that takes HP_Shields_Regeneration into account
@@ -320,6 +323,7 @@ class ConstructionModule(Module):
     ConstructionResourcesGeneratedPerTurn = 0.2 #NOTE: This is only a temporary system
     
     def __init__(self) -> None:
+        super().__init__()
         self.Widget:ModuleWidgets.ConstructionModuleWidget = None
         self.ConstructionResourcesStored = 0 #NOTE: This is only a temporary system
     
@@ -403,6 +407,7 @@ class Weapon(Module):
     ShieldPiercing = False
     
     def __init__(self) -> None:
+        super().__init__()
         self.Widget:ModuleWidgets.WeaponWidget = None
         self.Ready = True
         self.SFX = base().loader.loadSfx(self.SoundEffectPath)

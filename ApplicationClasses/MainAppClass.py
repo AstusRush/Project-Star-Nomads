@@ -218,6 +218,13 @@ class EngineClass(ape.APE):
         self._save(name)
     
     def _save(self, name="LastSave.py"):
+        #TODO: This is not compressed enough and I don't know how to compress it more.
+        #       (It certainly is far more compressible. I just haven't learned a better way to save this data than the wacky way I invented.
+        #           Other game devs have way better ways to store that data. Don't judge me! This is my first game!)
+        #       Therefore we need to save each fleet into its own file.
+        #       This means that each saved game creates a folder filled with multiple files that all need to be executed (by loading the text and calling `exec` on it).
+        #       Then we can also have other files that store other data like the tech tree.
+        #TODO: Select a name for the save file
         wd = os.path.dirname(__file__).rsplit(os.path.sep,1)[0]
         saveFolder = os.path.join(wd,"SavedGames")
         if not os.path.exists(saveFolder):
@@ -230,10 +237,16 @@ class EngineClass(ape.APE):
         NC(3,f"Save successful! Saved at {os.path.join(saveFolder,name)}")
     
     def load(self):
+        #TODO: See _save
+        #TODO: It would be neat to not have to restart the game every time one wants to load
+        #TODO: Select a save file
+        if self.CurrentlyInBattle:
+            NC(2,"Currently, loading is only possible on the campaign map")
+            return
         self.clearAll()
         from SavedGames import LastSave
     
-    def clearAll(self):
+    def clearAll(self): #TODO: also clear any battle that is currently active and return to the campaign map
         fleetList:UnitManagerBase.UnitList = []
         for team in self.getUnitManager().Teams.values():
             fleetList += team
