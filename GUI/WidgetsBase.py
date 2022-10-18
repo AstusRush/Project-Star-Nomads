@@ -228,3 +228,15 @@ class ShipInterface:
                 self.QuickView.updateCombatInterface()
         except RuntimeError:
             self.QuickView = None # This usually means that the widget is destroyed but I don't know of a better way to test for it...
+
+
+class Menu(AGeWidgets.TightGridWidget):
+    def __init__(self, parent: typing.Optional['QtWidgets.QWidget'] = None) -> None:
+        super().__init__(parent)
+        self.SaveLoadWidget = self.addWidget(SaveLoadWidget(self))
+
+class SaveLoadWidget(AGeWidgets.TightGridFrame):
+    def __init__(self, parent: typing.Optional['QtWidgets.QWidget'] = None) -> None:
+        super().__init__(parent)
+        self.SaveButton = self.addWidget(AGeWidgets.Button(self,"Save",lambda: get.engine().save()))
+        self.LoadButton = self.addWidget(AGeWidgets.Button(self,"Load",lambda: get.engine().load()))

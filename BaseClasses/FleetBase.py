@@ -54,6 +54,17 @@ from BaseClasses import HexBase
 from BaseClasses import AI_Base
 from BaseClasses import AI_Fleet
 
+IMP_FLEETBASE = [("PSN get","from BaseClasses import get"),("PSN FleetBase","from BaseClasses import FleetBase")]
+IMP_FLEET = IMP_FLEETBASE + [("PSN FleetConstructor","""
+def createFleet(d:dict):
+    fleet = FleetBase.Fleet(d["Team"])
+    fleet.Name = d["Name"]
+    fleet.addShips(d["Ships"])
+    fleet.moveToHex(get.hexGrid().getHex(d["Coordinates"]))
+    
+    return fleet
+""")]
+
 class ShipList(typing.List['ShipBase.ShipBase']):
     pass
 
@@ -89,6 +100,12 @@ class FleetBase():
         self.ActiveTurn = 1 == 1
         get.unitManager(self._IsFleet).Teams[self.Team].append(self)
     
+    def completelyDestroy(self):
+        ships = self.Ships.copy()
+        for i in ships:
+            i.destroy()
+        self.destroy()
+    
     def destroy(self):
         self.Destroyed = True
         try:
@@ -106,8 +123,13 @@ class FleetBase():
             if self.hex().fleet:
                 if self.hex().fleet() is self:
                     self.hex().fleet = None
-        self.TeamRing.removeNode()
-        self.Node.removeNode()
+            self.hex = None
+        if self.TeamRing:
+            self.TeamRing.removeNode()
+            self.TeamRing = None
+        if self.Node:
+            self.Node.removeNode()
+            self.Node = None
     
     @property
     def MovePoints(self) -> float:
@@ -120,10 +142,18 @@ class FleetBase():
     
   #endregion init and destroy
   #region manage ship list
-    def addShip(self, ship:'ShipBase.ShipBase'):
+    def _addShip(self, ship:'ShipBase.ShipBase'):
         if not ship in self.Ships:
             self.Ships.append(ship)
         ship.reparentTo(self)
+    
+    def addShip(self, ship:'ShipBase.ShipBase'):
+        self._addShip(ship)
+        self.arrangeShips()
+    
+    def addShips(self, ships:typing.List['ShipBase.ShipBase']):
+        for ship in ships:
+            self._addShip(ship)
         self.arrangeShips()
     
     def removeShip(self, ship:'ShipBase.ShipBase', arrange:bool=True, notifyIfNotContained:bool=True) -> bool:
@@ -459,10 +489,10 @@ class FleetBase():
             #    bounds = i.Model.Model.getTightBounds()
             #    bounds = (bounds[1]-bounds[0])
             #    maxSize = [max(maxSize[i],bounds[i]) for i in range(3)]
-            for i,s in enumerate(self.Ships):
+            for i,s in enumerate(self.Ships): #TODO: Invert the order in which the ships are displayed so that the first one in the list is the leftmost and so on
                 s.Model.resetModel()
                 s.setPos((1/num)*((num-1)/2-i),0,0)
-                s.Model.Model.setScale((0.8/num)/(s.Model.Model.getBounds().getRadius()))
+                s.Model.setScale((0.8/num)/(s.Model.Model.getBounds().getRadius()))
   #endregion model
     
   #endregion Detection #TODO: Should we distinguish between campaign and battle sensors? These are different scales but I can't think of a good gameplay reason...
@@ -613,6 +643,33 @@ class Fleet(FleetBase):
         return self.Widget
     
   #endregion Display Information
+  #region Save/Load
+    def tocode_AGeLib(self, name="", indent=0, indentstr="    ", ignoreNotImplemented = False) -> typing.Tuple[str,dict]:
+        ret, imp = "", {}
+        # ret is the ship data that calls a function which is stored as an entry in imp which constructs the ship
+        # Thus, ret, when executed, will be this ship. This can then be nested in a list so that we can reproduce entire fleets.
+        imp.update(IMP_FLEET)
+        ret = indentstr*indent
+        if name:
+            ret += name + " = "
+        ret += f"createFleet(\n"
+        r,i = AGeToPy._topy(self.tocode_AGeLib_GetDict(), indent=indent+2, indentstr=indentstr, ignoreNotImplemented=ignoreNotImplemented)
+        ret += f"{r}\n{indentstr*(indent+1)})"
+        imp.update(i)
+        return ret, imp
+    
+    def tocode_AGeLib_GetDict(self) -> dict:
+        d = {
+            "Name" : self.Name ,
+            "Team" : self.Team ,
+            "Ships" : self.Ships ,
+            "Coordinates" : self.hex().Coordinates ,
+        }
+        get.shipClasses() # This is called to ensure that all custom ship have the INTERNAL_NAME set
+        if hasattr(self, "INTERNAL_NAME"):
+            d["INTERNAL_NAME"] = self.INTERNAL_NAME
+        return d
+  #endregion Save/Load
 
 
 class Flotilla(FleetBase):

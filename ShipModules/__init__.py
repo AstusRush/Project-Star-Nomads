@@ -1,8 +1,7 @@
 import typing
 from BaseClasses import ListLoader
+from BaseClasses import BaseModules
 if typing.TYPE_CHECKING:
-    from BaseClasses import BaseModules
-    #
     import TestModules
 else:
     """Import all modules that exist in the current directory."""
@@ -18,7 +17,6 @@ else:
     del import_module, Path
 
 def getModules() -> typing.Dict[str, type['BaseModules.Module']]:
-    from BaseClasses import BaseModules
     Modules:typing.Dict[str, type['BaseModules.Module']] = {}
     ListLoader.fillWithType(Modules, globals(), BaseModules.Module)
     return Modules

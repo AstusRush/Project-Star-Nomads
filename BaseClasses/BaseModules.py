@@ -54,6 +54,14 @@ from BaseClasses import get
 from BaseClasses import HexBase
 from GUI import ModuleWidgets
 
+IMP_BASEMODULES = [("PSN get","from BaseClasses import get"),("PSN BaseModules","from BaseClasses import BaseModules"),("PSN ModuleConstructor","""
+def createModule(d:dict):
+    module = get.modules()[d["INTERNAL_NAME"]]()
+    for k,v in d.items():
+        setattr(module, k, v)
+    return module
+""")]
+
 class Module():
     # Should at least implement:
     #   size (hull and some augments have negative values)
@@ -68,18 +76,52 @@ class Module():
     Mass = 0
     Value = 0.1
     Threat = 0
-    def __init__(self, ship:'ShipBase.ShipBase') -> None:
-        self.ship = weakref.ref(ship)
+    def __init__(self) -> None:
         if self.Threat == Module.Threat and hasattr(self, "calculateThreat"):
             self.Threat = self.calculateThreat()
         if self.Value == Module.Value and hasattr(self, "calculateValue"):
             self.Value = self.calculateValue()
+    
+    def setShip(self, ship:'ShipBase.ShipBase') -> None:
+        self.ship = weakref.ref(ship)
     
     def handleNewCombatTurn(self):
         pass
     
     def handleNewCampaignTurn(self):
         pass
+    
+    def tocode_AGeLib(self, name="", indent=0, indentstr="    ", ignoreNotImplemented = False) -> typing.Tuple[str,dict]:
+        ret, imp = "", {}
+        imp.update(IMP_BASEMODULES)
+        ret = indentstr*indent
+        if name:
+            ret += name + " = "
+        ret += f"createModule(\n"
+        r,i = AGeToPy._topy(self.tocode_AGeLib_GetDict(), indent=indent+2, indentstr=indentstr, ignoreNotImplemented=ignoreNotImplemented)
+        ret += f"{r}\n{indentstr*(indent+1)})"
+        imp.update(i)
+        return ret, imp
+    
+    def tocode_AGeLib_GetDict(self) -> dict:
+        get.modules()
+        d = {
+            "INTERNAL_NAME" : self.INTERNAL_NAME,
+            "Name" : self.Name ,
+            "Mass" : self.Mass ,
+            "Value" : self.Value ,
+            "Threat" : self.Threat ,
+        }
+        d.update(self.save())
+        return d
+    
+    def save(self) -> dict:
+        """
+        Returns a dictionary with all values (and their names) that need to be saved to fully recreate this module.\n
+        This method is called automatically when this module is saved.\n
+        Reimplement this method if you create custom values. But don't forget to call `d.update(super().save())` before returning the dict!
+        """
+        return {}
 
 class Hull(Module):
     # The hull of a ship (can be tied to a ship model)
@@ -92,9 +134,6 @@ class Hull(Module):
     HP_Hull = HP_Hull_max
     HP_Hull_Regeneration = HP_Hull_max / 20
     NoticeableDamage = HP_Hull_max / 10
-    
-    def __init__(self, ship:'ShipBase.ShipBase') -> None:
-        super().__init__(ship)
     
     def calculateValue(self): #TODO: Come up with a better formula for this that takes evasion, mass, etc. into account
         return self.HP_Hull_max / 100
@@ -109,6 +148,21 @@ class Hull(Module):
         #TODO: This should be 2 methods: One that calculates the healing and one that the first one and then actually updates the values. This way the first method can be used to display a prediction to the user
         regenFactor = 1 if not self.ship().WasHitLastTurn else 0.5
         self.HP_Hull = min(self.HP_Hull + self.HP_Hull_Regeneration*regenFactor , self.HP_Hull_max)
+    
+    def save(self) -> dict:
+        """
+        Returns a dictionary with all values (and their names) that need to be saved to fully recreate this module.\n
+        This method is called automatically when this module is saved.\n
+        Reimplement this method if you create custom values. But don't forget to call `d.update(super().save())` before returning the dict!
+        """
+        return {
+            "Evasion" : self.Evasion ,
+            "Mass" : self.Mass ,
+            "HP_Hull_max" : self.HP_Hull_max ,
+            "HP_Hull" : self.HP_Hull ,
+            "HP_Hull_Regeneration" : self.HP_Hull_Regeneration ,
+            "NoticeableDamage" : self.NoticeableDamage ,
+        }
 
 class HullPlating(Module):
     Name = "Unnamed HullPlating Module"
@@ -122,8 +176,7 @@ class Engine(Module): # FTL Engine
     Thrust = 6
     RemainingThrust = 6
     
-    def __init__(self, ship:'ShipBase.ShipBase') -> None:
-        super().__init__(ship)
+    def __init__(self) -> None:
         self.Widget:ModuleWidgets.EngineWidget = None
     
     def calculateValue(self): #TODO: Come up with a better formula for this
@@ -142,14 +195,24 @@ class Engine(Module): # FTL Engine
                 self.Widget.updateInterface()
             except RuntimeError:
                 self.Widget = None # This usually means that the widget is destroyed but I don't know of a better way to test for it...
+    
+    def save(self) -> dict:
+        """
+        Returns a dictionary with all values (and their names) that need to be saved to fully recreate this module.\n
+        This method is called automatically when this module is saved.\n
+        Reimplement this method if you create custom values. But don't forget to call `d.update(super().save())` before returning the dict!
+        """
+        return {
+            "Thrust" : self.Thrust ,
+            "RemainingThrust" : self.RemainingThrust ,
+        }
 
 class Thruster(Module): # Sublight Thruster
     Name = "Unnamed Thruster Module"
     Thrust = 6
     RemainingThrust = 6
     
-    def __init__(self, ship:'ShipBase.ShipBase') -> None:
-        super().__init__(ship)
+    def __init__(self) -> None:
         self.Widget:ModuleWidgets.ThrusterWidget = None
     
     def calculateValue(self): #TODO: Come up with a better formula for this
@@ -171,6 +234,17 @@ class Thruster(Module): # Sublight Thruster
                 self.Widget.updateInterface()
             except RuntimeError:
                 self.Widget = None # This usually means that the widget is destroyed but I don't know of a better way to test for it...
+    
+    def save(self) -> dict:
+        """
+        Returns a dictionary with all values (and their names) that need to be saved to fully recreate this module.\n
+        This method is called automatically when this module is saved.\n
+        Reimplement this method if you create custom values. But don't forget to call `d.update(super().save())` before returning the dict!
+        """
+        return {
+            "Thrust" : self.Thrust ,
+            "RemainingThrust" : self.RemainingThrust ,
+        }
 
 class Shield(Module):
     Name = "Unnamed Shield Module"
@@ -178,8 +252,7 @@ class Shield(Module):
     HP_Shields = HP_Shields_max
     HP_Shields_Regeneration = HP_Shields_max / 8
     
-    def __init__(self, ship:'ShipBase.ShipBase') -> None:
-        super().__init__(ship)
+    def __init__(self) -> None:
         self.Widget:ModuleWidgets.ShieldWidget = None
     
     def calculateValue(self): #TODO: Come up with a better formula for this that takes HP_Shields_Regeneration into account
@@ -207,6 +280,18 @@ class Shield(Module):
                 self.Widget.updateInterface()
             except RuntimeError:
                 self.Widget = None # This usually means that the widget is destroyed but I don't know of a better way to test for it...
+    
+    def save(self) -> dict:
+        """
+        Returns a dictionary with all values (and their names) that need to be saved to fully recreate this module.\n
+        This method is called automatically when this module is saved.\n
+        Reimplement this method if you create custom values. But don't forget to call `d.update(super().save())` before returning the dict!
+        """
+        return {
+            "HP_Shields_max" : self.HP_Shields_max ,
+            "HP_Shields" : self.HP_Shields ,
+            "HP_Shields_Regeneration" : self.HP_Shields_Regeneration ,
+        }
 
 class Quarters(Module):
     # Houses crew and civilians
@@ -234,8 +319,7 @@ class ConstructionModule(Module):
     Value = 10
     ConstructionResourcesGeneratedPerTurn = 0.2 #NOTE: This is only a temporary system
     
-    def __init__(self, ship:'ShipBase.ShipBase') -> None:
-        super().__init__(ship)
+    def __init__(self) -> None:
         self.Widget:ModuleWidgets.ConstructionModuleWidget = None
         self.ConstructionResourcesStored = 0 #NOTE: This is only a temporary system
     
@@ -252,6 +336,18 @@ class ConstructionModule(Module):
                 self.Widget.updateInterface()
             except RuntimeError:
                 self.Widget = None # This usually means that the widget is destroyed but I don't know of a better way to test for it...
+    
+    def save(self) -> dict:
+        """
+        Returns a dictionary with all values (and their names) that need to be saved to fully recreate this module.\n
+        This method is called automatically when this module is saved.\n
+        Reimplement this method if you create custom values. But don't forget to call `d.update(super().save())` before returning the dict!
+        """
+        return {
+            "Value" : self.Value ,
+            "ConstructionResourcesGeneratedPerTurn" : self.ConstructionResourcesGeneratedPerTurn ,
+            "ConstructionResourcesStored" : self.ConstructionResourcesStored ,
+        }
 
 class Sensor(Module):
     # Includes sensors that increase weapon accuracy
@@ -260,6 +356,19 @@ class Sensor(Module):
     MediumRange = 12
     HighRange = 4
     PerfectRange = 1
+    
+    def save(self) -> dict:
+        """
+        Returns a dictionary with all values (and their names) that need to be saved to fully recreate this module.\n
+        This method is called automatically when this module is saved.\n
+        Reimplement this method if you create custom values. But don't forget to call `d.update(super().save())` before returning the dict!
+        """
+        return {
+            "LowRange" : self.LowRange ,
+            "MediumRange" : self.MediumRange ,
+            "HighRange" : self.HighRange ,
+            "PerfectRange" : self.PerfectRange ,
+        }
 
 class Economic(Module):
     # Modules for economic purposes like educating and entertaining people (civilians and crew), harvesting or processing resources, growing food, and researching stuff.
@@ -293,8 +402,7 @@ class Weapon(Module):
     Range = 3
     ShieldPiercing = False
     
-    def __init__(self, ship:'ShipBase.ShipBase') -> None:
-        super().__init__(ship)
+    def __init__(self) -> None:
         self.Widget:ModuleWidgets.WeaponWidget = None
         self.Ready = True
         self.SFX = base().loader.loadSfx(self.SoundEffectPath)
@@ -333,22 +441,37 @@ class Weapon(Module):
         if self.Ready and self.ship().fleet().hex().distance(target) <= self.Range:
             targetShip = random.choice(target.fleet().Ships)
             if not targetShip.Destroyed:
-                self.SFX.play()
+                self.SFX.play() #TODO: do not play a sound effect too many times at the same time
                 hit , targetDestroyed, damageDealt = targetShip.takeDamage(self.Damage,self.Accuracy,self.ShieldFactor,self.HullFactor,self.ShieldPiercing)
-                self.fireEffectAt(targetShip, hit)
+                self.fireEffectAt(targetShip, hit) #TODO: loading too many effects at the same time is too slow...
                 self.Ready = False
                 #self.updateCombatInterface()
     
     def fireEffectAt(self, target:'ShipBase.ShipBase', hit:bool=True):
         raise NotImplementedError(f"fireEffectAt is not implemented for this weapon named {self.Name}")
+    
+    def save(self) -> dict:
+        """
+        Returns a dictionary with all values (and their names) that need to be saved to fully recreate this module.\n
+        This method is called automatically when this module is saved.\n
+        Reimplement this method if you create custom values. But don't forget to call `d.update(super().save())` before returning the dict!
+        """
+        return {
+            "SoundEffectPath" : self.SoundEffectPath ,
+            "Damage" : self.Damage ,
+            "Accuracy" : self.Accuracy ,
+            "ShieldFactor" : self.ShieldFactor ,
+            "HullFactor" : self.HullFactor ,
+            "Range" : self.Range ,
+            "ShieldPiercing" : self.ShieldPiercing ,
+            "Ready" : self.Ready ,
+        }
 
 class Weapon_Beam(Weapon): #TODO: SFX (for now we can reuse the assets from Star Trek Armada 2 for prototyping)
     Name = "Unnamed Weapon_Beam Module"
     SoundEffectPath = "tempModels/SFX/phaser.wav"
-    def __init__(self, ship:'ShipBase.ShipBase') -> None:
-        super().__init__(ship)
-        self.ModelPath = "Models/Simple Geometry/rod.ply"
-        self.PenColourName = "Orange"
+    ModelPath = "Models/Simple Geometry/rod.ply"
+    PenColourName = "Orange"
     
     def fireEffectAt(self, target:'ShipBase.ShipBase', hit:bool=True):
         laserEffect:p3dc.NodePath = loader().loadModel(self.ModelPath)
@@ -378,3 +501,14 @@ class Weapon_Beam(Weapon): #TODO: SFX (for now we can reuse the assets from Star
         finally:
             #base().taskMgr.doMethodLater(1, lambda task: self._removeNode(laserEffect), str(id(laserEffect)))
             self.ship().removeNode(laserEffect, 1)
+    
+    def save(self) -> dict:
+        """
+        Returns a dictionary with all values (and their names) that need to be saved to fully recreate this module.\n
+        This method is called automatically when this module is saved.\n
+        Reimplement this method if you create custom values. But don't forget to call `d.update(super().save())` before returning the dict!
+        """
+        d = super().save()
+        d["ModelPath"] = self.ModelPath
+        d["PenColourName"] = self.PenColourName
+        return d

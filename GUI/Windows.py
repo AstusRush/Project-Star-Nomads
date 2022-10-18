@@ -76,6 +76,9 @@ class MainWindowClass(ape.APELabWindow):#APEWindow):
         
         self.UnitStatDisplay = WidgetsBase.FleetStats(self)
         self.TabWidget.addTab(self.UnitStatDisplay, "Unit Stats")
+        
+        self.Menu = WidgetsBase.Menu(self)
+        self.TabWidget.addTab(self.Menu, "Menu")
     
     def getHex(self, i:typing.Tuple[int,int]) -> 'Hex._Hex':
         return get.engine().getHex(i)
@@ -94,8 +97,13 @@ for i in range(3):
     self.P1_Fleet1.addShip(ship)
 
 ship = Ships.TestShips.SpaceDock()
-ship.Name = f"SpaceDock 1-{i}"
+ship.Name = f"Home One"
 self.P1_Fleet1.addShip(ship)
+
+if False:
+    ship = Ships.TestShips.TestShip()
+    ship.Name = f"Test 1"
+    self.P1_Fleet1.addShip(ship)
 
 self.P1_Fleet1.moveToHex(self.getHex((25,25)))
 

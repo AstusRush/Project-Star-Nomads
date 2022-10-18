@@ -50,9 +50,30 @@ from BaseClasses import get
 if TYPE_CHECKING:
     from BaseClasses import FleetBase
     from BaseClasses import BaseModules
+from BaseClasses import ListLoader
 from BaseClasses import HexBase
 from BaseClasses import ModelBase
 from GUI import WidgetsBase
+
+
+IMP_SHIPBASE = [("PSN get","from BaseClasses import get"),("PSN ShipBase","from BaseClasses import ShipBase"),("PSN ShipBaseConstructor","""
+def createShip(d:dict):
+    if "INTERNAL_NAME" in d:
+        ship = get.shipClasses()[d["INTERNAL_NAME"]]()
+    else:
+        ship = ShipBase.ShipBase()
+    
+    ship.Name = d["Name"]
+    ship.ClassName = d["ClassName"]
+    ship.WasHitLastTurn = d["WasHitLastTurn"]
+    ship.ShieldsWereOffline = d["ShieldsWereOffline"]
+    ship.setModel(d["Model"])
+    ship.setModules(d["Modules"])
+    
+    ship.ExplosionSoundEffectPath = d["ExplosionSoundEffectPath"]
+    ship.init_effects()
+    return ship
+""")]
 
 class ShipsStats():
     def __init__(self, ship:'ShipBase') -> None:
@@ -196,8 +217,6 @@ class ShipBase():
         self.Node = p3dc.NodePath(p3dc.PandaNode(f"Central node of ship {id(self)}"))
         self.Node.reparentTo(render())
         self.Modules:'typing.List[BaseModules.Module]' = []
-        self.ExplosionSoundEffect = base().loader.loadSfx(self.ExplosionSoundEffectPath)
-        self.ExplosionSoundEffect.setVolume(0.35)
         self.init_combat()
         self.init_effects()
     
@@ -238,18 +257,19 @@ class ShipBase():
         if module in self.Modules:
             NC(1,f"The module {module.Name} is already in the modules list! It can not be added again! That this was even possible is a bug! Adding this module again will be skipped to keep the game stable.", tb=True)
             return
+        module.setShip(self)
         self.Modules.append(module)
         if isinstance(module, BaseModules.Hull):
-            if self.hull: self.Modules.remove(self.hull(),warn=True)
+            if self.hull: self.removeModule(self.hull(),warn=True)
             self.hull = weakref.ref(module)
         if isinstance(module, BaseModules.Thruster):
-            if self.thruster: self.Modules.remove(self.thruster(),warn=True)
+            if self.thruster: self.removeModule(self.thruster(),warn=True)
             self.thruster = weakref.ref(module)
         if isinstance(module, BaseModules.Engine):
-            if self.engine: self.Modules.remove(self.engine(),warn=True)
+            if self.engine: self.removeModule(self.engine(),warn=True)
             self.engine = weakref.ref(module)
         if isinstance(module, BaseModules.Sensor):
-            if self.sensor: self.Modules.remove(self.sensor(),warn=True)
+            if self.sensor: self.removeModule(self.sensor(),warn=True)
             self.sensor = weakref.ref(module)
         if hasattr(module, "HP_Shields"):
             self.Shields.append(module)
@@ -259,20 +279,67 @@ class ShipBase():
     def removeModule(self, module:'BaseModules.Module', warn=False):
         from BaseClasses import BaseModules
         if warn: NC(2,f"Removing module {module.Name} from modules!")
-        self.Modules.remove(module)
-        if module is self.hull():
+        #TODO: clean up the module (eg get rid of all gui elements)
+        if self.hull and module is self.hull():
             self.hull = None
-        if module is self.thruster():
+        if self.thruster and module is self.thruster():
             self.thruster = None
-        if module is self.engine():
+        if self.engine and module is self.engine():
             self.engine = None
-        if module is self.sensor():
+        if self.sensor and module is self.sensor():
             self.sensor = None
-        if hasattr(module, "HP_Shields"):
+        if module in self.Shields:
             self.Shields.remove(module)
-        if isinstance(module, BaseModules.Weapon):
+        if module in self.Weapons:
             self.Weapons.remove(module)
+        self.Modules.remove(module)
+    
+    def removeAllModules(self):
+        print("RM ======= START")
+        modules = self.Modules.copy()
+        for module in modules:
+            print("removing", module.Name)
+            self.removeModule(module)
+        print("RM ======= END")
+    
+    def addModules(self, modules:typing.List['BaseModules.Module']):
+        for module in modules:
+            self.addModule(module)
+    
+    def setModules(self, modules:typing.List['BaseModules.Module']):
+        self.removeAllModules()
+        self.addModules(modules)
   #endregion Management
+  #region Save/Load
+    def tocode_AGeLib(self, name="", indent=0, indentstr="    ", ignoreNotImplemented = False) -> typing.Tuple[str,dict]:
+        ret, imp = "", {}
+        # ret is the ship data that calls a function which is stored as an entry in imp which constructs the ship
+        # Thus, ret, when executed, will be this ship. This can then be nested in a list so that we can reproduce entire fleets.
+        imp.update(IMP_SHIPBASE)
+        ret = indentstr*indent
+        if name:
+            ret += name + " = "
+        ret += f"createShip(\n"
+        r,i = AGeToPy._topy(self.tocode_AGeLib_GetDict(), indent=indent+2, indentstr=indentstr, ignoreNotImplemented=ignoreNotImplemented)
+        ret += f"{r}\n{indentstr*(indent+1)})"
+        imp.update(i)
+        return ret, imp
+    
+    def tocode_AGeLib_GetDict(self) -> dict:
+        d = {
+            "Name" : self.Name ,
+            "ClassName" : self.ClassName ,
+            "Model" : self.Model ,
+            "Modules" : self.Modules ,
+            "ExplosionSoundEffectPath" : self.ExplosionSoundEffectPath ,
+            "WasHitLastTurn" : self.WasHitLastTurn ,
+            "ShieldsWereOffline" : self.ShieldsWereOffline ,
+        }
+        get.shipClasses() # This is called to ensure that all custom ship have the INTERNAL_NAME set
+        if hasattr(self, "INTERNAL_NAME"):
+            d["INTERNAL_NAME"] = self.INTERNAL_NAME
+        return d
+  #endregion Save/Load
   #region Interface
     def getQuickView(self) -> QtWidgets.QWidget:
         return self.Interface.getQuickView()
@@ -341,9 +408,16 @@ class ShipBase():
         self.setModel(model)
     
     def setModel(self, model: ModelBase.ModelBase):
+        if self.Model:
+            self.clearModel()
         self.Model = model
         self.Model.Node.reparentTo(self.Node)
         self.Model.Node.setPos(0,0,0)
+    
+    def clearModel(self):
+        if self.Model:
+            self.Model.destroy()
+            self.Model = None
     
     def setPos(self, *args):
         self.Node.setPos(*args)
@@ -352,6 +426,8 @@ class ShipBase():
     def init_effects(self): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
         self.ExplosionEffect:p3dc.NodePath = None
         self.ExplosionEffect2:p3dc.NodePath = None
+        self.ExplosionSoundEffect = base().loader.loadSfx(self.ExplosionSoundEffectPath)
+        self.ExplosionSoundEffect.setVolume(0.35)
     
     def removeNode(self, node:p3dc.NodePath, time = 1):
         base().taskMgr.doMethodLater(time, lambda task: self._removeNode(node), str(id(node)))

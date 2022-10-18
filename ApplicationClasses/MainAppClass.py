@@ -208,6 +208,37 @@ class EngineClass(ape.APE):
             return self._NumHexGridsBattle
         else:
             raise Exception(f"{type_} is an unknown hex grid type! Only Campaign and Battle are valid options!")
+    
+    def save(self, name="LastSave"):
+        #REMINDER: The name of the Save File must be not only a valid file name but also a valid python file name
+        if self.CurrentlyInBattle:
+            NC(2,"Currently, saving is only possible on the campaign map")
+            return
+        name += ".py"
+        self._save(name)
+    
+    def _save(self, name="LastSave.py"):
+        wd = os.path.dirname(__file__).rsplit(os.path.sep,1)[0]
+        saveFolder = os.path.join(wd,"SavedGames")
+        if not os.path.exists(saveFolder):
+            os.mkdir(saveFolder)
+        fleetList:UnitManagerBase.UnitList = []
+        for team in self.getUnitManager().Teams.values():
+            fleetList += team
+        with open(os.path.join(saveFolder,name),"w") as file:
+            file.write(AGeToPy.formatObject(fleetList))
+        NC(3,f"Save successful! Saved at {os.path.join(saveFolder,name)}")
+    
+    def load(self):
+        self.clearAll()
+        from SavedGames import LastSave
+    
+    def clearAll(self):
+        fleetList:UnitManagerBase.UnitList = []
+        for team in self.getUnitManager().Teams.values():
+            fleetList += team
+        for i in fleetList:
+            i.completelyDestroy()
 
 class AppClass(ape.APEApp):
     pass

@@ -58,19 +58,15 @@ class EnterpriseModel(ModelBase.ShipModel):
     ModelPath = "tempModels/NCC-1701-D.gltf"
     IconPath = "tempModels/Icons/gbfgalaxy.tga"
     def resetModel(self):
-        self.Model.setH(0) #TODO: Reset all rotations
+        self.Model.setHpr(0,0,0)
         self.Model.setPos(0,0,0)
         self.Model.setScale(1)
         self.Model.setH(180)
         self.Model.setP(90)
     
     def centreModel(self):
-        self.Model.setH(0)
-        self.Model.setP(90)
-        self.Model.setPos(0,0,0)
-        self.Model.setScale(1)
-        self.Model.setScale(0.8/self.Model.getBounds().getRadius())
-        self.Model.setH(180)
+        self.resetModel()
+        self.setScale(0.8/self.Model.getBounds().getRadius())
         self.Model.setPos(-self.Model.getBounds().getApproxCenter())
 
 class Enterprise(ShipBase.Ship):
@@ -79,35 +75,31 @@ class Enterprise(ShipBase.Ship):
     def __init__(self, generateModel=True) -> None:
         super().__init__()
         if generateModel:
-            self.Model = EnterpriseModel()
-            self.setModel(self.Model)
-        self.addModule(ShipModules.TestModules.TestHull_M(self))
-        self.addModule(ShipModules.TestModules.TestSensors_M(self))
-        self.addModule(ShipModules.TestModules.TestShield_L(self))
-        self.addModule(ShipModules.TestModules.TestShield_M(self))
-        self.addModule(ShipModules.TestModules.TestShield_S(self))
-        self.addModule(ShipModules.TestModules.TestBeam_S(self))
-        self.addModule(ShipModules.TestModules.TestBeam_S(self))
-        self.addModule(ShipModules.TestModules.TestBeam_S(self))
-        self.addModule(ShipModules.TestModules.TestBeam_S(self))
-        self.addModule(ShipModules.TestModules.TestEngine_M(self))
-        self.addModule(ShipModules.TestModules.TestThruster_M(self))
+            self.setModel(EnterpriseModel())
+        self.addModule(ShipModules.TestModules.TestHull_M())
+        self.addModule(ShipModules.TestModules.TestSensors_M())
+        self.addModule(ShipModules.TestModules.TestShield_L())
+        self.addModule(ShipModules.TestModules.TestShield_M())
+        self.addModule(ShipModules.TestModules.TestShield_S())
+        self.addModule(ShipModules.TestModules.TestBeam_S())
+        self.addModule(ShipModules.TestModules.TestBeam_S())
+        self.addModule(ShipModules.TestModules.TestBeam_S())
+        self.addModule(ShipModules.TestModules.TestBeam_S())
+        self.addModule(ShipModules.TestModules.TestEngine_M())
+        self.addModule(ShipModules.TestModules.TestThruster_M())
 
 class PrometheusModel(ModelBase.ShipModel):
     ModelPath = "tempModels/Prometheus NX 59650/prometheus.obj"
     IconPath = "tempModels/Prometheus NX 59650/Prometheus1.jpg"
     def resetModel(self):
-        self.Model.setH(0) #TODO: Reset all rotations
+        self.Model.setHpr(0,0,0)
         self.Model.setPos(0,0,0)
         self.Model.setScale(1)
         self.Model.setP(90)
     
     def centreModel(self):
-        self.Model.setH(0)
-        self.Model.setP(90)
-        self.Model.setPos(0,0,0)
-        self.Model.setScale(1)
-        self.Model.setScale(0.8/self.Model.getBounds().getRadius())
+        self.resetModel()
+        self.setScale(0.8/self.Model.getBounds().getRadius())
         self.Model.setPos(-self.Model.getBounds().getApproxCenter())
 
 class Prometheus(ShipBase.Ship):
@@ -116,32 +108,28 @@ class Prometheus(ShipBase.Ship):
     def __init__(self, generateModel=True) -> None:
         super().__init__()
         if generateModel:
-            self.Model = PrometheusModel()
-            self.setModel(self.Model)
-        self.addModule(ShipModules.TestModules.TestHull_M(self))
-        self.addModule(ShipModules.TestModules.TestSensors_M(self))
-        self.addModule(ShipModules.TestModules.TestShield_L(self))
-        self.addModule(ShipModules.TestModules.TestShield_M(self))
-        self.addModule(ShipModules.TestModules.TestBeam_M(self))
-        self.addModule(ShipModules.TestModules.TestBeam_M(self))
-        self.addModule(ShipModules.TestModules.TestEngine_L(self))
-        self.addModule(ShipModules.TestModules.TestThruster_L(self))
+            self.setModel(PrometheusModel())
+        self.addModule(ShipModules.TestModules.TestHull_M())
+        self.addModule(ShipModules.TestModules.TestSensors_M())
+        self.addModule(ShipModules.TestModules.TestShield_L())
+        self.addModule(ShipModules.TestModules.TestShield_M())
+        self.addModule(ShipModules.TestModules.TestBeam_M())
+        self.addModule(ShipModules.TestModules.TestBeam_M())
+        self.addModule(ShipModules.TestModules.TestEngine_L())
+        self.addModule(ShipModules.TestModules.TestThruster_L())
 
 class SpaceDockModel(ModelBase.ShipModel):
     ModelPath = "tempModels/SpaceDockNar30974/spacedock.obj"
     IconPath = "tempModels/SpaceDockNar30974/dock3.jpg"
     def resetModel(self):
-        self.Model.setH(0) #TODO: Reset all rotations
+        self.Model.setHpr(0,0,0)
         self.Model.setPos(0,0,0)
         self.Model.setScale(1)
         self.Model.setP(90)
     
     def centreModel(self):
-        self.Model.setH(0)
-        self.Model.setP(90)
-        self.Model.setPos(0,0,0)
-        self.Model.setScale(1)
-        self.Model.setScale(0.8/self.Model.getBounds().getRadius())
+        self.resetModel()
+        self.setScale(0.8/self.Model.getBounds().getRadius())
         self.Model.setPos(-self.Model.getBounds().getApproxCenter())
 
 class SpaceDock(ShipBase.Ship):
@@ -150,13 +138,36 @@ class SpaceDock(ShipBase.Ship):
     def __init__(self, generateModel=True) -> None:
         super().__init__()
         if generateModel:
-            self.Model = SpaceDockModel()
-            self.setModel(self.Model)
-        self.addModule(ShipModules.TestModules.TestHull_M(self))
-        self.addModule(ShipModules.TestModules.TestSensors_M(self))
-        self.addModule(ShipModules.TestModules.TestShield_L(self))
-        self.addModule(ShipModules.TestModules.TestBeam_M(self))
-        self.addModule(ShipModules.TestModules.TestEngine_M(self))
-        self.addModule(ShipModules.TestModules.TestThruster_M(self))
-        self.addModule(ShipModules.TestModules.TestConstructionModule(self))
+            self.setModel(SpaceDockModel())
+        self.addModule(ShipModules.TestModules.TestHull_M())
+        self.addModule(ShipModules.TestModules.TestSensors_M())
+        self.addModule(ShipModules.TestModules.TestShield_L())
+        self.addModule(ShipModules.TestModules.TestBeam_M())
+        self.addModule(ShipModules.TestModules.TestEngine_M())
+        self.addModule(ShipModules.TestModules.TestThruster_M())
+        self.addModule(ShipModules.TestModules.TestConstructionModule())
+
+
+
+
+class TestModel(ModelBase.ShipModel):
+    """
+    The model should be a .obj created with blender with z facing up and x facing front
+    """
+    ModelPath = "tempModels/TestStuff/TestConeFacingX.obj"
+    #IconPath = "tempModels/SpaceDockNar30974/dock3.jpg"
+
+class TestShip(ShipBase.Ship):
+    Name = "Test"
+    ClassName = "Test Class"
+    def __init__(self, generateModel=True) -> None:
+        super().__init__()
+        if generateModel:
+            self.setModel(TestModel())
+        self.addModule(ShipModules.TestModules.TestHull_M())
+        self.addModule(ShipModules.TestModules.TestSensors_M())
+        self.addModule(ShipModules.TestModules.TestShield_L())
+        self.addModule(ShipModules.TestModules.TestBeam_M())
+        self.addModule(ShipModules.TestModules.TestEngine_M())
+        self.addModule(ShipModules.TestModules.TestThruster_M())
 
