@@ -3,42 +3,42 @@
 <Comment> { "A Green Space Skybox" }
 
 <Texture> frontTexture {
-  "Models/Skyboxes/Sector/GreenSpace/front.png"
+  "Models/Skyboxes/Sector/GreenSpace1/front.png"
   <Scalar> wrap    { CLAMP }
   <Scalar> magfilter { BILINEAR }
   <Scalar> uv-name { UVTex }
   <Scalar> envtype { modulate }
 }
 <Texture> backTexture {
-  "Models/Skyboxes/Sector/GreenSpace/back.png"
+  "Models/Skyboxes/Sector/GreenSpace1/back.png"
   <Scalar> wrap    { CLAMP }
   <Scalar> magfilter { BILINEAR }
   <Scalar> uv-name { UVTex }
   <Scalar> envtype { modulate }
 }
 <Texture> topTexture {
-  "Models/Skyboxes/Sector/GreenSpace/top.png"
+  "Models/Skyboxes/Sector/GreenSpace1/top.png"
   <Scalar> wrap    { CLAMP }
   <Scalar> magfilter { BILINEAR }
   <Scalar> uv-name { UVTex }
   <Scalar> envtype { modulate }
 }
 <Texture> rightTexture {
-  "Models/Skyboxes/Sector/GreenSpace/right.png"
+  "Models/Skyboxes/Sector/GreenSpace1/right.png"
   <Scalar> wrap    { CLAMP }
   <Scalar> magfilter { BILINEAR }
   <Scalar> uv-name { UVTex }
   <Scalar> envtype { modulate }
 }
 <Texture> leftTexture {
-  "Models/Skyboxes/Sector/GreenSpace/left.png"
+  "Models/Skyboxes/Sector/GreenSpace1/left.png"
   <Scalar> wrap    { CLAMP }
   <Scalar> magfilter { BILINEAR }
   <Scalar> uv-name { UVTex }
   <Scalar> envtype { modulate }
 }
 <Texture> bottomTexture {
-  "Models/Skyboxes/Sector/GreenSpace/bottom.png"
+  "Models/Skyboxes/Sector/GreenSpace1/bottom.png"
   <Scalar> wrap    { CLAMP }
   <Scalar> magfilter { BILINEAR }
   <Scalar> uv-name { UVTex }

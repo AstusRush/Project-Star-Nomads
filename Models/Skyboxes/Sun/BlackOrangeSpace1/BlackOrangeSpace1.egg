@@ -3,42 +3,42 @@
 <Comment> { "A Black Space Skybox with a hint of orange and a star" }
 
 <Texture> frontTexture {
-  "Models/Skyboxes/Sun/BlackOrangeSpace/front.png"
+  "Models/Skyboxes/Sun/BlackOrangeSpace1/front.png"
   <Scalar> wrap    { CLAMP }
   <Scalar> magfilter { BILINEAR }
   <Scalar> uv-name { UVTex }
   <Scalar> envtype { modulate }
 }
 <Texture> backTexture {
-  "Models/Skyboxes/Sun/BlackOrangeSpace/back.png"
+  "Models/Skyboxes/Sun/BlackOrangeSpace1/back.png"
   <Scalar> wrap    { CLAMP }
   <Scalar> magfilter { BILINEAR }
   <Scalar> uv-name { UVTex }
   <Scalar> envtype { modulate }
 }
 <Texture> topTexture {
-  "Models/Skyboxes/Sun/BlackOrangeSpace/top.png"
+  "Models/Skyboxes/Sun/BlackOrangeSpace1/top.png"
   <Scalar> wrap    { CLAMP }
   <Scalar> magfilter { BILINEAR }
   <Scalar> uv-name { UVTex }
   <Scalar> envtype { modulate }
 }
 <Texture> rightTexture {
-  "Models/Skyboxes/Sun/BlackOrangeSpace/right.png"
+  "Models/Skyboxes/Sun/BlackOrangeSpace1/right.png"
   <Scalar> wrap    { CLAMP }
   <Scalar> magfilter { BILINEAR }
   <Scalar> uv-name { UVTex }
   <Scalar> envtype { modulate }
 }
 <Texture> leftTexture {
-  "Models/Skyboxes/Sun/BlackOrangeSpace/left.png"
+  "Models/Skyboxes/Sun/BlackOrangeSpace1/left.png"
   <Scalar> wrap    { CLAMP }
   <Scalar> magfilter { BILINEAR }
   <Scalar> uv-name { UVTex }
   <Scalar> envtype { modulate }
 }
 <Texture> bottomTexture {
-  "Models/Skyboxes/Sun/BlackOrangeSpace/bottom.png"
+  "Models/Skyboxes/Sun/BlackOrangeSpace1/bottom.png"
   <Scalar> wrap    { CLAMP }
   <Scalar> magfilter { BILINEAR }
   <Scalar> uv-name { UVTex }
