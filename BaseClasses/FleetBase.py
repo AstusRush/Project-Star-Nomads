@@ -68,6 +68,23 @@ def createFleet(d:dict):
 class ShipList(typing.List['ShipBase.ShipBase']):
     pass
 
+class TeamRing():
+    def __init__(self, fleet, team, node) -> None:
+        self.fleet:weakref.ref["FleetBase"] = weakref.ref(fleet)
+        self.TeamRing:p3dc.NodePath = loader().loadModel("Models/Simple Geometry/hexagonRing.ply")
+        self.TeamRing.reparentTo(node)
+        self.TeamRing.setColor(ape.colour(App().Theme["Star Nomads"][f"Team {team}"]))
+        self.TeamRing.setScale(0.9)
+        self.TeamRing.setPos(p3dc.LPoint3((0,0,-0.02)))
+        self.C_ColourChangedConnection = App().S_ColourChanged.connect(self.recolour)
+    
+    def destroy(self):
+        App().S_ColourChanged.disconnect(self.C_ColourChangedConnection)
+        self.TeamRing.removeNode()
+    
+    def recolour(self):
+        self.TeamRing.setColor(ape.colour(App().Theme["Star Nomads"][f"Team {self.fleet().Team}"]))
+
 class FleetBase():
   #region init and destroy
     def __init__(self, strategic: bool = False, team = 1) -> None:
@@ -81,11 +98,7 @@ class FleetBase():
         self.Node = p3dc.NodePath(p3dc.PandaNode(f"Central node of fleet {id(self)}"))
         #self.Node.reparentTo(render())
         self.Node.reparentTo(get.engine().getSceneRootNode())
-        self.TeamRing:p3dc.NodePath = loader().loadModel("Models/Simple Geometry/hexagonRing.ply")
-        self.TeamRing.reparentTo(self.Node)
-        self.TeamRing.setColor(ape.colour(get.unitManager(self._IsFleet).TeamColour[team].color()))
-        self.TeamRing.setScale(0.9)
-        self.TeamRing.setPos(p3dc.LPoint3((0,0,-0.02)))
+        self.TeamRing = TeamRing(self, team, self.Node)
         
         self.Widget = None
         self.MovementSequence:p3ddSequence = None
@@ -125,7 +138,7 @@ class FleetBase():
                     self.hex().fleet = None
             self.hex = None
         if self.TeamRing:
-            self.TeamRing.removeNode()
+            self.TeamRing.destroy()
             self.TeamRing = None
         if self.Node:
             self.Node.removeNode()

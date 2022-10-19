@@ -68,13 +68,6 @@ class UnitManager():
             2  : self.Units_Team2,
             3  : self.Units_Team3,
         }
-        self.TeamColour = {
-            -1 : App().MiscColours["Common"],
-            0  : App().MiscColours["Neutral"],
-            1  : App().MiscColours["Self"],
-            2  : App().MiscColours["Hostile"],
-            3  : App().PenColours["Magenta"],
-        }
         for teamID, team in self.Teams.items():
             team.ID = teamID
             if teamID > 1:

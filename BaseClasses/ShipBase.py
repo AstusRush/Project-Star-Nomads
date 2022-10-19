@@ -141,6 +141,13 @@ class ShipsStats():
         if get.engine().CurrentlyInBattle: return self.Movement_Sublight
         else: return self.Movement_FTL
     
+    @property
+    def MovementStr(self) -> str:
+        "'Remaining/Maximum' movement on the current map."
+        if get.engine().CurrentlyInBattle: m = self.Movement_Sublight
+        else: m = self.Movement_FTL
+        return f"{m[0]}/{m[1]}"
+    
     def spendMovePoints_FTL(self, value:float):
         self.ship().engine().RemainingThrust -= value*self.Mass
     
@@ -476,12 +483,12 @@ class ShipBase():
         shieldEffect:p3dc.NodePath = loader().loadModel("Models/Simple Geometry/sphere.ply")
         try:
             if self.Stats.HP_Shields >= self.Stats.HP_Shields_max / 2:
-                c = "Green"
+                c = "Shield 100"
             elif self.Stats.HP_Shields >= self.Stats.HP_Shields_max / 4:
-                c = "Orange"
+                c = "Shield 50"
             else:
-                c = "Red"
-            colour = App().PenColours[c].color()
+                c = "Shield 25"
+            colour = App().Theme["Star Nomads"][c].color()
             colour.setAlphaF(0.3)
             shieldEffect.setColor(ape.colour(colour))
             shieldEffect.setTransparency(p3dc.TransparencyAttrib.MAlpha)

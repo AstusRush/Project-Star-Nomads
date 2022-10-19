@@ -45,7 +45,7 @@ else:
     from AstusPandaEngine import engine, base, render, loader
     from AstusPandaEngine import window as _window
 
-from ApplicationClasses import Scene
+from ApplicationClasses import Scene, StarNomadsColourPalette
 from BaseClasses import HexBase, FleetBase, ShipBase, ModelBase, BaseModules, UnitManagerBase, get
 from GUI import Windows, WidgetsBase
 
@@ -254,4 +254,12 @@ class EngineClass(ape.APE):
             i.completelyDestroy()
 
 class AppClass(ape.APEApp):
-    pass
+    def __init__(self, args, useExcepthook=True):
+        super().__init__(args, useExcepthook)
+        #StarNomadsColourPalette.SNDark.update(self.Themes["Dark"])
+        self.addTheme("[Star Nomads] Dark", StarNomadsColourPalette.SNDark)
+        self.setTheme("[Star Nomads] Dark")
+        self.optionWindow.Input_Field.LoadCurrentPalette() #TODO: Doing this should be the task of AGeLib! It's Stupid that I need to do this manually here!
+    
+    #def r_setTheme(self):
+    #    pass #TODO

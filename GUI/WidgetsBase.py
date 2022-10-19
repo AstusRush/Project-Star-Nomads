@@ -116,8 +116,8 @@ class ShipQuickView(AGeWidgets.TightGridFrame): #TODO: Should This be part of th
         self.Button.clicked.connect(lambda: self.showFullInterface())
         self.Button.setIcon(QtGui.QIcon(self.ship().Model.IconPath))
         self.Button.setIconSize(60,60)
-        self.Label_Hull = self.addWidget(QtWidgets.QLabel(self),0,1)
-        self.Label_HP = self.addWidget(QtWidgets.QLabel(self),0,2)
+        self.Label_Info = self.addWidget(QtWidgets.QLabel(self),0,1)
+        self.Label_Def = self.addWidget(QtWidgets.QLabel(self),0,2)
         if not get.engine().CurrentlyInBattle:
             self.updateInterface()
         else:
@@ -125,15 +125,15 @@ class ShipQuickView(AGeWidgets.TightGridFrame): #TODO: Should This be part of th
             self.updateCombatInterface()
     
     def updateCombatInterface(self):
-        self.Label_Hull.setText(f"Name: {self.ship().Name}\nClass: {self.ship().ClassName}")
-        self.Label_HP.setText(f"Hull: {self.ship().Stats.HP_Hull}/{self.ship().Stats.HP_Hull_max}\nShields: {self.ship().Stats.HP_Shields}/{self.ship().Stats.HP_Shields_max}")
+        self.Label_Info.setText(f"Name: {self.ship().Name}\nClass: {self.ship().ClassName}\nMovement: {self.ship().Stats.MovementStr}")
+        self.Label_Def.setText(f"Hull: {self.ship().Stats.HP_Hull}/{self.ship().Stats.HP_Hull_max}\nShields: {self.ship().Stats.HP_Shields}/{self.ship().Stats.HP_Shields_max}\nEvasion: {self.ship().Stats.Evasion}")
         w = [i for i in self.ship().Modules if hasattr(i,"Ready")]
         wa = [i for i in w if i.Ready]
         self.Label_Weapons.setText(f"Weapons: {len(wa)}/{len(w)}")
     
     def updateInterface(self):
-        self.Label_Hull.setText(f"Name: {self.ship().Name}\nClass: {self.ship().ClassName}")
-        self.Label_HP.setText(f"Hull: {self.ship().Stats.HP_Hull}/{self.ship().Stats.HP_Hull_max}\nShields: {self.ship().Stats.HP_Shields}/{self.ship().Stats.HP_Shields_max}")
+        self.Label_Info.setText(f"Name: {self.ship().Name}\nClass: {self.ship().ClassName}\nMovement: {self.ship().Stats.MovementStr}")
+        self.Label_Def.setText(f"Hull: {self.ship().Stats.HP_Hull}/{self.ship().Stats.HP_Hull_max}\nShields: {self.ship().Stats.HP_Shields}/{self.ship().Stats.HP_Shields_max}")
         #w = [i for i in self.ship().Modules if hasattr(i,"Ready")]
         #wa = [i for i in w if i.Ready]
     
