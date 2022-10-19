@@ -67,7 +67,7 @@ class EngineClass(ape.APE):
         self.Scene = Scene.CampaignScene()
         self.Scene.start()
     
-    def startBattleScene(self, fleets:typing.List[FleetBase.Fleet]):
+    def startBattleScene(self, fleets:typing.List[FleetBase.Fleet], battleType=0):
         if self.CurrentlyInBattle: raise Exception("A battle is already happening")
         #TODO: What happens when no player fleet is involved?!
         #self._CameraPositionBeforeBattle = self.Scene.Camera.CameraCenter.getPos()
@@ -87,13 +87,27 @@ class EngineClass(ape.APE):
                 flotilla.Name = f"Flotilla {num} of {fleet.Name}"
                 for ship in ships:
                     flotilla.addShip(ship)
-                while True:
-                    #TODO: This should be a bit more structured
-                    hex_ = random.choice(random.choice(self.BattleScene.HexGrid.Hexes))
-                    if flotilla._navigable(hex_):
-                        break
-                flotilla.moveToHex(hex_,animate=False)
+                self.placeFlotillaInBattle(flotilla, fleet, battleType)
         self.BattleScene.Camera.moveToHex(random.choice(self.BattleUnitManager.Teams[1]).hex())
+    
+    def placeFlotillaInBattle(self, flotilla:FleetBase.Flotilla, fleet:FleetBase.Fleet, battleType):
+        #TODO: Implement battle types and have special positioning rules for things like ambushes or imprecise jump drives
+        #MAYBE: It would be cool to have an FTL precision system without which ships jump to random positions
+        #           and higher levels allow the player to pick initial positions and then maybe inhibitors that disallow the placement of ships right next to enemies...
+        #           Well we are most certainly not at a point to make decisions about implementing that just yet.
+        if 1 <= flotilla.Team <= 4:
+            hexes = self.BattleScene.HexGrid.getCornerHexes(flotilla.Team-1,int(min(self.BattleScene.HexGrid.Size)/5))
+            while True: #TODO: What happens if we can't place a flotilla? We need an abort condition and a way to handle it...
+                #TODO: This should be derived from the fleet positions
+                hex_ = random.choice(hexes)
+                if flotilla._navigable(hex_):
+                    break
+        else:
+            while True: #TODO: What happens if we can't place a flotilla? We need an abort condition and a way to handle it...
+                hex_ = random.choice(random.choice(self.BattleScene.HexGrid.Hexes))
+                if flotilla._navigable(hex_):
+                    break
+        flotilla.moveToHex(hex_,animate=False)
     
     def endBattleScene(self):
         self.BattleUnitManager.unselectAll()

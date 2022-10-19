@@ -80,8 +80,8 @@ class PlayerAI_Campaign(PlayerAI):
                 ship.Name = f"{ship.Name} {i}"
                 fleet.addShip(ship)
             while True:
-                #TODO: This should be a bit more structured. For example, fleets should only spawn at the map border.
-                hex_ = random.choice(random.choice(get.hexGrid().Hexes))
+                hexList = get.hexGrid(campaign=True).getEdgeHexes()
+                hex_ = random.choice(hexList)
                 if fleet._navigable(hex_):
                     break
             fleet.moveToHex(hex_,animate=False)

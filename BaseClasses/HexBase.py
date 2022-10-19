@@ -198,6 +198,73 @@ class HexGrid(DirectObject):
         else:
             raise HexInvalidException(i ,self)
     
+    def getEdgeHexes(self, directions:str="NEWS", distance:int=1) -> typing.List["_Hex"]:
+        """
+        Returns a list with all hexes at the edge of the grid.\n
+        Takes a string containing one or more of the letters N, E, W, or S.
+        If it contains an N, all hexes at the northern edge of the grid will be included in the list, etc.
+        The letters are case insensitive. Duplicates and letters other than N, E, W, and S will be ignored.\n
+        Also takes an integer (>=1) that determines how thick the edge is.
+        """
+        directions = directions.upper()
+        if distance < 1:
+            raise Exception(f"Distance must be >=1 but is {distance}")
+        if distance > self.Size[0] and ("W" in directions or "E" in directions):
+            raise Exception(f"Distance {distance} is out of bounds for grid of size {self.Size} in WE-direction")
+        if distance > self.Size[1] and ("N" in directions or "S" in directions):
+            raise Exception(f"Distance {distance} is out of bounds for grid of size {self.Size} in NS-direction")
+        return_set:typing.Set["_Hex"] = set()
+        if "N" in directions:
+            for i in range(self.Size[1]):
+                for d in range(distance):
+                    if (h:= self.getHex((self.Size[1]-1-d,i))) not in return_set:
+                        return_set.add(h)
+        if "S" in directions:
+            for i in range(self.Size[1]):
+                for d in range(distance):
+                    if (h:= self.getHex((0+d,i))) not in return_set:
+                        return_set.add(h)
+        if "W" in directions:
+            for i in range(self.Size[0]):
+                for d in range(distance):
+                    if (h:= self.getHex((i,0+d))) not in return_set:
+                        return_set.add(h)
+        if "E" in directions:
+            for i in range(self.Size[0]):
+                for d in range(distance):
+                    if (h:= self.getHex((i,self.Size[1]-1-d))) not in return_set:
+                        return_set.add(h)
+        return list(return_set)
+    
+    def getCentreHexes(self, radius:int=1) -> typing.List["_Hex"]:
+        """
+        Returns a list with all hexes at the centre of the grid.\n
+        Takes an integer (>=1) that determines the radius.
+        """
+        return self.getHex((int(self.Size[1]/2),int(self.Size[0]/2))).getDisk(int(radius))
+    
+    def getCornerHexes(self, corner:int, radius:int=1) -> typing.List["_Hex"]:
+        """
+        Returns a list with all hexes at the specified corner of the grid.\n
+        Takes two integer:\n
+        The first one determines the corner where 0 is the bottom left corner and the others are numbered clockwise.\n
+        The other one determines the radius around the corner that should be included in the output.
+        """
+        if corner == 0:
+            return self.getHex((0,0)).getDisk(int(radius))
+        elif corner == 1:
+            return self.getHex((self.Size[1]-1, 0)).getDisk(int(radius))
+        elif corner == 2:
+            return self.getHex((self.Size[1]-1,self.Size[0]-1)).getDisk(int(radius))
+        elif corner == 3:
+            return self.getHex((0,self.Size[0]-1)).getDisk(int(radius))
+        else:
+            raise Exception(f"corner must be 0, 1, 2, or 3 but it is {corner}")
+    
+    #TODO: write another method that works similarly to getCornerHexes but for the sides
+    #TODO: Write a method that divides the map into 10 (or generalize to n if feasible) equal areas of similar size and returns them.
+    #           This can then be used to place all the flotillas in the correct position in regard to the relative fleet positions on the campaign map
+    
     def _isValidCoordinate(self, i):
         # type: ( typing.Union[typing.Tuple[int,int], typing.Tuple[int,int,int]] ) -> bool
         if len(i) == 3:

@@ -174,8 +174,8 @@ class UnitList(typing.List['FleetBase.FleetBase']):
     def destroy(self):
         #if hasattr(self, "AI"):
         #    del self.AI # raises attribute error...
-        #for i in self:
-        #    i.destroy()
+        for i in self.copy():
+            i.destroy()
         self.clear()
     
     async def startTurn(self):

@@ -79,8 +79,15 @@ class TeamRing():
         self.C_ColourChangedConnection = App().S_ColourChanged.connect(self.recolour)
     
     def destroy(self):
-        App().S_ColourChanged.disconnect(self.C_ColourChangedConnection)
-        self.TeamRing.removeNode()
+        if self.C_ColourChangedConnection:
+            App().S_ColourChanged.disconnect(self.C_ColourChangedConnection)
+            self.C_ColourChangedConnection = None
+        if self.TeamRing:
+            self.TeamRing.removeNode()
+            self.TeamRing = None
+    
+    def __del__(self):
+        self.destroy()
     
     def recolour(self):
         self.TeamRing.setColor(ape.colour(App().Theme["Star Nomads"][f"Team {self.fleet().Team}"]))
@@ -126,10 +133,6 @@ class FleetBase():
         except:
             if self in get.unitManager(self._IsFleet).Teams[self.Team]:
                 raise
-        self.__del__()
-    
-    def __del__(self):
-        self.Destroyed = True
         if self.isSelected():
             get.unitManager(self._IsFleet).selectUnit(None)
         if self.hex:
@@ -143,6 +146,9 @@ class FleetBase():
         if self.Node:
             self.Node.removeNode()
             self.Node = None
+    
+    def __del__(self):
+        self.destroy()
     
     @property
     def MovePoints(self) -> float:
