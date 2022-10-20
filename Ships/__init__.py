@@ -18,9 +18,9 @@ else:
         del f, module_name
     del import_module, Path
 
-def getShips() -> typing.Dict[str,type['ShipBase.ShipBase']]:
+def getShips() -> 'typing.Dict[str,type[ShipBase.ShipBase]]':
     from BaseClasses import ShipBase
-    Ships:typing.Dict[str,type['ShipBase.ShipBase']] = {}
+    Ships:'typing.Dict[str,type[ShipBase.ShipBase]]' = {}
     ListLoader.fillWithType(Ships, globals(), ShipBase.ShipBase)
     #for m in globals().values():
     #    if hasattr(m,"__dict__"):
@@ -29,9 +29,9 @@ def getShips() -> typing.Dict[str,type['ShipBase.ShipBase']]:
     #                Ships[k] = v
     return Ships
 
-def getShipModels() -> typing.Dict[str,type['ModelBase.ShipModel']]:
+def getShipModels() -> 'typing.Dict[str,type[ModelBase.ShipModel]]':
     from BaseClasses import ModelBase
-    ShipModels:typing.Dict[str,type['ModelBase.ShipModel']] = {}
+    ShipModels:'typing.Dict[str,type[ModelBase.ShipModel]]' = {}
     ListLoader.fillWithType(ShipModels, globals(), ModelBase.ShipModel)
     #for k,v in globals().items():
     #    if isinstance(v, type) and issubclass(v, ModelBase.ShipModel):

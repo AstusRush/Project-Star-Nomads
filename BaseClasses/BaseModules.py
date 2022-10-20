@@ -354,7 +354,7 @@ class ConstructionModule(Module):
             except RuntimeError:
                 self.Widget = None # This usually means that the widget is destroyed but I don't know of a better way to test for it...
     
-    def buildShip(self, ship:'ShipBase.Ship', model:type['ModelBase.ShipModel']):
+    def buildShip(self, ship:'ShipBase.Ship', model:'type[ModelBase.ShipModel]'):
         if get.engine().CurrentlyInBattle:
             NC(2,"Could not construct ship: There is a battle taking place.\nThe engineers are too busy fighting to start the construction of a ship!")
             return False

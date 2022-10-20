@@ -16,7 +16,7 @@ else:
         del f, module_name
     del import_module, Path
 
-def getModules() -> typing.Dict[str, type['BaseModules.Module']]:
-    Modules:typing.Dict[str, type['BaseModules.Module']] = {}
+def getModules() -> 'typing.Dict[str, type[BaseModules.Module]]':
+    Modules:'typing.Dict[str, type[BaseModules.Module]]' = {}
     ListLoader.fillWithType(Modules, globals(), BaseModules.Module)
     return Modules

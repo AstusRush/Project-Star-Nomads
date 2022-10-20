@@ -168,7 +168,7 @@ class ModuleList(QtWidgets.QListWidget):
         self.itemDoubleClicked.connect(lambda item: self.selectModuleForEditor(item))
         self.installEventFilter(self)
     
-    def addModule(self, module:type['BaseModules.Module']):
+    def addModule(self, module:'type[BaseModules.Module]'):
         item = ModuleItem()
         item.setText(module.Name)
         item.setData(100, module())

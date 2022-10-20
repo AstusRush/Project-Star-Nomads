@@ -72,15 +72,15 @@ def unitManager(campaign = None) -> 'UnitManagerBase.UnitManager':
 def hexGrid(campaign = None) -> 'HexBase.HexGrid':
     return engine().getHexGrid(campaign)
 
-def shipClasses() -> typing.Dict[str, type['ShipBase.ShipBase']]:
+def shipClasses() -> 'typing.Dict[str, type[ShipBase.ShipBase]]':
     import Ships
     return Ships.getShips()
 
-def shipModels() -> typing.Dict[str, type['ModelBase.ShipModel']]:
+def shipModels() -> 'typing.Dict[str, type[ModelBase.ShipModel]]':
     import Ships
     return Ships.getShipModels()
 
-def modules() -> typing.Dict[str, type['BaseModules.Module']]:
+def modules() -> 'typing.Dict[str, type[BaseModules.Module]]':
     import ShipModules
     return ShipModules.getModules()
 
