@@ -602,7 +602,7 @@ class _Hex():
             
             # We will use this list to store all objects that occupy this hexagon
             self.content = [] # type: typing.List[Object]
-            self.unit = None # type: weakref.ref[Unit]
+            self.unit = None # type: 'weakref.ref[Unit]'
             self.Navigable = True
             
             self.Highlighted = False
@@ -915,7 +915,7 @@ class Unit():
         self.Team = team
         self.BaseMovePoints = 6 #float("inf") #10
         self.MovePoints = self.BaseMovePoints
-        self.hex: weakref.ref[_Hex] = None
+        self.hex: 'weakref.ref[_Hex]' = None
         self.Node = p3dc.NodePath(p3dc.PandaNode("Central node of unit: "+name))
         self.ActiveTurn = team == 1 #TODO: This should be taken from the Unit manager to check whose turn it actually is since enemy ships are mostly initialized during enemy turns (but not always which means we can not always set this to True!)
         # self.CameraCenter = p3dc.NodePath(p3dc.PandaNode("CameraCenter"))
@@ -1285,7 +1285,7 @@ class UnitManager():
             2  : self.Units_Team2,
             3  : self.Units_Team3,
         }
-        self.selectedUnit: weakref.ref[Unit] = None
+        self.selectedUnit: 'weakref.ref[Unit]' = None
         
     def selectUnit(self, unit):
         if isinstance(unit, weakref.ref):

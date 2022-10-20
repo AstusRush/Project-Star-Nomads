@@ -452,7 +452,7 @@ class _Hex():
             
             # We will use this list to store all objects that occupy this hexagon
             self.content = [] # type: typing.List[Unit.Object]
-            self.fleet = None # type: weakref.ref[FleetBase.FleetBase]
+            self.fleet = None # type: 'weakref.ref[FleetBase.FleetBase]'
             self.Navigable = True
             
             self.Highlighted = False

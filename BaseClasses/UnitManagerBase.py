@@ -72,7 +72,7 @@ class UnitManager():
             team.ID = teamID
             if teamID > 1:
                 team.AI = AI_Player.PlayerAI_Campaign(team) if self.Strategic else AI_Player.PlayerAI_Combat(team)
-        self.selectedUnit: weakref.ref['FleetBase.FleetBase'] = None
+        self.selectedUnit: 'weakref.ref[FleetBase.FleetBase]' = None
     
     def destroy(self):
         self.unselectAll()

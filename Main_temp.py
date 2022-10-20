@@ -356,7 +356,7 @@ class UnitManager():
             2  : self.Units_Team2,
             3  : self.Units_Team3,
         }
-        self.selectedUnit: weakref.ref[Unit] = None
+        self.selectedUnit: 'weakref.ref[Unit]' = None
         
     def selectUnit(self, unit):
         if isinstance(unit, weakref.ref):

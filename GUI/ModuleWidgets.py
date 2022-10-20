@@ -53,7 +53,7 @@ from GUI import WidgetsBase
 
 """ Template for constructor: (replace # with the module name)
 class #Widget(WidgetsBase.ModuleWidget):
-    module: weakref.ref['BaseModules.#'] = None
+    module: weakref.ref[BaseModules.#] = None
     def __init__(self, module:typing.Optional['BaseModules.#'] = None) -> None:
         super().__init__(parent=None, module=module)
 
@@ -79,17 +79,17 @@ l = [
 """
 
 class HullWidget(WidgetsBase.ModuleWidget):
-    module: weakref.ref['BaseModules.Hull'] = None
+    module: 'weakref.ref[BaseModules.Hull]' = None
     def __init__(self, module:typing.Optional['BaseModules.Hull'] = None) -> None:
         super().__init__(parent=None, module=module)
 
 class HullPlatingWidget(WidgetsBase.ModuleWidget):
-    module: weakref.ref['BaseModules.HullPlating'] = None
+    module: 'weakref.ref[BaseModules.HullPlating]' = None
     def __init__(self, module:typing.Optional['BaseModules.HullPlating'] = None) -> None:
         super().__init__(parent=None, module=module)
 
 class EngineWidget(WidgetsBase.ModuleWidget):
-    module: weakref.ref['BaseModules.Engine'] = None
+    module: 'weakref.ref[BaseModules.Engine]' = None
     def __init__(self, module:typing.Optional['BaseModules.Engine'] = None) -> None:
         super().__init__(parent=None, module=module)
         self.Label = self.addWidget(QtWidgets.QLabel(self))
@@ -99,7 +99,7 @@ class EngineWidget(WidgetsBase.ModuleWidget):
         self.Label.setText(f"{self.module().Name} (FLT Engine):\n\tMovement: {c}/{m}\n\tThrust: {self.module().RemainingThrust}/{self.module().Thrust}\n\tShip Mass: {self.module().ship().Stats.Mass}")
 
 class ThrusterWidget(WidgetsBase.ModuleWidget):
-    module: weakref.ref['BaseModules.Thruster'] = None
+    module: 'weakref.ref[BaseModules.Thruster]' = None
     def __init__(self, module:typing.Optional['BaseModules.Thruster'] = None) -> None:
         super().__init__(parent=None, module=module)
         self.Label = self.addWidget(QtWidgets.QLabel(self))
@@ -109,7 +109,7 @@ class ThrusterWidget(WidgetsBase.ModuleWidget):
         self.Label.setText(f"{self.module().Name} (Sublight Thruster):\n\tMovement: {c}/{m}\n\tThrust: {self.module().RemainingThrust}/{self.module().Thrust}\n\tShip Mass: {self.module().ship().Stats.Mass}")
 
 class ShieldWidget(WidgetsBase.ModuleWidget):
-    module: weakref.ref['BaseModules.Shield'] = None
+    module: 'weakref.ref[BaseModules.Shield]' = None
     def __init__(self, module:typing.Optional['BaseModules.Shield'] = None) -> None:
         super().__init__(parent=None, module=module)
         self.Label = self.addWidget(QtWidgets.QLabel(self))
@@ -118,22 +118,22 @@ class ShieldWidget(WidgetsBase.ModuleWidget):
         self.Label.setText(f"{self.module().Name} (Shield):\n\tHP: {self.module().HP_Shields}/{self.module().HP_Shields_max}\n\tRegeneration per turn: {self.module().HP_Shields_Regeneration} (Halved if damaged last turn)\n\t(It takes one turn to reactivate the shields if their HP reaches 0)")
 
 class QuartersWidget(WidgetsBase.ModuleWidget):
-    module: weakref.ref['BaseModules.Quarters'] = None
+    module: 'weakref.ref[BaseModules.Quarters]' = None
     def __init__(self, module:typing.Optional['BaseModules.Quarters'] = None) -> None:
         super().__init__(parent=None, module=module)
 
 class CargoWidget(WidgetsBase.ModuleWidget):
-    module: weakref.ref['BaseModules.Cargo'] = None
+    module: 'weakref.ref[BaseModules.Cargo]' = None
     def __init__(self, module:typing.Optional['BaseModules.Cargo'] = None) -> None:
         super().__init__(parent=None, module=module)
 
 class HangarWidget(WidgetsBase.ModuleWidget):
-    module: weakref.ref['BaseModules.Hangar'] = None
+    module: 'weakref.ref[BaseModules.Hangar]' = None
     def __init__(self, module:typing.Optional['BaseModules.Hangar'] = None) -> None:
         super().__init__(parent=None, module=module)
 
 class ConstructionModuleWidget(WidgetsBase.ModuleWidget):
-    module: weakref.ref['BaseModules.ConstructionModule'] = None
+    module: 'weakref.ref[BaseModules.ConstructionModule]' = None
     def __init__(self, module:typing.Optional['BaseModules.ConstructionModule'] = None) -> None:
         super().__init__(parent=None, module=module)
         self.Label = self.addWidget(QtWidgets.QLabel(self))
@@ -182,32 +182,32 @@ class ConstructionModuleWidget(WidgetsBase.ModuleWidget):
         NC(2,"The construction window is very much a work in progress.\nThere are barely any checks to prevent that something goes wrong!\nYou have been warned!",DplStr="Attention! WIP!",unique=True)
 
 class SensorWidget(WidgetsBase.ModuleWidget):
-    module: weakref.ref['BaseModules.Sensor'] = None
+    module: 'weakref.ref[BaseModules.Sensor]' = None
     def __init__(self, module:typing.Optional['BaseModules.Sensor'] = None) -> None:
         super().__init__(parent=None, module=module)
 
 class EconomicWidget(WidgetsBase.ModuleWidget):
-    module: weakref.ref['BaseModules.Economic'] = None
+    module: 'weakref.ref[BaseModules.Economic]' = None
     def __init__(self, module:typing.Optional['BaseModules.Economic'] = None) -> None:
         super().__init__(parent=None, module=module)
 
 class AugmentWidget(WidgetsBase.ModuleWidget):
-    module: weakref.ref['BaseModules.Augment'] = None
+    module: 'weakref.ref[BaseModules.Augment]' = None
     def __init__(self, module:typing.Optional['BaseModules.Augment'] = None) -> None:
         super().__init__(parent=None, module=module)
 
 class SupportWidget(WidgetsBase.ModuleWidget):
-    module: weakref.ref['BaseModules.Support'] = None
+    module: 'weakref.ref[BaseModules.Support]' = None
     def __init__(self, module:typing.Optional['BaseModules.Support'] = None) -> None:
         super().__init__(parent=None, module=module)
 
 class SpecialWidget(WidgetsBase.ModuleWidget):
-    module: weakref.ref['BaseModules.Special'] = None
+    module: 'weakref.ref[BaseModules.Special]' = None
     def __init__(self, module:typing.Optional['BaseModules.Special'] = None) -> None:
         super().__init__(parent=None, module=module)
 
 class WeaponWidget(WidgetsBase.ModuleWidget):
-    module: weakref.ref['BaseModules.Weapon'] = None
+    module: 'weakref.ref[BaseModules.Weapon]' = None
     def __init__(self, module:typing.Optional['BaseModules.Weapon'] = None) -> None:
         super().__init__(parent=None, module=module)
         self.Label = self.addWidget(QtWidgets.QLabel(self))

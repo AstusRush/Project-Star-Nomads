@@ -70,7 +70,7 @@ class ShipList(typing.List['ShipBase.ShipBase']):
 
 class TeamRing():
     def __init__(self, fleet, team, node) -> None:
-        self.fleet:weakref.ref["FleetBase"] = weakref.ref(fleet)
+        self.fleet:'weakref.ref[FleetBase]' = weakref.ref(fleet)
         self.TeamRing:p3dc.NodePath = loader().loadModel("Models/Simple Geometry/hexagonRing.ply")
         self.TeamRing.reparentTo(node)
         self.TeamRing.setColor(ape.colour(App().Theme["Star Nomads"][f"Team {team}"]))
@@ -116,7 +116,7 @@ class FleetBase():
         self.IsMoving = False
         
         #TEMPORARY
-        self.hex: weakref.ref['HexBase._Hex'] = None
+        self.hex: 'weakref.ref[HexBase._Hex]' = None
         self.ActiveTurn = 1 == 1
         get.unitManager(self._IsFleet).Teams[self.Team].append(self)
     

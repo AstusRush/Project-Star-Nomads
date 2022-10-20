@@ -65,7 +65,7 @@ class BaseFleetAI(AI_Base.AI_Base):
         return random.choice(list(self.fleet().getReachableHexes()))
 
 class FleetAI(BaseFleetAI):
-    fleet:weakref.ref['FleetBase.Fleet'] = None
+    fleet:'weakref.ref[FleetBase.Fleet]' = None
     
     async def executeTurn(self, orders:AI_Base.Orders):
         if self.fleet().isDestroyed(): return
@@ -97,7 +97,7 @@ class FleetAI(BaseFleetAI):
         return attackableHexes
 
 class FlotillaAI(BaseFleetAI):
-    fleet:weakref.ref['FleetBase.Flotilla'] = None
+    fleet:'weakref.ref[FleetBase.Flotilla]' = None
     
     async def executeTurn(self, orders:AI_Base.Orders):
         if self.fleet().isDestroyed(): return

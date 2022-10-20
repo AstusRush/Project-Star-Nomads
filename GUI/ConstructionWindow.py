@@ -77,7 +77,7 @@ class ConstructionWindow(AWWF):
         self.ConstructionWidget.setConstructionModule(module)
 
 class ConstructionWidget(QtWidgets.QSplitter):
-    constructionModule: weakref.ref['BaseModules.ConstructionModule'] = None
+    constructionModule: 'weakref.ref[BaseModules.ConstructionModule]' = None
     def __init__(self, parent: typing.Optional['QtWidgets.QWidget'] = None) -> None:
         super().__init__(parent)
         #self.Splitter = self.addWidget(QtWidgets.QSplitter(self))
@@ -91,7 +91,7 @@ class ConstructionWidget(QtWidgets.QSplitter):
         self.addWidget(self.ModuleEditor)
     
     def setConstructionModule(self, module:BaseModules.ConstructionModule):
-        self.constructionModule:weakref.ref[BaseModules.ConstructionModule] = weakref.ref(module)
+        self.constructionModule:'weakref.ref[BaseModules.ConstructionModule]' = weakref.ref(module)
     
     def buildShip(self):
         #TODO: Check if the ship has everything to even be build

@@ -208,13 +208,13 @@ class ShipBase():
     ExplosionSoundEffectPath = "tempModels/SFX/arfexpld.wav"
     
     Model: ModelBase.ModelBase = None
-    campaignFleet:typing.Union[weakref.ref['FleetBase.Fleet'],None] = None
-    battleFleet:typing.Union[weakref.ref['FleetBase.Flotilla'],None] = None
+    campaignFleet:typing.Union['weakref.ref[FleetBase.Fleet]',None] = None
+    battleFleet:typing.Union['weakref.ref[FleetBase.Flotilla]',None] = None
   #region init and destroy
     def __init__(self) -> None:
         self.Interface = WidgetsBase.ShipInterface(self)
         self.Stats = ShipsStats(self)
-        self.fleet = None # type: weakref.ref['FleetBase.FleetBase']
+        self.fleet = None # type: 'weakref.ref[FleetBase.FleetBase]'
         self.hull: 'weakref.ref[BaseModules.Hull]' = None
         self.thruster: 'weakref.ref[BaseModules.Thruster]' = None
         self.sensor: 'weakref.ref[BaseModules.Sensor]' = None

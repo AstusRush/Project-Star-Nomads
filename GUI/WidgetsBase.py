@@ -57,7 +57,7 @@ class PandaWidget(ape.PandaWidget):
     pass
 
 class ModuleWidget(AGeWidgets.TightGridWidget):
-    module: weakref.ref['BaseModules.Module'] = None
+    module: 'weakref.ref[BaseModules.Module]' = None
     def __init__(self, parent: typing.Optional['QtWidgets.QWidget'] = None, module:typing.Optional['BaseModules.Module'] = None) -> None:
         super().__init__(parent=parent)
         self.module = weakref.ref(module)

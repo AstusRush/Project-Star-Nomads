@@ -91,7 +91,7 @@ class Unit():
         self.Destroyed = False
         self.MovePoints_max = 6 #float("inf") #10
         self.MovePoints = self.MovePoints_max
-        self.hex: weakref.ref['Hex._Hex'] = None
+        self.hex: 'weakref.ref[Hex._Hex]' = None
         self.ActiveTurn = team == 1 #TODO: This should be taken from the Unit manager to check whose turn it actually is since enemy ships are mostly initialized during enemy turns (but not always which means we can not always set this to True!)
         self.init_model(coordinates, colour)
         self.init_combat()
