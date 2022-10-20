@@ -137,6 +137,7 @@ class ConstructionModuleWidget(WidgetsBase.ModuleWidget):
     def __init__(self, module:typing.Optional['BaseModules.ConstructionModule'] = None) -> None:
         super().__init__(parent=None, module=module)
         self.Label = self.addWidget(QtWidgets.QLabel(self))
+        self.ConstructionWindowButton = self.addWidget(AGeWidgets.Button(self, "Open construction window", lambda: self.openConstructionWindow()))
         self.ShipComboBox = self.addWidget(QtWidgets.QComboBox(self))
         self.populateBuildList()
         self.BuildButton = self.addWidget(AGeWidgets.Button(self, "Build", lambda: self.build()))
@@ -164,6 +165,21 @@ class ConstructionModuleWidget(WidgetsBase.ModuleWidget):
             self.module().ship().fleet().addShip(ship)
             self.updateInterface()
             #TODO: update the fleet Quick View to show the new ship!
+    
+    def openConstructionWindow(self):
+        from GUI import ConstructionWindow
+        ###### TEMP:
+        try:
+            self.constructionWindow.close()
+            self.constructionWindow.deleteLater()
+        except: pass
+        import importlib
+        importlib.reload(ConstructionWindow)
+        ###### Also remove the self. as this should not be a member
+        self.constructionWindow = ConstructionWindow.ConstructionWindow()
+        self.constructionWindow.setConstructionModule(self.module())
+        self.constructionWindow.show()
+        NC(2,"The construction window is very much a work in progress.\nThere are barely any checks to prevent that something goes wrong!\nYou have been warned!",DplStr="Attention! WIP!",unique=True)
 
 class SensorWidget(WidgetsBase.ModuleWidget):
     module: weakref.ref['BaseModules.Sensor'] = None

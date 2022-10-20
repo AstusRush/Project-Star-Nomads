@@ -73,6 +73,7 @@ class Module():
     #   required staff (#MAYBE: make a distinction between staff on the strategic map and staff on the tactical map since the crew that usually operates refineries can operate guns during combat)
     #   (Slot type is basically the type of the subclass but maybe it would be helpful to implement it here)
     Name = "Unnamed Generic Module"
+    Customisable = False
     Mass = 0
     Value = 0.1
     Threat = 0
@@ -128,6 +129,7 @@ class Hull(Module):
     # Determins the size of the ship (and maybe available slots for module types)
     # Also influences the HP of the ship and the required engine size
     Name = "Unnamed Hull Module"
+    Customisable = True
     Evasion = 0.1
     Mass = 1
     HP_Hull_max = 100
@@ -166,13 +168,16 @@ class Hull(Module):
 
 class HullPlating(Module):
     Name = "Unnamed HullPlating Module"
+    Customisable = True
     pass
 
 #class PowerGenerator(Module): #MAYBE: I don't see how a power system would help
+#    Customisable = True
 #    pass
 
 class Engine(Module): # FTL Engine
     Name = "Unnamed Engine Module"
+    Customisable = True
     Thrust = 6
     RemainingThrust = 6
     
@@ -210,6 +215,7 @@ class Engine(Module): # FTL Engine
 
 class Thruster(Module): # Sublight Thruster
     Name = "Unnamed Thruster Module"
+    Customisable = True
     Thrust = 6
     RemainingThrust = 6
     
@@ -250,6 +256,7 @@ class Thruster(Module): # Sublight Thruster
 
 class Shield(Module):
     Name = "Unnamed Shield Module"
+    Customisable = True
     HP_Shields_max = 400
     HP_Shields = HP_Shields_max
     HP_Shields_Regeneration = HP_Shields_max / 8
@@ -304,28 +311,34 @@ class Quarters(Module):
     #       It would only make sense to make a distinction between people who can operate a specific module and those that can not and in that case there would need to be a complex education system...
     #       Therefore a distinction is (at least until version 1.0 of the game) not useful
     Name = "Unnamed Quarters Module"
+    Customisable = True
     pass
 
 class Cargo(Module):
     # Used to store resources
     Name = "Unnamed Cargo Module"
+    Customisable = True
     pass
 
 class Hangar(Module):
     Name = "Unnamed Hangar Module"
+    Customisable = True
     pass
 
 class ConstructionModule(Module):
     # Modules to construct new ships.
     #TODO: Make 2 variants: Enclosed (can move while constructing) and open (can not move while constructing)
     Name = "Unnamed ConstructionModule Module"
-    Value = 10
+    Customisable = True
     ConstructionResourcesGeneratedPerTurn = 0.2 #NOTE: This is only a temporary system
     
     def __init__(self) -> None:
         super().__init__()
         self.Widget:ModuleWidgets.ConstructionModuleWidget = None
         self.ConstructionResourcesStored = 0 #NOTE: This is only a temporary system
+    
+    def calculateValue(self):
+        return 10 + 50*self.ConstructionResourcesGeneratedPerTurn #NOTE: This is only a temporary system
     
     def handleNewCampaignTurn(self):
         self.ConstructionResourcesStored += self.ConstructionResourcesGeneratedPerTurn #NOTE: This is only a temporary system
@@ -340,6 +353,22 @@ class ConstructionModule(Module):
                 self.Widget.updateInterface()
             except RuntimeError:
                 self.Widget = None # This usually means that the widget is destroyed but I don't know of a better way to test for it...
+    
+    def buildShip(self, ship:'ShipBase.Ship', model:type['ModelBase.ShipModel']):
+        if get.engine().CurrentlyInBattle:
+            NC(2,"Could not construct ship: There is a battle taking place.\nThe engineers are too busy fighting to start the construction of a ship!")
+            return False
+        elif ship.Stats.Value > self.ConstructionResourcesStored:
+            NC(2, f"Could not construct ship: insufficient resources {self.ConstructionResourcesStored} out of {ship.Stats.Value}")
+            return False
+        else:
+            self.ConstructionResourcesStored -= ship.Stats.Value
+            ship.setModel(model())
+            self.ship().fleet().addShip(ship)
+            self.updateInterface()
+            #TODO: update the fleet Quick View to show the new ship!
+            NC(3, "Ship constructed") #TODO: Better text
+            return True
     
     def save(self) -> dict:
         """
@@ -356,6 +385,7 @@ class ConstructionModule(Module):
 class Sensor(Module):
     # Includes sensors that increase weapon accuracy
     Name = "Unnamed Sensor Module"
+    Customisable = True
     LowRange = 20
     MediumRange = 12
     HighRange = 4
@@ -375,6 +405,7 @@ class Sensor(Module):
         }
 
 class Economic(Module):
+    Customisable = True
     # Modules for economic purposes like educating and entertaining people (civilians and crew), harvesting or processing resources, growing food, and researching stuff.
     #MAYBE: Researching could be tied to other modules like sensors to scan stuff or special experimental weapons to test stuff or experimental shields to test stuff or... you get the idea
     Name = "Unnamed Economic Module"
@@ -383,21 +414,25 @@ class Economic(Module):
 class Augment(Module):
     # All augmentations that enhance/modify the statistics of other modules like +dmg% , +movementpoints , or +shieldRegeneration
     Name = "Unnamed Augment Module"
+    Customisable = True
     pass
 
 class Support(Module): #MAYBE: inherit from Augment
     # like Augment but with an area of effect to buff allies or debuff enemies
     Name = "Unnamed Support Module"
+    Customisable = True
     pass
 
 class Special(Module):
     # Modules that add new special functions to ships that can be used via buttons in the gui like:
     #   hacking the enemy, cloaking, extending shields around allies, repairing allies, sensor pings, boarding
     Name = "Unnamed Special Module"
+    Customisable = True
     pass
 
 class Weapon(Module):
     Name = "Unnamed Weapon Module"
+    Customisable = True
     SoundEffectPath = "tempModels/SFX/phaser.wav"
     Damage = 50
     Accuracy = 1
