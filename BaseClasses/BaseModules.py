@@ -271,7 +271,7 @@ class Shield(Module):
         self.Widget:ModuleWidgets.ShieldWidget = None
     
     def calculateValue(self): #TODO: Come up with a better formula for this that takes HP_Shields_Regeneration into account
-        return self.HP_Shields_max / 400
+        return self.HP_Shields_max / 400 + self.HP_Shields_Regeneration / 400
     
     def handleNewCampaignTurn(self):
         self.HP_Shields = self.HP_Shields_max
@@ -307,6 +307,13 @@ class Shield(Module):
             "HP_Shields" : self.HP_Shields ,
             "HP_Shields_Regeneration" : self.HP_Shields_Regeneration ,
         }
+    
+    def getCustomisableStats(self) -> 'dict[str,typing.Callable[[],AGeInput._TypeWidget]]':
+        return {
+            "Mass": lambda: AGeInput.Float(None,"Mass",self.Mass,0) ,
+            "HP_Shields_max": lambda: AGeInput.Float(None,"Shield Capacity",self.HP_Shields_max,0,10000) ,
+            "HP_Shields_Regeneration": lambda: AGeInput.Float(None,"Shield Regeneration",self.HP_Shields_Regeneration,0,10000) ,
+        }
 
 class Quarters(Module):
     # Houses crew and civilians
@@ -316,18 +323,18 @@ class Quarters(Module):
     #       It would only make sense to make a distinction between people who can operate a specific module and those that can not and in that case there would need to be a complex education system...
     #       Therefore a distinction is (at least until version 1.0 of the game) not useful
     Name = "Unnamed Quarters Module"
-    Customisable = True
+    Customisable = False
     pass
 
 class Cargo(Module):
     # Used to store resources
     Name = "Unnamed Cargo Module"
-    Customisable = True
+    Customisable = False
     pass
 
 class Hangar(Module):
     Name = "Unnamed Hangar Module"
-    Customisable = True
+    Customisable = False
     pass
 
 class ConstructionModule(Module):
@@ -410,7 +417,7 @@ class Sensor(Module):
         }
 
 class Economic(Module):
-    Customisable = True
+    Customisable = False
     # Modules for economic purposes like educating and entertaining people (civilians and crew), harvesting or processing resources, growing food, and researching stuff.
     #MAYBE: Researching could be tied to other modules like sensors to scan stuff or special experimental weapons to test stuff or experimental shields to test stuff or... you get the idea
     Name = "Unnamed Economic Module"
@@ -419,25 +426,25 @@ class Economic(Module):
 class Augment(Module):
     # All augmentations that enhance/modify the statistics of other modules like +dmg% , +movementpoints , or +shieldRegeneration
     Name = "Unnamed Augment Module"
-    Customisable = True
+    Customisable = False
     pass
 
 class Support(Module): #MAYBE: inherit from Augment
     # like Augment but with an area of effect to buff allies or debuff enemies
     Name = "Unnamed Support Module"
-    Customisable = True
+    Customisable = False
     pass
 
 class Special(Module):
     # Modules that add new special functions to ships that can be used via buttons in the gui like:
     #   hacking the enemy, cloaking, extending shields around allies, repairing allies, sensor pings, boarding
     Name = "Unnamed Special Module"
-    Customisable = True
+    Customisable = False
     pass
 
 class Weapon(Module):
     Name = "Unnamed Weapon Module"
-    Customisable = True
+    Customisable = False
     SoundEffectPath = "tempModels/SFX/phaser.wav"
     Damage = 50
     Accuracy = 1
@@ -454,10 +461,10 @@ class Weapon(Module):
         self.SFX.setVolume(0.2)
         print(f"{self.Name = }\n{self.Threat = }\n{self.Value = }\n")
     
-    def calculateThreat(self): #TODO: Come up with a formula for this
-        return self.Damage/100 * self.Accuracy * ((10 if self.ShieldPiercing else self.ShieldFactor) + self.HullFactor)/2 * (1.5+self.Range/3)/2.5
+    def calculateThreat(self): #TODO: Come up with a formula for this that also includes mass
+        return self.Damage/100 * self.Accuracy * ((20 if self.ShieldPiercing else self.ShieldFactor) + self.HullFactor)/2 * (1.5+self.Range/3)/2.5
     
-    def calculateValue(self): #TODO: Come up with a formula for this
+    def calculateValue(self): #TODO: Come up with a formula for this that also includes mass
         return self.calculateThreat()/3
     
     def handleNewCampaignTurn(self):
@@ -511,9 +518,21 @@ class Weapon(Module):
             "ShieldPiercing" : self.ShieldPiercing ,
             "Ready" : self.Ready ,
         }
+    
+    def getCustomisableStats(self) -> 'dict[str,typing.Callable[[],AGeInput._TypeWidget]]':
+        return {
+            "Mass": lambda: AGeInput.Float(None,"Mass",self.Mass,0) ,
+            "Damage": lambda: AGeInput.Float(None,"Damage",self.Damage,0) ,
+            "Accuracy": lambda: AGeInput.Float(None,"Accuracy",self.Accuracy,0) ,
+            "ShieldFactor": lambda: AGeInput.Float(None,"ShieldFactor",self.ShieldFactor,0) ,
+            "HullFactor": lambda: AGeInput.Float(None,"HullFactor",self.HullFactor,0) ,
+            "Range": lambda: AGeInput.Int(None,"Range",self.Range,1) ,
+            "ShieldPiercing": lambda: AGeInput.Bool(None,"ShieldPiercing",self.ShieldPiercing) ,
+        }
 
 class Weapon_Beam(Weapon): #TODO: SFX (for now we can reuse the assets from Star Trek Armada 2 for prototyping)
     Name = "Unnamed Weapon_Beam Module"
+    Customisable = True
     SoundEffectPath = "tempModels/SFX/phaser.wav"
     ModelPath = "Models/Simple Geometry/rod.ply"
     PenColourName = "Orange"

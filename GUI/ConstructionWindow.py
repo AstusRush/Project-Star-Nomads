@@ -226,7 +226,8 @@ class ModuleItem(QtWidgets.QListWidgetItem):
 class ModuleEditor(AGeWidgets.TightGridFrame):
     def __init__(self, parent:'ConstructionWidget') -> None:
         super().__init__(parent)
-        self.Label = self.addWidget(QtWidgets.QLabel("Module Editor", self))
+        self.NameLabel = self.addWidget(QtWidgets.QLabel("Module Editor", self))
+        self.ValueLabel = self.addWidget(QtWidgets.QLabel("", self))
         self.Apply = self.addWidget(AGeWidgets.Button(self, "Apply", lambda: self.applyStats()))
         self.ModuleStatContainer = self.addWidget(AGeWidgets.TightGridFrame(self))
         self.StatDict:'dict[str,typing.Callable[[],typing.Any]]' = {}
@@ -239,7 +240,8 @@ class ModuleEditor(AGeWidgets.TightGridFrame):
         module:'BaseModules.Module' = item.data(100)
         self.ActiveModule = module
         self.ActiveModuleItem = item
-        self.Label.setText(module.Name)
+        self.NameLabel.setText(module.Name)
+        self.updateValue()
         self.loadModuleStats()
     
     def unsetModule(self, item:'ModuleItem'):
@@ -250,7 +252,8 @@ class ModuleEditor(AGeWidgets.TightGridFrame):
         self.ActiveModule = None
         self.ActiveModuleItem = None
         self.StatDict = {}
-        self.Label.setText("No module is selected")
+        self.NameLabel.setText("No module is selected")
+        self.ValueLabel.setText("")
         if self.ModuleStatContainer:
             self.layout().removeWidget(self.ModuleStatContainer)
             self.ModuleStatContainer = None
@@ -266,3 +269,12 @@ class ModuleEditor(AGeWidgets.TightGridFrame):
         if self.ModuleStatContainer and self.ActiveModule and self.StatDict:
             for k,v in self.StatDict.items():
                 setattr(self.ActiveModule,k,v())
+            if hasattr(self.ActiveModule, "calculateThreat"):
+                self.ActiveModule.Threat = self.ActiveModule.calculateThreat()
+            if hasattr(self.ActiveModule, "calculateValue"):
+                self.ActiveModule.Value = self.ActiveModule.calculateValue()
+            self.parent().ShipStats.updateShipInterface()
+            self.updateValue()
+    
+    def updateValue(self):
+        self.ValueLabel.setText(f"Value: {self.ActiveModule.Value}\nThreat {self.ActiveModule.Threat}")
