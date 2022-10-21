@@ -122,6 +122,9 @@ class ShipStats(AGeWidgets.TightGridFrame):
         #TODO: Display the resources the construction module has access to.
         self.populateAddModuleSelectBox()
     
+    def parent(self) -> 'ConstructionWidget':
+        return super().parent()
+    
     def populateAddModuleSelectBox(self):
         for k,v in get.shipModels().items():
             self.ModelSelectBox.addItem(k)
@@ -154,6 +157,9 @@ class ModuleListWidget(AGeWidgets.TightGridFrame):
         self.ModuleList = self.addWidget(ModuleList(self))
         self.populateAddModuleSelectBox()
     
+    def parent(self) -> 'ConstructionWidget':
+        return super().parent()
+    
     def populateAddModuleSelectBox(self):
         for k,v in get.modules().items():
             if v.Customisable:
@@ -167,6 +173,9 @@ class ModuleList(QtWidgets.QListWidget):
         super().__init__(parent)
         self.itemDoubleClicked.connect(lambda item: self.selectModuleForEditor(item))
         self.installEventFilter(self)
+    
+    def parent(self) -> 'ModuleListWidget':
+        return super().parent()
     
     def addModule(self, module:'type[BaseModules.Module]'):
         item = ModuleItem()
@@ -218,18 +227,42 @@ class ModuleEditor(AGeWidgets.TightGridFrame):
     def __init__(self, parent:'ConstructionWidget') -> None:
         super().__init__(parent)
         self.Label = self.addWidget(QtWidgets.QLabel("Module Editor", self))
+        self.Apply = self.addWidget(AGeWidgets.Button(self, "Apply", lambda: self.applyStats()))
+        self.ModuleStatContainer = self.addWidget(AGeWidgets.TightGridFrame(self))
+        self.StatDict:'dict[str,typing.Callable[[],typing.Any]]' = {}
+    
+    def parent(self) -> 'ConstructionWidget':
+        return super().parent()
     
     def setModule(self, item:'ModuleItem'):
+        self.clear()
         module:'BaseModules.Module' = item.data(100)
         self.ActiveModule = module
         self.ActiveModuleItem = item
         self.Label.setText(module.Name)
+        self.loadModuleStats()
     
     def unsetModule(self, item:'ModuleItem'):
         if self.ActiveModule is item.data(100):
-            self.ActiveModule = None
-            self.ActiveModuleItem = None
             self.clear()
     
     def clear(self):
+        self.ActiveModule = None
+        self.ActiveModuleItem = None
+        self.StatDict = {}
         self.Label.setText("No module is selected")
+        if self.ModuleStatContainer:
+            self.layout().removeWidget(self.ModuleStatContainer)
+            self.ModuleStatContainer = None
+    
+    def loadModuleStats(self):
+        if self.ModuleStatContainer:
+            self.layout().removeWidget(self.ModuleStatContainer)
+            self.ModuleStatContainer = None
+        self.ModuleStatContainer = self.addWidget(AGeWidgets.TightGridFrame(self))
+        self.StatDict = {statName:self.ModuleStatContainer.addWidget(widget()) for statName, widget in self.ActiveModule.getCustomisableStats().items()}
+    
+    def applyStats(self):
+        if self.ModuleStatContainer and self.ActiveModule and self.StatDict:
+            for k,v in self.StatDict.items():
+                setattr(self.ActiveModule,k,v())

@@ -123,6 +123,11 @@ class Module():
         Reimplement this method if you create custom values. But don't forget to call `d.update(super().save())` before returning the dict!
         """
         return {}
+    
+    def getCustomisableStats(self) -> 'dict[str,typing.Callable[[],AGeInput._TypeWidget]]':
+        return {
+            "Mass": lambda: AGeInput.Float(None,"Mass",self.Mass,0) ,
+        }
 
 class Hull(Module):
     # The hull of a ship (can be tied to a ship model)
