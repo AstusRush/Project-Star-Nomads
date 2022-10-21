@@ -170,15 +170,19 @@ class ConstructionModuleWidget(WidgetsBase.ModuleWidget):
         from GUI import ConstructionWindow
         ###### TEMP:
         try:
-            self.constructionWindow.close()
-            self.constructionWindow.deleteLater()
+            get.engine().constructionWindow.close()
+            get.engine().constructionWindow.deleteLater()
         except: pass
         import importlib
         importlib.reload(ConstructionWindow)
         ###### Also remove the self. as this should not be a member
-        self.constructionWindow = ConstructionWindow.ConstructionWindow()
-        self.constructionWindow.setConstructionModule(self.module())
-        self.constructionWindow.show()
+        get.engine().constructionWindow = ConstructionWindow.ConstructionWindow()
+        get.engine().constructionWindow.setConstructionModule(self.module())
+        get.engine().constructionWindow.show()
+        App().processEvents()
+        get.engine().constructionWindow.positionReset()
+        App().processEvents()
+        get.engine().constructionWindow.activateWindow()
         NC(2,"The construction window is very much a work in progress.\nThere are barely any checks to prevent that something goes wrong!\nYou have been warned!",DplStr="Attention! WIP!",unique=True)
 
 class SensorWidget(WidgetsBase.ModuleWidget):

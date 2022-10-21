@@ -51,6 +51,7 @@ if TYPE_CHECKING:
     from BaseClasses import ShipBase
     from BaseClasses import ModelBase
 from BaseClasses import get
+from Economy import tech
 from BaseClasses import HexBase
 from GUI import ModuleWidgets
 
@@ -73,7 +74,7 @@ class Module():
     #   required staff (#MAYBE: make a distinction between staff on the strategic map and staff on the tactical map since the crew that usually operates refineries can operate guns during combat)
     #   (Slot type is basically the type of the subclass but maybe it would be helpful to implement it here)
     Name = "Unnamed Generic Module"
-    Customisable = False
+    Buildable = False
     Mass = 0
     Value = 0.1
     Threat = 0
@@ -125,16 +126,18 @@ class Module():
         return {}
     
     def getCustomisableStats(self) -> 'dict[str,typing.Callable[[],AGeInput._TypeWidget]]':
-        return {
-            "Mass": lambda: AGeInput.Float(None,"Mass",self.Mass,0) ,
+        d = {
+            "Name": lambda: AGeInput.Str(None,"Name",self.Name) ,
         }
+        if tech.statCustomisationUnlocked(self,"Mass"): d["Mass"] = lambda: AGeInput.Float(None,"Mass",self.Mass,tech.moduleStatMin(self,"Mass"),tech.moduleStatMax(self,"Mass"))
+        return d
 
 class Hull(Module):
     # The hull of a ship (can be tied to a ship model)
-    # Determins the size of the ship (and maybe available slots for module types)
+    # Determines the size of the ship (and maybe available slots for module types)
     # Also influences the HP of the ship and the required engine size
     Name = "Unnamed Hull Module"
-    Customisable = True
+    Buildable = True
     Evasion = 0.1
     Mass = 1
     HP_Hull_max = 100
@@ -173,16 +176,16 @@ class Hull(Module):
 
 class HullPlating(Module):
     Name = "Unnamed HullPlating Module"
-    Customisable = True
+    Buildable = True
     pass
 
 #class PowerGenerator(Module): #MAYBE: I don't see how a power system would help
-#    Customisable = True
+#    Buildable = True
 #    pass
 
 class Engine(Module): # FTL Engine
     Name = "Unnamed Engine Module"
-    Customisable = True
+    Buildable = True
     Thrust = 6
     RemainingThrust = 6
     
@@ -217,10 +220,15 @@ class Engine(Module): # FTL Engine
             "Thrust" : self.Thrust ,
             "RemainingThrust" : self.RemainingThrust ,
         }
+    
+    def getCustomisableStats(self) -> 'dict[str,typing.Callable[[],AGeInput._TypeWidget]]':
+        d = super().getCustomisableStats()
+        if tech.statCustomisationUnlocked(self,"Thrust"): d["Thrust"] = lambda: AGeInput.Float(None,"Thrust",self.Thrust,tech.moduleStatMin(self,"Thrust"),tech.moduleStatMax(self,"Thrust"))
+        return d
 
 class Thruster(Module): # Sublight Thruster
     Name = "Unnamed Thruster Module"
-    Customisable = True
+    Buildable = True
     Thrust = 6
     RemainingThrust = 6
     
@@ -258,10 +266,15 @@ class Thruster(Module): # Sublight Thruster
             "Thrust" : self.Thrust ,
             "RemainingThrust" : self.RemainingThrust ,
         }
+    
+    def getCustomisableStats(self) -> 'dict[str,typing.Callable[[],AGeInput._TypeWidget]]':
+        d = super().getCustomisableStats()
+        if tech.statCustomisationUnlocked(self,"Thrust"): d["Thrust"] = lambda: AGeInput.Float(None,"Thrust",self.Thrust,tech.moduleStatMin(self,"Thrust"),tech.moduleStatMax(self,"Thrust"))
+        return d
 
 class Shield(Module):
     Name = "Unnamed Shield Module"
-    Customisable = True
+    Buildable = True
     HP_Shields_max = 400
     HP_Shields = HP_Shields_max
     HP_Shields_Regeneration = HP_Shields_max / 8
@@ -309,11 +322,10 @@ class Shield(Module):
         }
     
     def getCustomisableStats(self) -> 'dict[str,typing.Callable[[],AGeInput._TypeWidget]]':
-        return {
-            "Mass": lambda: AGeInput.Float(None,"Mass",self.Mass,0) ,
-            "HP_Shields_max": lambda: AGeInput.Float(None,"Shield Capacity",self.HP_Shields_max,0,10000) ,
-            "HP_Shields_Regeneration": lambda: AGeInput.Float(None,"Shield Regeneration",self.HP_Shields_Regeneration,0,10000) ,
-        }
+        d = super().getCustomisableStats()
+        if tech.statCustomisationUnlocked(self,"HP_Shields_max"): d["HP_Shields_max"] = lambda: AGeInput.Float(None,"Shield Capacity",self.HP_Shields_max,tech.moduleStatMin(self,"HP_Shields_max"),tech.moduleStatMax(self,"HP_Shields_max"))
+        if tech.statCustomisationUnlocked(self,"HP_Shields_Regeneration"): d["HP_Shields_Regeneration"] = lambda: AGeInput.Float(None,"Shield Regeneration",self.HP_Shields_Regeneration,tech.moduleStatMin(self,"HP_Shields_Regeneration"),tech.moduleStatMax(self,"HP_Shields_Regeneration"))
+        return d
 
 class Quarters(Module):
     # Houses crew and civilians
@@ -323,25 +335,25 @@ class Quarters(Module):
     #       It would only make sense to make a distinction between people who can operate a specific module and those that can not and in that case there would need to be a complex education system...
     #       Therefore a distinction is (at least until version 1.0 of the game) not useful
     Name = "Unnamed Quarters Module"
-    Customisable = False
+    Buildable = False
     pass
 
 class Cargo(Module):
     # Used to store resources
     Name = "Unnamed Cargo Module"
-    Customisable = False
+    Buildable = False
     pass
 
 class Hangar(Module):
     Name = "Unnamed Hangar Module"
-    Customisable = False
+    Buildable = False
     pass
 
 class ConstructionModule(Module):
     # Modules to construct new ships.
     #TODO: Make 2 variants: Enclosed (can move while constructing) and open (can not move while constructing)
     Name = "Unnamed ConstructionModule Module"
-    Customisable = True
+    Buildable = True
     ConstructionResourcesGeneratedPerTurn = 0.2 #NOTE: This is only a temporary system
     
     def __init__(self) -> None:
@@ -397,7 +409,7 @@ class ConstructionModule(Module):
 class Sensor(Module):
     # Includes sensors that increase weapon accuracy
     Name = "Unnamed Sensor Module"
-    Customisable = True
+    Buildable = True
     LowRange = 20
     MediumRange = 12
     HighRange = 4
@@ -417,7 +429,7 @@ class Sensor(Module):
         }
 
 class Economic(Module):
-    Customisable = False
+    Buildable = False
     # Modules for economic purposes like educating and entertaining people (civilians and crew), harvesting or processing resources, growing food, and researching stuff.
     #MAYBE: Researching could be tied to other modules like sensors to scan stuff or special experimental weapons to test stuff or experimental shields to test stuff or... you get the idea
     Name = "Unnamed Economic Module"
@@ -426,25 +438,25 @@ class Economic(Module):
 class Augment(Module):
     # All augmentations that enhance/modify the statistics of other modules like +dmg% , +movementpoints , or +shieldRegeneration
     Name = "Unnamed Augment Module"
-    Customisable = False
+    Buildable = False
     pass
 
 class Support(Module): #MAYBE: inherit from Augment
     # like Augment but with an area of effect to buff allies or debuff enemies
     Name = "Unnamed Support Module"
-    Customisable = False
+    Buildable = False
     pass
 
 class Special(Module):
     # Modules that add new special functions to ships that can be used via buttons in the gui like:
     #   hacking the enemy, cloaking, extending shields around allies, repairing allies, sensor pings, boarding
     Name = "Unnamed Special Module"
-    Customisable = False
+    Buildable = False
     pass
 
 class Weapon(Module):
     Name = "Unnamed Weapon Module"
-    Customisable = False
+    Buildable = False
     SoundEffectPath = "tempModels/SFX/phaser.wav"
     Damage = 50
     Accuracy = 1
@@ -520,19 +532,18 @@ class Weapon(Module):
         }
     
     def getCustomisableStats(self) -> 'dict[str,typing.Callable[[],AGeInput._TypeWidget]]':
-        return {
-            "Mass": lambda: AGeInput.Float(None,"Mass",self.Mass,0) ,
-            "Damage": lambda: AGeInput.Float(None,"Damage",self.Damage,0) ,
-            "Accuracy": lambda: AGeInput.Float(None,"Accuracy",self.Accuracy,0) ,
-            "ShieldFactor": lambda: AGeInput.Float(None,"ShieldFactor",self.ShieldFactor,0) ,
-            "HullFactor": lambda: AGeInput.Float(None,"HullFactor",self.HullFactor,0) ,
-            "Range": lambda: AGeInput.Int(None,"Range",self.Range,1) ,
-            "ShieldPiercing": lambda: AGeInput.Bool(None,"ShieldPiercing",self.ShieldPiercing) ,
-        }
+        d = super().getCustomisableStats()
+        if tech.statCustomisationUnlocked(self,"Damage"): d["Damage"] = lambda: AGeInput.Float(None,"Damage",self.Damage,tech.moduleStatMin(self,"Damage"),tech.moduleStatMax(self,"Damage"))
+        if tech.statCustomisationUnlocked(self,"Accuracy"): d["Accuracy"] = lambda: AGeInput.Float(None,"Accuracy",self.Accuracy,tech.moduleStatMin(self,"Accuracy"),tech.moduleStatMax(self,"Accuracy"))
+        if tech.statCustomisationUnlocked(self,"ShieldFactor"): d["ShieldFactor"] = lambda: AGeInput.Float(None,"ShieldFactor",self.ShieldFactor,tech.moduleStatMin(self,"ShieldFactor"),tech.moduleStatMax(self,"ShieldFactor"))
+        if tech.statCustomisationUnlocked(self,"HullFactor"): d["HullFactor"] = lambda: AGeInput.Float(None,"HullFactor",self.HullFactor,tech.moduleStatMin(self,"HullFactor"),tech.moduleStatMax(self,"HullFactor"))
+        if tech.statCustomisationUnlocked(self,"Range"): d["Range"] = lambda: AGeInput.Int(None,"Range",self.Range,tech.moduleStatMin(self,"Range"),tech.moduleStatMax(self,"Range"))
+        if tech.statCustomisationUnlocked(self,"ShieldPiercing"): d["ShieldPiercing"] = lambda: AGeInput.Bool(None,"ShieldPiercing",self.ShieldPiercing)
+        return d
 
 class Weapon_Beam(Weapon): #TODO: SFX (for now we can reuse the assets from Star Trek Armada 2 for prototyping)
     Name = "Unnamed Weapon_Beam Module"
-    Customisable = True
+    Buildable = True
     SoundEffectPath = "tempModels/SFX/phaser.wav"
     ModelPath = "Models/Simple Geometry/rod.ply"
     PenColourName = "Orange"

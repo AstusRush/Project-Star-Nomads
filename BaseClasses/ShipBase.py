@@ -301,6 +301,22 @@ class ShipBase():
             self.Weapons.remove(module)
         self.Modules.remove(module)
     
+    def canModuleBeAdded(self, module:'typing.Union[BaseModules.Module,type[BaseModules.Module]]'):
+        """
+        Returns whether the module Can be added without any problems.\n
+        Especially returns false if the module would occupy an already occupied unique module slot like the hull.
+        """
+        from BaseClasses import BaseModules
+        if (isinstance(module, BaseModules.Hull) or issubclass(module, BaseModules.Hull)) and self.hull:
+            return False
+        if (isinstance(module, BaseModules.Thruster) or issubclass(module, BaseModules.Thruster)) and self.thruster:
+            return False
+        if (isinstance(module, BaseModules.Engine) or issubclass(module, BaseModules.Engine)) and self.engine:
+            return False
+        if (isinstance(module, BaseModules.Sensor) or issubclass(module, BaseModules.Sensor)) and self.sensor:
+            return False
+        return True
+    
     def removeAllModules(self):
         print("RM ======= START")
         modules = self.Modules.copy()

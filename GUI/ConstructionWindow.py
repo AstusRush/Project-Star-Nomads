@@ -70,6 +70,7 @@ class ConstructionWindow(AWWF):
     def __init__(self, parent=None, IncludeTopBar=True, initTopBar=True, IncludeStatusBar=True, IncludeErrorButton=True, FullscreenHidesBars=False):
         super().__init__(parent, IncludeTopBar, initTopBar, IncludeStatusBar, IncludeErrorButton, FullscreenHidesBars)
         # Maybe a triple splitter for ( Ship Stats | Module List | Module Editor )
+        self.StandardSize = (900,500)
         self.ConstructionWidget = self.CW = ConstructionWidget(self)
         self.setCentralWidget(self.ConstructionWidget)
     
@@ -89,17 +90,42 @@ class ConstructionWidget(QtWidgets.QSplitter):
         self.addWidget(self.ModuleList)
         self.ModuleEditor = ModuleEditor(self)
         self.addWidget(self.ModuleEditor)
+        
+        self.__Initialized = False
     
     def setConstructionModule(self, module:BaseModules.ConstructionModule):
         self.constructionModule:'weakref.ref[BaseModules.ConstructionModule]' = weakref.ref(module)
+        if not self.__Initialized: self._initFirstShip()
+    
+    def _initFirstShip(self):
+        self.__Initialized = True
+        self.ModuleList.ModuleList.addModule(BaseModules.Hull)
+        self.ModuleList.ModuleList.addModule(BaseModules.Thruster)
+        self.ModuleList.ModuleList.addModule(BaseModules.Engine)
+        self.ModuleList.ModuleList.addModule(BaseModules.Sensor)
+        self.ShipStats.getInterface()
     
     def buildShip(self):
-        #TODO: Check if the ship has everything to even be build
+        if not self.Ship.hull:
+            NC(2, "Could not build ship as critical component is missing: hull")
+            return
+        if not self.Ship.engine:
+            NC(2, "Could not build ship as critical component is missing: engine")
+            return
+        if not self.Ship.thruster:
+            NC(2, "Could not build ship as critical component is missing: thruster")
+            return
+        if not self.Ship.sensor:
+            NC(2, "Could not build ship as critical component is missing: sensor")
+            return
         if self.constructionModule and not self.constructionModule().ship().Destroyed:
             model = get.shipModels()[self.ShipStats.ModelSelectBox.currentText()]
             self.constructionModule().buildShip(self.Ship, model)
         else:
             NC(2, f"Could not construct ship: The construction module no longer exists")
+    
+    def canModuleBeAdded(self, module:'typing.Union[BaseModules.Module,type[BaseModules.Module]]'):
+        return self.Ship.canModuleBeAdded(module)
     
     def addModule(self, module:'BaseModules.Module'):
         #TODO: There are some modules that can only exist once on a ship. We should either clean up removed modules from the interface or simply not allow a module to be added in those cases...
@@ -143,11 +169,18 @@ class ShipStats(AGeWidgets.TightGridFrame):
             self.ShipStats = None
     
     def updateShipInterface(self):
-        self.Label.setText(f"Value: {self.ship().Stats.Value}")
+        text = f"Value: {self.ship().Stats.Value}"
+        try:
+            text += f"\nAvailable Resources: {self.parent().constructionModule().ConstructionResourcesStored}"
+        except:
+            text += f"\nAvailable Resources: ???"
+            NC(2, "The construction module for this window might no longer exist...", exc=True)
         try:
             self.ship().updateInterface()
         except:
-            NC(2,"Could not refresh ship interface", exc=True)
+            text += f"\nCould not refresh interface"
+            NC(4,"Could not refresh ship interface", exc=True)
+        self.Label.setText(text)
 
 class ModuleListWidget(AGeWidgets.TightGridFrame):
     def __init__(self, parent:'ConstructionWidget') -> None:
@@ -162,7 +195,7 @@ class ModuleListWidget(AGeWidgets.TightGridFrame):
     
     def populateAddModuleSelectBox(self):
         for k,v in get.modules().items():
-            if v.Customisable:
+            if v.Buildable:
                 self.AddModuleSelectBox.addItem(k)
     
     def addModule(self):
@@ -178,12 +211,15 @@ class ModuleList(QtWidgets.QListWidget):
         return super().parent()
     
     def addModule(self, module:'type[BaseModules.Module]'):
-        item = ModuleItem()
-        item.setText(module.Name)
-        item.setData(100, module())
-        self.addItem(item)
-        self.parent().parent().addModule(item.data(100))
-        self.parent().parent().ModuleEditor.setModule(item)
+        if not self.parent().parent().canModuleBeAdded(module):
+            NC(2,"Module can not be added.")
+        else:
+            item = ModuleItem()
+            item.setText(module.Name)
+            item.setData(100, module())
+            self.addItem(item)
+            self.parent().parent().addModule(item.data(100))
+            self.parent().parent().ModuleEditor.setModule(item)
     
     def selectModuleForEditor(self, item: QtWidgets.QListWidgetItem) -> None:
         self.parent().parent().ModuleEditor.setModule(item)
@@ -275,6 +311,7 @@ class ModuleEditor(AGeWidgets.TightGridFrame):
                 self.ActiveModule.Value = self.ActiveModule.calculateValue()
             self.parent().ShipStats.updateShipInterface()
             self.updateValue()
+            self.ActiveModuleItem.setText(self.ActiveModule.Name)
     
     def updateValue(self):
         self.ValueLabel.setText(f"Value: {self.ActiveModule.Value}\nThreat {self.ActiveModule.Threat}")
