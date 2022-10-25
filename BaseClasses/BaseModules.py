@@ -477,6 +477,7 @@ class Weapon(Module):
     ShieldFactor = 1
     HullFactor = 1
     Range = 3
+    # MinimalRange = 1
     ShieldPiercing = False
     
     def __init__(self) -> None:

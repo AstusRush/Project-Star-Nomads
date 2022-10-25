@@ -234,9 +234,16 @@ class Menu(AGeWidgets.TightGridWidget):
     def __init__(self, parent: typing.Optional['QtWidgets.QWidget'] = None) -> None:
         super().__init__(parent)
         self.SaveLoadWidget = self.addWidget(SaveLoadWidget(self))
+        self.HighlightOptionsWidget = self.addWidget(HighlightOptionsWidget(self))
 
 class SaveLoadWidget(AGeWidgets.TightGridFrame):
     def __init__(self, parent: typing.Optional['QtWidgets.QWidget'] = None) -> None:
         super().__init__(parent)
         self.SaveButton = self.addWidget(AGeWidgets.Button(self,"Save",lambda: get.engine().save()))
         self.LoadButton = self.addWidget(AGeWidgets.Button(self,"Load",lambda: get.engine().load()))
+
+class HighlightOptionsWidget(AGeWidgets.TightGridFrame):
+    def __init__(self, parent: typing.Optional['QtWidgets.QWidget'] = None) -> None:
+        super().__init__(parent)
+        self.RedrawEntireGridWhenHighlighting = self.addWidget(AGeInput.Bool(self,"Redraw entire grid when highlighting",True))
+        self.HighlightWeaponRange = self.addWidget(AGeInput.Bool(self,"Highlight weapon range",True))

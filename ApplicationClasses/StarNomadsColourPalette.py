@@ -30,6 +30,13 @@ SNDark = {
             "Shield 100" : QtGui.QBrush(QtGui.QColor(0,255,0,255),QtCore.Qt.SolidPattern) ,
             "Shield 50" : QtGui.QBrush(QtGui.QColor(255,119,0,255),QtCore.Qt.SolidPattern) ,
             "Shield 25" : QtGui.QBrush(QtGui.QColor(255,0,0,255),QtCore.Qt.SolidPattern) ,
+            "HEX_COLOUR_NORMAL" : QtGui.QBrush(QtGui.QColor(55,55,255,255),QtCore.Qt.SolidPattern) , #"Blue"
+            "HEX_COLOUR_SELECT" : QtGui.QBrush(QtGui.QColor(255,255,0,255),QtCore.Qt.SolidPattern) , #"Yellow"
+            "HEX_COLOUR_SELECT_FACE" : QtGui.QBrush(QtGui.QColor(0,170,255,255),QtCore.Qt.SolidPattern) , #"Light Blue"
+            "HEX_COLOUR_HIGHLIGHT" : QtGui.QBrush(QtGui.QColor(0,170,255,255),QtCore.Qt.SolidPattern) , #"Light Blue"
+            "HEX_COLOUR_REACHABLE" : QtGui.QBrush(QtGui.QColor(0,255,0,255),QtCore.Qt.SolidPattern) , #"Green"
+            "HEX_COLOUR_ATTACKABLE" : QtGui.QBrush(QtGui.QColor(255,0,0,255),QtCore.Qt.SolidPattern) , #"Red"
+            "HEX_COLOUR_ATTACKABLE_FACE" : QtGui.QBrush(QtGui.QColor(255,0,0,255),QtCore.Qt.SolidPattern) , #"Red"
         } ,
 }
 

@@ -296,12 +296,12 @@ class HexGrid(DirectObject):
             self.clearAllHexHighlighting()
         if (edge or face) or not clearFirst:
             for i in hexes:
-                i.highlight(edge = edge, face = face, clearFirst=True)
+                i.highlight(edge = edge, face = face, clearFirst=False)
     
-    def clearAllHexHighlighting(self):
+    def clearAllHexHighlighting(self,forceAll=False):
         for i in self.Hexes:
             for ii in i:
-                if ii.Highlighted:
+                if (ii.Highlighted or forceAll) and ii is not self.SelectedHex:
                     ii.highlight(edge = False, face = False)
     
     def clearAllSelections(self):
@@ -414,11 +414,14 @@ class HexGrid(DirectObject):
   #endregion Interaction
 
 class _Hex():
-    COLOUR_NORMAL = "Blue"
-    COLOUR_SELECT = "Yellow"
-    COLOUR_SELECT_FACE = "Light Blue"
-    COLOUR_HIGHLIGHT = "Light Blue"
-    COLOUR_REACHABLE = "Green"
+    #TODO: These Hex colours should be in the 
+    COLOUR_NORMAL = "HEX_COLOUR_NORMAL"
+    COLOUR_SELECT = "HEX_COLOUR_SELECT"
+    COLOUR_SELECT_FACE = "HEX_COLOUR_SELECT_FACE"
+    COLOUR_HIGHLIGHT = "HEX_COLOUR_HIGHLIGHT"
+    COLOUR_REACHABLE = "HEX_COLOUR_REACHABLE"
+    COLOUR_ATTACKABLE = "HEX_COLOUR_ATTACKABLE"
+    COLOUR_ATTACKABLE_FACE = "HEX_COLOUR_ATTACKABLE_FACE"
     NW = np.array(( 1,  0, -1))
     W  = np.array(( 0,  1, -1))
     SW = np.array((-1,  1,  0))
@@ -515,6 +518,7 @@ class _Hex():
   #region Colour
     def _setColor(self, colour, alpha = 0.2):
         """
+        TODO: This information is outdated. We now use the "Star Nomads" colour dictionary. \n
         Set the colour of the edge to `colour`. \n
         `colour` can be a QColor, a QBrush, a tuple, or a string from AGeLib's PenColours dictionary. \n
         If `colour` is a PenColours-string `alpha` can be given. (Otherwise `alpha` is ignored since the other input variants already support specifying the alpha value.)
@@ -522,17 +526,19 @@ class _Hex():
         return self._setColour(colour,alpha)
     def _setColour(self, colour, alpha = 0.2):
         """
+        TODO: This information is outdated. We now use the "Star Nomads" colour dictionary. \n
         Set the colour of the edge to `colour`. \n
         `colour` can be a QColor, a QBrush, a tuple, or a string from AGeLib's PenColours dictionary. \n
         If `colour` is a PenColours-string `alpha` can be given. (Otherwise `alpha` is ignored since the other input variants already support specifying the alpha value.)
         """
         if isinstance(colour,str):
-            colour = App().PenColours[colour].color()
+            colour = App().Theme["Star Nomads"][colour].color()
             colour.setAlphaF(alpha)
         self.Model.setColor(ape.colour(colour))
     
     def _setColorFace(self, colour, alpha = 0.2):
         """
+        TODO: This information is outdated. We now use the "Star Nomads" colour dictionary. \n
         Set the colour of the face to `colour`. \n
         `colour` can be a QColor, a QBrush, a tuple, or a string from AGeLib's PenColours dictionary. \n
         If `colour` is a PenColours-string `alpha` can be given. (Otherwise `alpha` is ignored since the other input variants already support specifying the alpha value.)
@@ -540,12 +546,13 @@ class _Hex():
         return self._setColourFace(colour,alpha)
     def _setColourFace(self, colour, alpha = 0.2):
         """
+        TODO: This information is outdated. We now use the "Star Nomads" colour dictionary. \n
         Set the colour of the face to `colour`. \n
         `colour` can be a QColor, a QBrush, a tuple, or a string from AGeLib's PenColours dictionary. \n
         If `colour` is a PenColours-string `alpha` can be given. (Otherwise `alpha` is ignored since the other input variants already support specifying the alpha value.)
         """
         if isinstance(colour,str):
-            colour = App().PenColours[colour].color()
+            colour = App().Theme["Star Nomads"][colour].color()
             colour.setAlphaF(alpha)
         self.Face.setColor(ape.colour(colour))
   #endregion Colour
@@ -589,17 +596,24 @@ class _Hex():
         else:
             self.Highlighted = True
             if edge:
+                if self.TransparentHexRings:
+                    self.Model.setTransparency(p3dc.TransparencyAttrib.MAlpha)
                 self.CurrentColour_Edge = edge
                 self._setColor(self.CurrentColour_Edge)
             if face:
-                self.CurrentColour_Edge = edge
-                self._setColor(self.CurrentColour_Edge)
+                self.Face.setTransparency(p3dc.TransparencyAttrib.MAlpha)
+                self.CurrentColour_Face = face
+                self._setColourFace(self.CurrentColour_Face)
                 self.Face.show()
     
     def select(self, select:bool = True):
-            self.grid().selectHex(self, select)
+        self.grid().selectHex(self, select)
     
     def _select(self, select:bool = True):
+        self._select_highlighting(select)
+        self.selectContent(select)
+    
+    def _select_highlighting(self, select:bool = True):
         if select:
             self.CurrentColour_Edge = self.COLOUR_SELECT
             if self.TransparentHexRings:
@@ -615,7 +629,6 @@ class _Hex():
             self._setColor(self.Colour)
             self.Face.setTransparency(p3dc.TransparencyAttrib.MNone)
             self.Face.hide()
-        self.selectContent(select)
     
   #endregion Highlighting
   #region Hex Math

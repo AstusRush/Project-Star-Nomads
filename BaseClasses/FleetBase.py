@@ -502,7 +502,8 @@ class FleetBase():
         Highlights all hexes that are relevant (movementrange, weaponrange, etc). \n
         If `highlight = False` the highlighted hexes are instead un-highlighted.
         """
-        self.hex().grid().highlightHexes(clearFirst=True)
+        #self.hex().grid().highlightHexes(clearFirst=True)
+        self.hex().grid().clearAllHexHighlighting(forceAll=get.window().Menu.HighlightOptionsWidget.RedrawEntireGridWhenHighlighting())
         if highlight:
             self.highlightMovementRange(highlight, clearFirst=False)
     
@@ -511,7 +512,10 @@ class FleetBase():
         Highlights all hexes that can be reached with the current movement points. \n
         If `highlight = False` the highlighted hexes are instead un-highlighted.
         """
-        self.hex().grid().highlightHexes(self.getReachableHexes(), HexBase._Hex.COLOUR_REACHABLE, False, clearFirst=clearFirst)
+        if highlight:
+            self.hex().grid().highlightHexes(self.getReachableHexes(), HexBase._Hex.COLOUR_REACHABLE, False, clearFirst=clearFirst)
+        else:
+            self.hex().grid().highlightHexes(self.getReachableHexes(), False, False, clearFirst=True)
         ##TODO: TEMPORARY
         #for i in self.getReachableHexes():
         #    i.highlight(highlight)
@@ -780,8 +784,23 @@ class Flotilla(FleetBase):
             # Re-highlight everything in case the target was destroyed or moved by the attack or a ship with an inhibitor was destroyed
             self.highlightRanges()
     
+    def getHexesInAttackRange(self, _hex:'HexBase._Hex'=None) -> typing.List['HexBase._Hex']:
+        if not _hex:
+            _hex = self.hex()
+        maxRanges = []
+        minRanges = []
+        for ship in self.Ships:
+            for weapon in ship.Weapons:
+                if hasattr(weapon,"Range"): maxRanges.append(weapon.Range)
+                if hasattr(weapon,"MinimalRange"): minRanges.append(weapon.MinimalRange)
+        if maxRanges: maxRange = int(max(maxRanges))
+        else: maxRange = 1
+        if minRanges: minRange = int(max(minRanges))
+        else: minRange = 1
+        return _hex.getDisk(minRange, maxRange)
+    
     def getAttackRange(self) -> typing.Tuple[int,int,int]:
-        "returns minimum, median and maximum weapon ranges"
+        "returns shortest, median, and longest weapon range"
         ranges = []
         for ship in self.Ships:
             for weapon in ship.Weapons:
@@ -793,7 +812,7 @@ class Flotilla(FleetBase):
         if not _hex:
             _hex = self.hex()
         l: typing.Set['HexBase._Hex'] = set()
-        for i in _hex.getDisk(self.getAttackRange()[2]):
+        for i in self.getHexesInAttackRange(_hex):
             if i.fleet:
                 if not get.unitManager().isAllied(self.Team, i.fleet().Team):
                     l.add(i)
@@ -833,3 +852,23 @@ class Flotilla(FleetBase):
         return self.Widget
     
   #endregion Display Information
+  #region Highlighting
+    def highlightRanges(self, highlight=True): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
+        """
+        Highlights all hexes that are relevant (movementrange, weaponrange, etc). \n
+        If `highlight = False` the highlighted hexes are instead un-highlighted.
+        """
+        super().highlightRanges(highlight)
+        if highlight and get.window().Menu.HighlightOptionsWidget.HighlightWeaponRange():
+            self.highlightAttackRange(highlight, clearFirst=False)
+    
+    def highlightAttackRange(self, highlight=True, clearFirst=True): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
+        """
+        Highlights all hexes that can be reached with the current movement points. \n
+        If `highlight = False` the highlighted hexes are instead un-highlighted.
+        """
+        if highlight:
+            self.hex().grid().highlightHexes(self.getHexesInAttackRange(), False, HexBase._Hex.COLOUR_ATTACKABLE_FACE, clearFirst=clearFirst)
+        else:
+            self.hex().grid().highlightHexes(self.getHexesInAttackRange(), False, False, clearFirst=True)
+  #endregion Highlighting
