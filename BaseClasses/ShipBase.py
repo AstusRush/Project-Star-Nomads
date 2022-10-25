@@ -332,6 +332,19 @@ class ShipBase():
     def setModules(self, modules:typing.List['BaseModules.Module']):
         self.removeAllModules()
         self.addModules(modules)
+    
+    def isActiveTurn(self):
+        if self.fleet:
+            return self.fleet().isActiveTurn()
+        else: return False
+    
+    def team(self):
+        if self.fleet:
+            return self.fleet().Team
+        else: return None
+    
+    def isPlayer(self):
+        return self.team() == 1
   #endregion Management
   #region Save/Load
     def tocode_AGeLib(self, name="", indent=0, indentstr="    ", ignoreNotImplemented = False) -> typing.Tuple[str,dict]:
@@ -380,7 +393,9 @@ class ShipBase():
             self.Interface.updateCombatInterface()
   #endregion Interface
   #region Interaction
-    def interactWith(self, hex:'HexBase._Hex'):
+    def interactWith(self, hex:'HexBase._Hex', mustBePlayer:bool=True):
+        "This method is only for player interactions!"
+        if not self.isActiveTurn() or (mustBePlayer and not self.isPlayer()): return False, True
         if hex.fleet:
             if get.engine().CurrentlyInBattle and not get.unitManager().isAllied(self.fleet().Team, hex.fleet().Team):
                 #TODO: The fleet should look at that hex before this attack is executed
@@ -402,7 +417,10 @@ class ShipBase():
             return True, True
         return False, True
     
-    def attack(self, hex:'HexBase._Hex'):
+    def attack(self, hex:'HexBase._Hex', forceAttack:bool=False):
+        "Fire with all weapons on the target hex. If forceAttack is True the attack will happen even if the ship is destroyed or it's currently not the ship's turn"
+        if (self.Destroyed or not self.isActiveTurn()) and not forceAttack:
+            return False
         for i in self.Weapons:
             i.attack(hex)
         self.updateInterface()

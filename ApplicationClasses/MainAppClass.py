@@ -124,6 +124,8 @@ class EngineClass(ape.APE):
         #self.Scene.Camera.CameraCenter.setPos(self._CameraPositionBeforeBattle)
         self.Scene.Camera.moveToHex(self.getHex(self._HexToLookAtAfterBattle))
         NC(3, f"The battle has ended!\n{salvageMessage}") #TODO: Give more information about the battle
+        if self.UnitManager.CurrentlyHandlingTurn:
+            base().taskMgr.add(self.UnitManager._endTurn_handleAICombat())
     
     def distributeSalvage(self, salvage:float) -> str:
         if salvage > 0:

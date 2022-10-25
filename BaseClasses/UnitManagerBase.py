@@ -56,6 +56,8 @@ from BaseClasses import AI_Player
 class UnitManager():
     Strategic:bool = False
     def __init__(self) -> None:
+        self.CurrentTurnOfTeam = 1
+        self.CurrentlyHandlingTurn = False
         self.Units_Environmental = UnitList()
         self.Units_Neutral = UnitList()
         self.Units_Team1 = UnitList()
@@ -107,8 +109,16 @@ class UnitManager():
         else:
             return False
     
+    def isCurrentTurnOfTeam(self, team:int) -> bool:
+        return self.CurrentTurnOfTeam == team
+    
     def endTurn(self):
-        base().taskMgr.add(self._endTurn())
+        if not self.CurrentlyHandlingTurn:
+            self.CurrentlyHandlingTurn = True
+            NC(10,"Processing AI turns", log=False)
+            base().taskMgr.add(self._endTurn())
+        else:
+            NC(10,"Please wait...", log=False)
     
     async def _endTurn(self):
         "Ends the player turn, processes all other turns and returns control back to the player"
@@ -117,6 +127,7 @@ class UnitManager():
         
         for teamID, team in self.Teams.items():
             if teamID != 1: # Team 1 is the Player
+                self.CurrentTurnOfTeam = teamID
                 try: await team.startTurn()
                 except: NC(1,f"Could not fully handle the start of the Turn of {team.name()} ({teamID=}). This might lead to instability.",exc=True)
                 try: team.endTurn()
@@ -137,7 +148,14 @@ class UnitManager():
         # except: NC(1,f"Could not fully execute `await self.Units_Neutral.startTurn()`. This might lead to instability.",exc=True)
         # try: self.Units_Neutral.endTurn()
         # except: NC(1,f"Could not fully execute `self.Units_Neutral.endTurn()`. This might lead to instability.",exc=True)
-        
+        await self._endTurn_handleOther()
+    
+    async def _endTurn_handleOther(self):
+        await self._endTurn_startPlayerTurn()
+    
+    async def _endTurn_startPlayerTurn(self):
+        self._Fleets_that_need_combat_handling = []
+        self.CurrentTurnOfTeam = 1
         try: await self.Units_Team1.startTurn()
         except: NC(1,f"Could not fully execute `await self.Units_Team1.startTurn()`. This might lead to instability.",exc=True)
         if self.selectedUnit:
@@ -145,6 +163,9 @@ class UnitManager():
             self.selectedUnit().highlightRanges(True)
             self.selectedUnit().displayStats(True)
         self.checkAndHandleTeamDefeat()
+        self.CurrentlyHandlingTurn = False
+        print("Start of player turn")
+        NC(10,"New turn has started", log=False)
     
     def checkAndHandleTeamDefeat(self):
         pass
@@ -193,17 +214,56 @@ class UnitList(typing.List['FleetBase.FleetBase']):
     
     def numberOfShips(self):
         return sum([len(fleet.Ships) for fleet in self])
+    
+    def value(self) -> float:
+        return sum([i.value() for i in self])
+    
+    def threat(self) -> float:
+        return sum([i.threat() for i in self])
 
 
 class CampaignUnitManager(UnitManager):
     Strategic = True
+    Teams:'dict[int,UnitList[FleetBase.Fleet]]' = None #This is not understood by the linter... how can we make it understand?
     
     def checkAndHandleTeamDefeat(self):
         if self.Teams[1].numberOfShips() == 0:
             NC(1,"You have lost!",DplStr="You have lost!")
+    
+    async def _endTurn_handleOther(self):
+        await self._endTurn_prepareAICombat()
+    
+    async def _endTurn_prepareAICombat(self):
+        self._Fleets_that_need_combat_handling:'list[FleetBase.Fleet]' = []
+        for teamID, team in self.Teams.items():
+            if teamID == 1: continue
+            for fleet in team:
+                if fleet.getAttackableHexes():
+                    self._Fleets_that_need_combat_handling.append(fleet)
+        await self._endTurn_handleAICombat()
+    
+    async def _endTurn_handleAICombat(self):
+        print("_endTurn_handleAICombat")
+        self._Fleets_that_need_combat_handling:'list[FleetBase.Fleet]' = [i for i in self._Fleets_that_need_combat_handling if not i.isDestroyed()]
+        if not self._Fleets_that_need_combat_handling:
+            print("player turn")
+            await self._endTurn_startPlayerTurn()
+        else:
+            attackingFleet = random.choice(self._Fleets_that_need_combat_handling)
+            self._Fleets_that_need_combat_handling.remove(attackingFleet)
+            targetOptions:'list[FleetBase.Fleet]' = []
+            for i in attackingFleet.getAttackableHexes():
+                if any([i.Team == 1 for i in attackingFleet.getInvolvedFleetsForPotentialBattle(attackingFleet.hex(),i)]):
+                    targetOptions.append(i)
+            if targetOptions:
+                target = random.choice(targetOptions)
+                await attackingFleet.attack(target, performOutOfTurn=True)
+            else:
+                await self._endTurn_handleAICombat()
 
 class CombatUnitManager(UnitManager):
     Strategic = False
+    Teams:'dict[int,UnitList[FleetBase.Flotilla]]' = None #This is not understood by the linter... how can we make it understand?
     
     def checkAndHandleTeamDefeat(self):
         if self.Teams[1].numberOfShips() == 0 or sum([v.numberOfShips() for k,v in self.Teams.items() if k > 1 and not self.isAllied(1,k)]) == 0:

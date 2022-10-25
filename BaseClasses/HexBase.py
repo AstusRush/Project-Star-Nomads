@@ -296,7 +296,7 @@ class HexGrid(DirectObject):
             self.clearAllHexHighlighting()
         if (edge or face) or not clearFirst:
             for i in hexes:
-                i.highlight(edge = edge, face = face)
+                i.highlight(edge = edge, face = face, clearFirst=True)
     
     def clearAllHexHighlighting(self):
         for i in self.Hexes:
@@ -372,19 +372,39 @@ class HexGrid(DirectObject):
         if self.SelectedHex is not False:
             if self.SelectedHex is self.HighlightedHex:
                 self.SelectedHex.select(False)
-                self.SelectedHex.hoverHighlight()
-                self.SelectedHex = False
+                #self.SelectedHex.hoverHighlight()
+                #self.SelectedHex = False
                 return
             else:
                 self.SelectedHex.select(False)
-                self.SelectedHex = False
+                #self.SelectedHex = False
         if self.HighlightedHex is not False:
-            self.SelectedHex = self.HighlightedHex
-            self.SelectedHex.select()
-            self.HighlightedHex = False
+            self.HighlightedHex.select(True)
+            #self.SelectedHex = self.HighlightedHex
+            #self.SelectedHex.select()
+            #self.HighlightedHex = False
         else:
             pass #TODO: Clean up the interface since nothing is selected (it should already be cleaned up but better save than sorry)
             #unitManager().selectUnit(None)
+    
+    def selectHex(self, hex_:"_Hex", select:bool = True):
+        if not self.Active: return
+        self.clearInteractionFunctions()
+        if self.SelectedHex is not False:
+            if self.SelectedHex is hex_:
+                if not select:
+                    self.SelectedHex._select(False)
+                    if self.SelectedHex is self.HighlightedHex:
+                        self.SelectedHex.hoverHighlight()
+                    self.SelectedHex = False
+            elif select:
+                self.SelectedHex._select(False)
+                self.SelectedHex = False
+        if hex_ is not False and select:
+            self.SelectedHex = hex_
+            self.SelectedHex._select()
+            if self.HighlightedHex is self.SelectedHex:
+                self.HighlightedHex = False
     
     def _interactWithHighlightedHex(self):
         if not self.Active: return
@@ -464,7 +484,7 @@ class _Hex():
         self.Face.removeNode()
         self.Model.removeNode()
         
-    def isSelected(self):
+    def isHighlighted(self):
         return self is self.grid().HighlightedHex
     
     def interactWith(self,other):
@@ -475,6 +495,7 @@ class _Hex():
         """
         if self.fleet:
             return self.fleet().interactWith(other)
+        return False
     
     
   #region Content
@@ -540,28 +561,30 @@ class _Hex():
                 self.Model.setTransparency(p3dc.TransparencyAttrib.MAlpha)
             self._setColor(self.CurrentColour_Edge)
     
-    def highlight(self, edge = False, face = False):
+    def highlight(self, edge = False, face = False, clearFirst = False):
+        if clearFirst:
+            self.highlight(edge = False, face = False, clearFirst = False)
         if not face and not edge:
             if self.TransparentHexRings and not self.CurrentColour_Edge == self.COLOUR_SELECT:
                 self.Model.setTransparency(p3dc.TransparencyAttrib.MAlpha)
-            if self.isSelected():
-                self.CurrentColour_Edge = self.COLOUR_SELECT
-                self.CurrentColour_Face = self.COLOUR_SELECT_FACE
-                self._setColor(self.CurrentColour_Edge)
-                self._setColorFace(self.CurrentColour_Face)
-                if self.TransparentHexRings:
-                    self.Model.setTransparency(p3dc.TransparencyAttrib.MNone)
-                self.Face.setTransparency(p3dc.TransparencyAttrib.MAlpha)
-                self.Face.show()
-            else:
-                self.CurrentColour_Edge = self.COLOUR_NORMAL
-                self.CurrentColour_Face = self.COLOUR_SELECT_FACE
-                self._setColor(self.CurrentColour_Edge)
-                self._setColorFace(self.CurrentColour_Face)
-                if self.TransparentHexRings:
-                    self.Model.setTransparency(p3dc.TransparencyAttrib.MAlpha)
-                self.Face.setTransparency(p3dc.TransparencyAttrib.MNone)
-                self.Face.hide()
+            #if self.isHighlighted():
+            #    self.CurrentColour_Edge = self.COLOUR_SELECT
+            #    self.CurrentColour_Face = self.COLOUR_SELECT_FACE
+            #    self._setColor(self.CurrentColour_Edge)
+            #    self._setColorFace(self.CurrentColour_Face)
+            #    if self.TransparentHexRings:
+            #        self.Model.setTransparency(p3dc.TransparencyAttrib.MNone)
+            #    self.Face.setTransparency(p3dc.TransparencyAttrib.MAlpha)
+            #    self.Face.show()
+            #else:
+            self.CurrentColour_Edge = self.COLOUR_NORMAL
+            self.CurrentColour_Face = self.COLOUR_SELECT_FACE
+            self._setColor(self.CurrentColour_Edge)
+            self._setColorFace(self.CurrentColour_Face)
+            if self.TransparentHexRings:
+                self.Model.setTransparency(p3dc.TransparencyAttrib.MAlpha)
+            self.Face.setTransparency(p3dc.TransparencyAttrib.MNone)
+            self.Face.hide()
             self.Highlighted = False
         else:
             self.Highlighted = True
@@ -574,6 +597,9 @@ class _Hex():
                 self.Face.show()
     
     def select(self, select:bool = True):
+            self.grid().selectHex(self, select)
+    
+    def _select(self, select:bool = True):
         if select:
             self.CurrentColour_Edge = self.COLOUR_SELECT
             if self.TransparentHexRings:

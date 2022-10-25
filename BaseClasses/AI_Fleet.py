@@ -82,7 +82,7 @@ class FleetAI(BaseFleetAI):
                 destinationHex = self.getRandomReachableHex()
                 if attackableHexes := self.getAttackableHexes(destinationHex, orders) :
                     break
-            self.fleet().moveTo(destinationHex)
+            self.fleet().moveTo_AI(destinationHex)
         return
         #TODO: This would currently break everything as the UnitManager can not pause to wait for a battle to conclude...
         #       I am uncertain in general as to how to handle this... But at least the code exists in some form for when I am ready
@@ -116,7 +116,7 @@ class FlotillaAI(BaseFleetAI):
                 print(f"{self.fleet().Name} tries to move to a close enemy {isClose=} {moved=}")
                 attackableHexes = self.getAttackableHexes(self.fleet().hex(), orders)
             else:
-                self.fleet().moveTo(destinationHex)
+                self.fleet().moveTo_AI(destinationHex)
         if attackableHexes:
             attackHex = random.choice(attackableHexes)
             await self.fleet().attack(attackHex, orders)

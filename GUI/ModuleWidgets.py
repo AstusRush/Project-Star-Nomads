@@ -137,10 +137,10 @@ class ConstructionModuleWidget(WidgetsBase.ModuleWidget):
     def __init__(self, module:typing.Optional['BaseModules.ConstructionModule'] = None) -> None:
         super().__init__(parent=None, module=module)
         self.Label = self.addWidget(QtWidgets.QLabel(self))
-        self.ConstructionWindowButton = self.addWidget(AGeWidgets.Button(self, "Open construction window", lambda: self.openConstructionWindow()))
+        if self.module().isPlayer(): self.ConstructionWindowButton = self.addWidget(AGeWidgets.Button(self, "Open construction window", lambda: self.openConstructionWindow()))
         self.ShipComboBox = self.addWidget(QtWidgets.QComboBox(self))
         self.populateBuildList()
-        self.BuildButton = self.addWidget(AGeWidgets.Button(self, "Build", lambda: self.build()))
+        if self.module().isPlayer(): self.BuildButton = self.addWidget(AGeWidgets.Button(self, "Build", lambda: self.build()))
         self.MessageLabel = self.addWidget(QtWidgets.QLabel(self))
     
     def updateInterface(self):
@@ -155,6 +155,9 @@ class ConstructionModuleWidget(WidgetsBase.ModuleWidget):
         self.ShipComboBox.addItems(l)
     
     def build(self):
+        if not self.module().isPlayer():
+            self.MessageLabel.setText("You can not build ships for the enemy")
+            return False
         ship = get.shipClasses()[self.ShipComboBox.currentText().split(" - ",1)[1]]()
         if ship.Stats.Value > self.module().ConstructionResourcesStored:
             message = f"Not enough resources to build that ship! The ship costs {ship.Stats.Value} but you only have {self.module().ConstructionResourcesStored}"
@@ -167,6 +170,7 @@ class ConstructionModuleWidget(WidgetsBase.ModuleWidget):
             #TODO: update the fleet Quick View to show the new ship!
     
     def openConstructionWindow(self):
+        if not self.module().isPlayer(): return False
         from GUI import ConstructionWindow
         ###### TEMP:
         try:

@@ -79,6 +79,7 @@ class Module():
     Value = 0.1
     Threat = 0
     def __init__(self) -> None:
+        self.ship:'weakref.ref[ShipBase.ShipBase]' = None
         if self.Threat == Module.Threat and hasattr(self, "calculateThreat"):
             self.Threat = self.calculateThreat()
         if self.Value == Module.Value and hasattr(self, "calculateValue"):
@@ -86,6 +87,19 @@ class Module():
     
     def setShip(self, ship:'ShipBase.ShipBase') -> None:
         self.ship = weakref.ref(ship)
+    
+    def isActiveTurn(self):
+        if self.ship:
+            return self.ship().isActiveTurn()
+        else: return False
+    
+    def team(self):
+        if self.ship:
+            return self.ship().team()
+        else: return None
+    
+    def isPlayer(self):
+        return self.team() == 1
     
     def handleNewCombatTurn(self):
         pass
@@ -503,13 +517,15 @@ class Weapon(Module):
             #NC(2, "A weapon was fired on a hex with no fleet or an already destroyed fleet." ,input=f"Fleet: {self.ship().fleet().Name}\nShip: {self.ship().Name}\nModule: {self.Name}\nTarget coordinates: {target.Coordinates}")
             return
         if self.Ready and self.ship().fleet().hex().distance(target) <= self.Range:
-            targetShip = random.choice(target.fleet().Ships)
-            if not targetShip.Destroyed:
-                self.SFX.play() #TODO: do not play a sound effect too many times at the same time
-                hit , targetDestroyed, damageDealt = targetShip.takeDamage(self.Damage,self.Accuracy,self.ShieldFactor,self.HullFactor,self.ShieldPiercing)
-                self.fireEffectAt(targetShip, hit) #TODO: loading too many effects at the same time is too slow...
-                self.Ready = False
-                #self.updateCombatInterface()
+            for _ in range(6):
+                targetShip = random.choice(target.fleet().Ships)
+                if not targetShip.Destroyed:
+                    self.SFX.play() #TODO: do not play a sound effect too many times at the same time
+                    hit , targetDestroyed, damageDealt = targetShip.takeDamage(self.Damage,self.Accuracy,self.ShieldFactor,self.HullFactor,self.ShieldPiercing)
+                    self.fireEffectAt(targetShip, hit) #TODO: loading too many effects at the same time is too slow...
+                    self.Ready = False
+                    #self.updateCombatInterface()
+                    break
     
     def fireEffectAt(self, target:'ShipBase.ShipBase', hit:bool=True):
         raise NotImplementedError(f"fireEffectAt is not implemented for this weapon named {self.Name}")

@@ -199,6 +199,22 @@ class FleetBase():
         if self.Destroyed: return True
         return all([i.Destroyed for i in self.Ships])
     
+    def isActiveTurn(self):
+        return get.unitManager().isCurrentTurnOfTeam(self.Team)
+    
+    def team(self):
+        "This function only exists for interface homogeneity"
+        return self.Team
+    
+    def isPlayer(self):
+        return self.Team == 1
+    
+    def value(self) -> float:
+        return sum([i.Stats.Value for i in self.Ships])
+    
+    def threat(self) -> float:
+        return sum([i.Stats.Threat for i in self.Ships])
+    
   #endregion manage ship list
   #region Turn and Selection
     def startTurn(self):
@@ -230,13 +246,14 @@ class FleetBase():
     
   #endregion Turn and Selection
   #region Interaction
-    def interactWith(self, hex:'HexBase._Hex'): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
+    def interactWith(self, hex:'HexBase._Hex', mustBePlayer:bool=True): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
         """
         Makes this unit interact with the hex. \n
-        Returns `True` if the new hex should be selected after this interaction (eg in case this unit has moved to the hex or has joined a fleet in the hex due to this interaction)
+        Returns `True` if the new hex should be selected after this interaction (eg in case this unit has moved to the hex or has joined a fleet in the hex due to this interaction) \n
+        This method is only for player interactions!
         """
-        if self.Destroyed:
-            return False
+        "This method is only for player interactions!"
+        if self.Destroyed or not self.isActiveTurn() or (mustBePlayer and not self.isPlayer()): return False
         if hex.fleet:
             if not hex.fleet() is self and not get.unitManager().isAllied(hex.fleet().Team, self.Team):
                 base().taskMgr.add(self.attack(hex))
@@ -275,6 +292,8 @@ class FleetBase():
         return 1
     
     def lookAt(self, hex:'HexBase._Hex'): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
+        if self.MovementSequence and self.MovementSequence.isPlaying():
+            self.MovementSequence.finish()
         lastAngle = self.Node.getHpr()[0]
         theta = np.arctan2(hex.Pos[0] - self.hex().Pos[0], self.hex().Pos[1] - hex.Pos[1])
         if (theta < 0.0):
@@ -294,7 +313,14 @@ class FleetBase():
         "returns (path, cost)"
         return HexBase.findPath(self.hex(), hex, self._navigable, self._tileCost)
     
+    def moveTo_AI(self, hex:'HexBase._Hex'):
+        select = self.moveTo(hex)
+        if select:
+            hex.select(True)
+    
     def moveTo(self, hex:'HexBase._Hex'): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
+        if self.Destroyed or not self.isActiveTurn():
+            return False
         if not self._navigable(hex):
             # The figure can not move to the hex but we can at least make it look at the hex
             self.lookAt(hex)
@@ -359,6 +385,8 @@ class FleetBase():
         Tries to get within `distance` tiles of `hex` but will only try to navigate to `tries` random tiles within this distance.
         Returns a tuple of 2 bools. The first bool tells you if the fleet is within `distance` tiles and the second bool tells you if the fleet has moved.
         """
+        if self.Destroyed or not self.isActiveTurn():
+            return False, False
         distance, tries = int(distance), int(tries)
         startMovePoints = self.MovePoints
         #TODO: What if the fleet and the target hex are on 2 different sides of a wall? We need a method to figure out that distance and use that for the first check. Otherwise we will never get around that wall...
@@ -366,7 +394,7 @@ class FleetBase():
         if self.hex().distance(hex)<=distance: return True, False # Are we already close enough?
         path, cost = self.findPath(hex)
         if path and cost <= self.MovePoints: # Can we just move to the hex?
-            self.moveTo(hex)
+            self.moveTo_AI(hex)
             return self.hex().distance(hex)<=distance, self.MovePoints<startMovePoints
         targetOptions = hex.getDisk(distance)
         path, cost = [], float("inf")
@@ -381,11 +409,11 @@ class FleetBase():
             return False, False
         else:
             if cost <= self.MovePoints: # Can we move to that close hex?
-                self.moveTo(newHex)
+                self.moveTo_AI(newHex)
                 return self.hex().distance(hex)<=distance, self.MovePoints<startMovePoints
             else: # Let's move closer to that close hex
                 _, cost = self.findPath(path[int(self.MovePoints)-1])
-                self.moveTo(path[int(self.MovePoints)-1])
+                self.moveTo_AI(path[int(self.MovePoints)-1])
                 return self.hex().distance(hex)<=distance, self.MovePoints<startMovePoints
     
     def improveRotation(self,c,t): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
@@ -561,10 +589,13 @@ class FleetBase():
     
   #region overwrite
     async def attack(self, target: 'HexBase._Hex'):
-        pass
+        raise NotImplementedError("attack is only implemented for fleets and flotillas but not for the base fleet. How was a base fleet even created!?")
     
     def displayStats(self, display=True, forceRebuild=False):
-        pass
+        raise NotImplementedError("displayStats is only implemented for fleets and flotillas but not for the base fleet. How was a base fleet even created!?")
+    
+    def getAttackableHexes(self, _hex:'HexBase._Hex'=None) -> typing.List['HexBase._Hex']:
+        raise NotImplementedError("getAttackableHexes is only implemented for fleets and flotillas but not for the base fleet. How was a base fleet even created!?")
   #endregion overwrite
 
 class Fleet(FleetBase):
@@ -616,18 +647,36 @@ class Fleet(FleetBase):
         return salvageValue
     
   #region Combat Offensive
-    async def attack(self, target: 'HexBase._Hex', orders:AI_Base.Orders = None):
+    async def attack(self, target: 'HexBase._Hex', orders:AI_Base.Orders = None, performOutOfTurn = False):
+        if self.Destroyed or (not performOutOfTurn and not self.isActiveTurn()):
+            return False
         if self.MovementSequence and self.MovementSequence.isPlaying():
-            await self.MovementSequence
+            try: await self.MovementSequence
+            except: self.MovementSequence.finish()
         self.lookAt(target)
         if self.MovementSequence and self.MovementSequence.isPlaying():
-            await self.MovementSequence
+            try: await self.MovementSequence
+            except: self.MovementSequence.finish()
+        involvedFleets = self.getInvolvedFleetsForPotentialBattle(self.hex(), target)
+        get.engine().startBattleScene(involvedFleets)
+    
+    def getInvolvedFleetsForPotentialBattle(self, hex:'HexBase._Hex', target:'HexBase._Hex') -> 'list[Fleet]':
         involvedFleets = [self,target.fleet()]
-        for i in self.hex().getNeighbour()+target.getNeighbour():
+        for i in hex.getNeighbour()+target.getNeighbour():
             if i.fleet:
                 if not i.fleet() in involvedFleets:
                     involvedFleets.append(i.fleet())
-        get.engine().startBattleScene(involvedFleets)
+        return involvedFleets
+    
+    def getAttackableHexes(self, _hex:'HexBase._Hex'=None) -> typing.List['HexBase._Hex']:
+        if not _hex:
+            _hex = self.hex()
+        l: typing.Set['HexBase._Hex'] = set()
+        for i in _hex.getDisk(1):
+            if i.fleet:
+                if not get.unitManager().isAllied(self.Team, i.fleet().Team):
+                    l.add(i)
+        return list(l)
   #endregion Combat Offensive
   #region Display Information
     def displayStats(self, display=True, forceRebuild=False): #TODO: Overhaul this! The displayed information should not be the combat interface but the campaign interface!
@@ -715,11 +764,15 @@ class Flotilla(FleetBase):
     
   #region Combat Offensive
     async def attack(self, target: 'HexBase._Hex', orders:AI_Base.Orders = None):
+        if self.Destroyed or not self.isActiveTurn():
+            return False
         if self.MovementSequence and self.MovementSequence.isPlaying():
-            await self.MovementSequence
+            try: await self.MovementSequence
+            except: self.MovementSequence.finish()
         self.lookAt(target)
         if self.MovementSequence and self.MovementSequence.isPlaying():
-            await self.MovementSequence
+            try: await self.MovementSequence
+            except: self.MovementSequence.finish()
         for i in self.Ships:
             if not i.Destroyed:
                 i.attack(target)
@@ -736,7 +789,7 @@ class Flotilla(FleetBase):
         return int(min(ranges)), int(np.median(ranges)), int(max(ranges))
         # min([min([j.Range for j in i.Weapons]) for i in self.Ships])
     
-    def getAttackableHexes(self, _hex:'HexBase._Hex'=None) -> typing.Set['HexBase._Hex']:
+    def getAttackableHexes(self, _hex:'HexBase._Hex'=None) -> typing.List['HexBase._Hex']:
         if not _hex:
             _hex = self.hex()
         l: typing.Set['HexBase._Hex'] = set()
@@ -744,7 +797,7 @@ class Flotilla(FleetBase):
             if i.fleet:
                 if not get.unitManager().isAllied(self.Team, i.fleet().Team):
                     l.add(i)
-        return l
+        return list(l)
   #endregion Combat Offensive
     
   #region Display Information
