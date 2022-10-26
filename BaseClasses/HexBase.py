@@ -290,19 +290,19 @@ class HexGrid(DirectObject):
         y = -x-z
         return (round(x), round(y), round(z))
     
-    def highlightHexes(self, hexes = [], edge = False, face = False, clearFirst = True):
-        # type: (typing.List[_Hex], typing.Union[QtGui.QColor,QtGui.QBrush,typing.Tuple[int,int,int,int],str,False], typing.Union[QtGui.QColor,QtGui.QBrush,typing.Tuple[int,int,int,int],str,False], bool) -> None
+    def highlightHexes(self, hexes = [], edge = False, inner = False, face = False, clearFirst = True):
+        # type: (typing.List[_Hex], typing.Union[QtGui.QColor,QtGui.QBrush,typing.Tuple[int,int,int,int],str,False], typing.Union[QtGui.QColor,QtGui.QBrush,typing.Tuple[int,int,int,int],str,False], typing.Union[QtGui.QColor,QtGui.QBrush,typing.Tuple[int,int,int,int],str,False], bool) -> None
         if clearFirst:
             self.clearAllHexHighlighting()
         if (edge or face) or not clearFirst:
             for i in hexes:
-                i.highlight(edge = edge, face = face, clearFirst=False)
+                i.highlight(edge = edge, inner = inner, face = face, clearFirst=False)
     
     def clearAllHexHighlighting(self,forceAll=False):
         for i in self.Hexes:
             for ii in i:
                 if (ii.Highlighted or forceAll) and ii is not self.SelectedHex:
-                    ii.highlight(edge = False, face = False)
+                    ii.highlight(edge = False, inner = False, face = False)
     
     def clearAllSelections(self):
         for i in self.Hexes:
@@ -440,6 +440,7 @@ class _Hex():
             self.Name = name
             self.Colour = self.COLOUR_NORMAL
             self.CurrentColour_Edge = self.COLOUR_NORMAL
+            self.CurrentColour_InnerRing = self.COLOUR_NORMAL
             self.CurrentColour_Face = self.COLOUR_SELECT_FACE
             self.Coordinates = coordinates
             self.TransparentHexRings = grid.TransparentHexRings
@@ -451,6 +452,7 @@ class _Hex():
             self.Pos = p3dc.LPoint3(pos)
             mesh = "Models/Simple Geometry/hexagon.ply"
             meshRing = "Models/Simple Geometry/hexagonRing.ply"
+            meshRingInner = "Models/Simple Geometry/hexagonRingInner.ply"
             # Load, parent, colour, and position the model (a hexagon-shaped ring consisting of 6 polygons)
             self.Model:p3dc.NodePath = loader().loadModel(meshRing)
             self.Model.reparentTo(root)
@@ -472,6 +474,15 @@ class _Hex():
             # Set a tag on the square's node so we can look up what square this is later during the collision pass
             # We will use this variable as a pointer to whatever piece is currently in this square
             self.Face.find("").node().setTag('hex', str(coordinates[0])+" "+str(coordinates[1]))
+            
+            # Load, parent, colour, and position the model (a hexagon-shaped ring consisting of 6 polygons)
+            self.InnerRing:p3dc.NodePath = loader().loadModel(meshRingInner)
+            self.InnerRing.reparentTo(self.Model)
+            self.InnerRing.setPos(p3dc.LPoint3((0,0,0)))
+            if self.TransparentHexRings:
+                self.InnerRing.setTransparency(p3dc.TransparencyAttrib.MAlpha)
+            self._setColorInnerRing(self.Colour)
+            self.InnerRing.hide()
             
             # We will use this list to store all objects that occupy this hexagon
             self.content = [] # type: typing.List[Unit.Object]
@@ -536,6 +547,26 @@ class _Hex():
             colour.setAlphaF(alpha)
         self.Model.setColor(ape.colour(colour))
     
+    def _setColorInnerRing(self, colour, alpha = 0.2):
+        """
+        TODO: This information is outdated. We now use the "Star Nomads" colour dictionary. \n
+        Set the colour of the inner ring to `colour`. \n
+        `colour` can be a QColor, a QBrush, a tuple, or a string from AGeLib's PenColours dictionary. \n
+        If `colour` is a PenColours-string `alpha` can be given. (Otherwise `alpha` is ignored since the other input variants already support specifying the alpha value.)
+        """
+        return self._setColourInnerRing(colour,alpha)
+    def _setColourInnerRing(self, colour, alpha = 0.2):
+        """
+        TODO: This information is outdated. We now use the "Star Nomads" colour dictionary. \n
+        Set the colour of the inner ring to `colour`. \n
+        `colour` can be a QColor, a QBrush, a tuple, or a string from AGeLib's PenColours dictionary. \n
+        If `colour` is a PenColours-string `alpha` can be given. (Otherwise `alpha` is ignored since the other input variants already support specifying the alpha value.)
+        """
+        if isinstance(colour,str):
+            colour = App().Theme["Star Nomads"][colour].color()
+            colour.setAlphaF(alpha)
+        self.InnerRing.setColor(ape.colour(colour))
+    
     def _setColorFace(self, colour, alpha = 0.2):
         """
         TODO: This information is outdated. We now use the "Star Nomads" colour dictionary. \n
@@ -568,10 +599,10 @@ class _Hex():
                 self.Model.setTransparency(p3dc.TransparencyAttrib.MAlpha)
             self._setColor(self.CurrentColour_Edge)
     
-    def highlight(self, edge = False, face = False, clearFirst = False):
+    def highlight(self, edge = False, inner = False, face = False, clearFirst = False):
         if clearFirst:
-            self.highlight(edge = False, face = False, clearFirst = False)
-        if not face and not edge:
+            self.highlight(edge = False, inner = False, face = False, clearFirst = False)
+        if not edge and not inner and not face:
             if self.TransparentHexRings and not self.CurrentColour_Edge == self.COLOUR_SELECT:
                 self.Model.setTransparency(p3dc.TransparencyAttrib.MAlpha)
             #if self.isHighlighted():
@@ -585,13 +616,18 @@ class _Hex():
             #    self.Face.show()
             #else:
             self.CurrentColour_Edge = self.COLOUR_NORMAL
+            self.CurrentColour_InnerRing = self.COLOUR_NORMAL
             self.CurrentColour_Face = self.COLOUR_SELECT_FACE
             self._setColor(self.CurrentColour_Edge)
+            self._setColorInnerRing(self.CurrentColour_InnerRing)
             self._setColorFace(self.CurrentColour_Face)
             if self.TransparentHexRings:
                 self.Model.setTransparency(p3dc.TransparencyAttrib.MAlpha)
+                self.InnerRing.setTransparency(p3dc.TransparencyAttrib.MAlpha)
             self.Face.setTransparency(p3dc.TransparencyAttrib.MNone)
             self.Face.hide()
+            self.InnerRing.hide()
+            #TODO:Inner
             self.Highlighted = False
         else:
             self.Highlighted = True
@@ -600,11 +636,18 @@ class _Hex():
                     self.Model.setTransparency(p3dc.TransparencyAttrib.MAlpha)
                 self.CurrentColour_Edge = edge
                 self._setColor(self.CurrentColour_Edge)
+            if inner:
+                if self.TransparentHexRings:
+                    self.InnerRing.setTransparency(p3dc.TransparencyAttrib.MAlpha)
+                self.CurrentColour_InnerRing = inner
+                self._setColorInnerRing(self.CurrentColour_InnerRing)
+                self.InnerRing.show()
             if face:
                 self.Face.setTransparency(p3dc.TransparencyAttrib.MAlpha)
                 self.CurrentColour_Face = face
                 self._setColourFace(self.CurrentColour_Face)
                 self.Face.show()
+            #TODO:Inner
     
     def select(self, select:bool = True):
         self.grid().selectHex(self, select)
@@ -622,6 +665,7 @@ class _Hex():
             self._setColorFace(self.COLOUR_SELECT_FACE)
             self.Face.setTransparency(p3dc.TransparencyAttrib.MAlpha)
             self.Face.show()
+            self.InnerRing.hide()
         else:
             self.CurrentColour_Edge = self.Colour
             if self.TransparentHexRings:
@@ -629,6 +673,7 @@ class _Hex():
             self._setColor(self.Colour)
             self.Face.setTransparency(p3dc.TransparencyAttrib.MNone)
             self.Face.hide()
+            self.InnerRing.hide()
     
   #endregion Highlighting
   #region Hex Math

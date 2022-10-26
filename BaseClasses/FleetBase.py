@@ -513,9 +513,9 @@ class FleetBase():
         If `highlight = False` the highlighted hexes are instead un-highlighted.
         """
         if highlight:
-            self.hex().grid().highlightHexes(self.getReachableHexes(), HexBase._Hex.COLOUR_REACHABLE, False, clearFirst=clearFirst)
+            self.hex().grid().highlightHexes(self.getReachableHexes(), HexBase._Hex.COLOUR_REACHABLE, False, False, clearFirst=clearFirst)
         else:
-            self.hex().grid().highlightHexes(self.getReachableHexes(), False, False, clearFirst=True)
+            self.hex().grid().highlightHexes(self.getReachableHexes(), False, False, False, clearFirst=True)
         ##TODO: TEMPORARY
         #for i in self.getReachableHexes():
         #    i.highlight(highlight)
@@ -868,7 +868,7 @@ class Flotilla(FleetBase):
         If `highlight = False` the highlighted hexes are instead un-highlighted.
         """
         if highlight:
-            self.hex().grid().highlightHexes(self.getHexesInAttackRange(), False, HexBase._Hex.COLOUR_ATTACKABLE_FACE, clearFirst=clearFirst)
+            self.hex().grid().highlightHexes(self.getHexesInAttackRange(), False, HexBase._Hex.COLOUR_ATTACKABLE, False, clearFirst=clearFirst)
         else:
-            self.hex().grid().highlightHexes(self.getHexesInAttackRange(), False, False, clearFirst=True)
+            self.hex().grid().highlightHexes(self.getHexesInAttackRange(), False, False, False, clearFirst=True)
   #endregion Highlighting
