@@ -188,6 +188,16 @@ class Hull(Module):
             "NoticeableDamage" : self.NoticeableDamage ,
         }
 
+class Asteroid_Hull(Hull):
+    Name = "Asteroid"
+    Buildable = False
+    Evasion = 0
+    Mass = 10
+    HP_Hull_max = 1000
+    HP_Hull = HP_Hull_max
+    HP_Hull_Regeneration = 0
+    NoticeableDamage = HP_Hull_max / 10
+
 class HullPlating(Module):
     Name = "Unnamed HullPlating Module"
     Buildable = True
@@ -208,7 +218,7 @@ class Engine(Module): # FTL Engine
         self.Widget:ModuleWidgets.EngineWidget = None
     
     def calculateValue(self): #TODO: Come up with a better formula for this
-        return self.Thrust / 10
+        return (self.Thrust / 10)**1.7 + 1
     
     def handleNewCampaignTurn(self):
         self.RemainingThrust = self.Thrust
@@ -251,7 +261,7 @@ class Thruster(Module): # Sublight Thruster
         self.Widget:ModuleWidgets.ThrusterWidget = None
     
     def calculateValue(self): #TODO: Come up with a better formula for this
-        return self.Thrust / 10
+        return (self.Thrust / 10)**1.7 + 1
     
     def handleNewCampaignTurn(self):
         self.RemainingThrust = self.Thrust
@@ -369,6 +379,7 @@ class ConstructionModule(Module):
     Name = "Unnamed ConstructionModule Module"
     Buildable = True
     ConstructionResourcesGeneratedPerTurn = 0.2 #NOTE: This is only a temporary system
+    Mass = 1
     
     def __init__(self) -> None:
         super().__init__()

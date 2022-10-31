@@ -46,7 +46,7 @@ else:
     from AstusPandaEngine import window as _window
 
 from ApplicationClasses import Scene, StarNomadsColourPalette
-from BaseClasses import HexBase, FleetBase, ShipBase, ModelBase, BaseModules, UnitManagerBase, get
+from BaseClasses import HexBase, FleetBase, ShipBase, ModelBase, BaseModules, UnitManagerBase, Environment, get
 from GUI import Windows, WidgetsBase
 
 class EngineClass(ape.APE):
@@ -88,6 +88,8 @@ class EngineClass(ape.APE):
                 for ship in ships:
                     flotilla.addShip(ship)
                 self.placeFlotillaInBattle(flotilla, fleet, battleType)
+        environmentCreator = Environment.EnvironmentCreator()
+        environmentCreator.generate(self.BattleScene.HexGrid, combat=True)
         self.BattleScene.Camera.moveToHex(random.choice(self.BattleUnitManager.Teams[1]).hex())
     
     def placeFlotillaInBattle(self, flotilla:FleetBase.Flotilla, fleet:FleetBase.Fleet, battleType):

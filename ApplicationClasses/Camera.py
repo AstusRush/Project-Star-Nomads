@@ -105,6 +105,7 @@ class StrategyCamera(DirectObject):
         self.acceptAllCombinations("q-up", self.setKey, ["cam-rot-left",0])
         self.acceptAllCombinations("e-up", self.setKey, ["cam-rot-right",0])
         self.accept("home", lambda: self.resetCameraOrientation())
+        self.accept("control-home", lambda: self.resetCameraPosition())
         
         self._MoveCameraTask = base().taskMgr.add(lambda task: self.moveCamera(task), "moveCameraTask")
         self.acceptAllCombinations("wheel_up",   lambda: self.zoomCamera(-1))
@@ -160,6 +161,10 @@ class StrategyCamera(DirectObject):
         ape.base().camera.lookAt(self.CameraCenter)
         self.Active = True
         self.bindEvents()
+    
+    def resetCameraPosition(self):
+        self.resetCameraOrientation()
+        self.CameraCenter.setPos(p3dc.Vec3(0,0,0))
     
     def resetCameraOrientation(self):
         self.CameraRotCenter.setPos(p3dc.Vec3(0,0,0))

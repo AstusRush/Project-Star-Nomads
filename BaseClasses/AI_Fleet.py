@@ -93,7 +93,7 @@ class FleetAI(BaseFleetAI):
     def getAttackableHexes(self, destinationHex:HexBase._Hex, orders:AI_Base.Orders) -> typing.List[HexBase._Hex]:
         # The following might look a bit confusing... We try to land next to a hostile fleet to attack it
         attackableHexes:typing.List[HexBase._Hex] = [i for i in list(destinationHex.getNeighbour()) if i.fleet]
-        attackableHexes:typing.List[HexBase._Hex] = [not get.unitManager().isAllied(self.fleet().Team, i.fleet().Team) for i in attackableHexes]
+        attackableHexes:typing.List[HexBase._Hex] = [get.unitManager().isHostile(self.fleet().Team, i.fleet().Team) for i in attackableHexes]
         return attackableHexes
 
 class FlotillaAI(BaseFleetAI):

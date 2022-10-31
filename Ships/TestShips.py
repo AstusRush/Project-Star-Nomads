@@ -143,8 +143,8 @@ class SpaceDock(ShipBase.Ship):
         self.addModule(ShipModules.TestModules.TestSensors_M())
         self.addModule(ShipModules.TestModules.TestShield_L())
         self.addModule(ShipModules.TestModules.TestBeam_M())
-        self.addModule(ShipModules.TestModules.TestEngine_M())
-        self.addModule(ShipModules.TestModules.TestThruster_M())
+        self.addModule(ShipModules.TestModules.TestEngine_L())
+        self.addModule(ShipModules.TestModules.TestThruster_L())
         self.addModule(ShipModules.TestModules.TestConstructionModule())
 
 
@@ -152,9 +152,12 @@ class SpaceDock(ShipBase.Ship):
 
 class TestModel(ModelBase.ShipModel):
     """
-    The model should be a .obj created with blender with z facing up and x facing front
+    The model should be a .obj created with blender with z facing up and x facing front\n
+    If created as .dltf use `gltf2bam SingleAsteroidTest.gltf SingleAsteroidTest.bam` to convert it (adjust names as necessary) (orientation to be determined)\n
     """
     ModelPath = "tempModels/TestStuff/TestConeFacingX.obj"
+    #ModelPath = "tempModels/TestStuff/SingleAsteroidTest.obj"
+    #ModelPath = "tempModels/TestStuff/SingleAsteroidTest.bam" # gltf2bam SingleAsteroidTest.gltf SingleAsteroidTest.bam
     #IconPath = "tempModels/SpaceDockNar30974/dock3.jpg"
 
 class TestShip(ShipBase.Ship):

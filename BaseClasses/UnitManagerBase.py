@@ -173,6 +173,9 @@ class UnitManager():
     def isAllied(self, team1:int, team2:int) -> bool:
         return team2 in self.getAllies(team1)
     
+    def isHostile(self, team1:int, team2:int) -> bool:
+        return not self.isAllied(team1,team2) and not team1 == -1 and not team2 == -1
+    
     def getAllies(self, team:int) -> typing.List[int]:
         return [team,] #TODO: implement Alliances
     
@@ -266,6 +269,6 @@ class CombatUnitManager(UnitManager):
     Teams:'dict[int,UnitList[FleetBase.Flotilla]]' = None #This is not understood by the linter... how can we make it understand?
     
     def checkAndHandleTeamDefeat(self):
-        if self.Teams[1].numberOfShips() == 0 or sum([v.numberOfShips() for k,v in self.Teams.items() if k > 1 and not self.isAllied(1,k)]) == 0:
+        if self.Teams[1].numberOfShips() == 0 or sum([v.numberOfShips() for k,v in self.Teams.items() if k > 1 and self.isHostile(1,k)]) == 0:
             get.engine().endBattleScene()
             return

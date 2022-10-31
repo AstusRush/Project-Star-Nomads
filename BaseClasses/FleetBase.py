@@ -77,6 +77,7 @@ class TeamRing():
         self.TeamRing.setScale(0.9)
         self.TeamRing.setPos(p3dc.LPoint3((0,0,-0.02)))
         self.C_ColourChangedConnection = App().S_ColourChanged.connect(self.recolour)
+        if team == -1: self.hide()
     
     def destroy(self):
         if self.C_ColourChangedConnection:
@@ -85,6 +86,12 @@ class TeamRing():
         if self.TeamRing:
             self.TeamRing.removeNode()
             self.TeamRing = None
+    
+    def hide(self):
+        self.TeamRing.hide()
+    
+    def show(self):
+        self.TeamRing.show()
     
     def __del__(self):
         self.destroy()
@@ -255,7 +262,7 @@ class FleetBase():
         "This method is only for player interactions!"
         if self.Destroyed or not self.isActiveTurn() or (mustBePlayer and not self.isPlayer()): return False
         if hex.fleet:
-            if not hex.fleet() is self and not get.unitManager().isAllied(hex.fleet().Team, self.Team):
+            if not hex.fleet() is self and get.unitManager().isHostile(hex.fleet().Team, self.Team):
                 base().taskMgr.add(self.attack(hex))
                 #self.highlightRanges(True)
             else:
@@ -571,7 +578,7 @@ class FleetBase():
         for i,r in enumerate(ranges):
             if i == 0 or i == 5: continue
             potentialFleets = [h.fleet() for h in self.hex().getDisk(r,ranges[i+1]) if h.fleet]
-            fleets += [(f.detectCheck(i), f) for f in potentialFleets if f.detectCheck(i) and not get.unitManager().isAllied(self.Team,f.Team)]
+            fleets += [(f.detectCheck(i), f) for f in potentialFleets if f.detectCheck(i) and get.unitManager().isHostile(self.Team,f.Team)]
         return fleets
     
     def findClosestEnemy(self) -> typing.Union['FleetBase',bool]:
@@ -678,7 +685,7 @@ class Fleet(FleetBase):
         l: typing.Set['HexBase._Hex'] = set()
         for i in _hex.getDisk(1):
             if i.fleet:
-                if not get.unitManager().isAllied(self.Team, i.fleet().Team):
+                if get.unitManager().isHostile(self.Team, i.fleet().Team):
                     l.add(i)
         return list(l)
   #endregion Combat Offensive
@@ -794,9 +801,9 @@ class Flotilla(FleetBase):
                 if hasattr(weapon,"Range"): maxRanges.append(weapon.Range)
                 if hasattr(weapon,"MinimalRange"): minRanges.append(weapon.MinimalRange)
         if maxRanges: maxRange = int(max(maxRanges))
-        else: maxRange = 1
+        else: maxRange = 0
         if minRanges: minRange = int(max(minRanges))
-        else: minRange = 1
+        else: minRange = 0
         return _hex.getDisk(minRange, maxRange)
     
     def getAttackRange(self) -> typing.Tuple[int,int,int]:
@@ -814,7 +821,7 @@ class Flotilla(FleetBase):
         l: typing.Set['HexBase._Hex'] = set()
         for i in self.getHexesInAttackRange(_hex):
             if i.fleet:
-                if not get.unitManager().isAllied(self.Team, i.fleet().Team):
+                if get.unitManager().isHostile(self.Team, i.fleet().Team):
                     l.add(i)
         return list(l)
   #endregion Combat Offensive

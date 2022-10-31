@@ -67,6 +67,7 @@ class ModelBase():
     def __init__(self) -> None:
         self.Model:p3dc.NodePath = None
         self.Node:p3dc.NodePath = None
+        self.CouldLoadModel = False
         self._init_model()
     
     def _init_model(self):
@@ -79,18 +80,24 @@ class ModelBase():
             self.Node.reparentTo(render())
             try:
                 self.Model:p3dc.NodePath = loader().loadModel(self.ModelPath)
+                self.CouldLoadModel = True
             except:
+                self.CouldLoadModel = False
+                NC(2,f"Could not load model {self.ModelPath}. Loading a cube instead...", exc=True, unique=True)
                 self.Model:p3dc.NodePath = loader().loadModel("Models/Simple Geometry/cube.ply")
-                NC(2,f"Could not load model {self.ModelPath}. Loading a cube instead...", exc=True)
         except:
+            self.CouldLoadModel = False
             self.Node.removeNode()
+            self.Node, self.Model = None, None
             raise
         try:
             self.Model.reparentTo(self.Node)
-            self.Model.setColor(ape.colour((1,1,1,1)))
+            self.Model.setColor((1,1,1,1))
         except:
+            self.CouldLoadModel = False
             self.Model.removeNode()
             self.Node.removeNode()
+            self.Node, self.Model = None, None
             raise
     
     def destroy(self):
@@ -131,6 +138,11 @@ class ModelBase():
         return ret, imp
 
 class ShipModel(ModelBase):
+    def __init__(self) -> None:
+        super().__init__()
+        self.centreModel()
+
+class EnvironmentalModel(ModelBase):
     def __init__(self) -> None:
         super().__init__()
         self.centreModel()

@@ -81,15 +81,29 @@ class ShipsStats():
     
     @property
     def HP_Hull(self) -> float:
-        return self.ship().hull().HP_Hull
+        if self.ship().hull:
+            return self.ship().hull().HP_Hull
+        else:
+            return float("inf")
     
     @HP_Hull.setter
     def HP_Hull(self, value:float):
-        self.ship().hull().HP_Hull = value
+        if self.ship().hull:
+            self.ship().hull().HP_Hull = value
     
     @property
     def HP_Hull_max(self) -> float:
-        return self.ship().hull().HP_Hull_max
+        if self.ship().hull:
+            return self.ship().hull().HP_Hull_max
+        else:
+            return float("inf")
+    
+    @property
+    def NoticeableDamage(self) -> float:
+        if self.ship().hull:
+            return self.ship().hull().NoticeableDamage
+        else:
+            return 0
     
     @property
     def HP_Shields(self) -> float:
@@ -118,22 +132,36 @@ class ShipsStats():
         Sensor ranges: no resolution, low resolution, medium resolution, high resolution, perfect resolution
         Note: no resolution is always infinite and only exist so that the indices match with the information levels 0='Not visible' to 4='Fully visible'
         """
-        return float("inf"), self.ship().sensor().LowRange, self.ship().sensor().MediumRange, self.ship().sensor().HighRange, self.ship().sensor().PerfectRange
+        if self.ship().sensor:
+            return float("inf"), self.ship().sensor().LowRange, self.ship().sensor().MediumRange, self.ship().sensor().HighRange, self.ship().sensor().PerfectRange
+        else:
+            return float("inf"), 0, 0, 0, 0,
     
     @property
     def Movement_Sublight(self) -> typing.Tuple[float,float]:
         "Remaining and maximum movement on the combat map."
-        mass = self.Mass
-        return round(self.ship().thruster().RemainingThrust/mass,2) , round(self.ship().thruster().Thrust/mass,2)
+        if self.ship().thruster:
+            mass = self.Mass
+            return round(self.ship().thruster().RemainingThrust/mass,2) , round(self.ship().thruster().Thrust/mass,2)
+        else:
+            return 0, 0
     
     def spendMovePoints_Sublight(self, value:float):
-        self.ship().thruster().RemainingThrust -= value*self.Mass
+        if self.ship().thruster:
+            self.ship().thruster().RemainingThrust -= value*self.Mass
     
     @property
     def Movement_FTL(self) -> typing.Tuple[float,float]:
         "Remaining and maximum movement on the campaign map."
-        mass = self.Mass
-        return round(self.ship().engine().RemainingThrust/mass,2) , round(self.ship().engine().Thrust/mass,2)
+        if self.ship().engine:
+            mass = self.Mass
+            return round(self.ship().engine().RemainingThrust/mass,2) , round(self.ship().engine().Thrust/mass,2)
+        else:
+            return 0, 0
+    
+    def spendMovePoints_FTL(self, value:float):
+        if self.ship().engine:
+            self.ship().engine().RemainingThrust -= value*self.Mass
     
     @property
     def Movement(self) -> typing.Tuple[float,float]:
@@ -147,9 +175,6 @@ class ShipsStats():
         if get.engine().CurrentlyInBattle: m = self.Movement_Sublight
         else: m = self.Movement_FTL
         return f"{m[0]}/{m[1]}"
-    
-    def spendMovePoints_FTL(self, value:float):
-        self.ship().engine().RemainingThrust -= value*self.Mass
     
     def spendMovePoints(self, value:float):
         if get.engine().CurrentlyInBattle: self.spendMovePoints_Sublight(value)
@@ -187,8 +212,14 @@ class ShipsStats():
         """
         #MAYBE: This formula can probably be rewritten without the abs and maybe even using a sine which should allow to simplify the formula
         #REMINDER: Make a manual folder and put a well formatted and labelled plot of the evasion bonus into it
-        c,m = self.Movement_Sublight
-        return self.ship().hull().Evasion + m/100*np.cos( abs(c-m/2)/m *np.pi )
+        if self.ship().hull:
+            movementBonus = 0
+            c,m = self.Movement_Sublight
+            if c > 0 and m > 0:
+                movementBonus = m/100*np.cos( abs(c-m/2)/m *np.pi )
+            return self.ship().hull().Evasion + movementBonus
+        else:
+            return 0
     
     @property
     def Value(self) -> float:
@@ -397,7 +428,7 @@ class ShipBase():
         "This method is only for player interactions!"
         if not self.isActiveTurn() or (mustBePlayer and not self.isPlayer()): return False, True
         if hex.fleet:
-            if get.engine().CurrentlyInBattle and not get.unitManager().isAllied(self.fleet().Team, hex.fleet().Team):
+            if get.engine().CurrentlyInBattle and get.unitManager().isHostile(self.fleet().Team, hex.fleet().Team):
                 #TODO: The fleet should look at that hex before this attack is executed
                 self.attack(hex)
                 return False, True
@@ -567,7 +598,7 @@ class ShipBase():
                     self.Stats.HP_Shields = 0
                     self.ShieldsWereOffline = True
                 self.showShield()
-            self.WasHitLastTurn = finalDamage >= self.hull().NoticeableDamage
+            self.WasHitLastTurn = finalDamage >= self.Stats.NoticeableDamage
         #if self.fleet().isSelected():
         #    self.displayStats(True)
         self.updateInterface()
