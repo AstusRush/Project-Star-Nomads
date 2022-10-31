@@ -496,7 +496,7 @@ class Weapon(Module):
         self.Widget:ModuleWidgets.WeaponWidget = None
         self.Ready = True
         self.SFX = base().loader.loadSfx(self.SoundEffectPath)
-        self.SFX.setVolume(0.1)
+        self.SFX.setVolume(0.07)
         print(f"{self.Name = }\n{self.Threat = }\n{self.Value = }\n")
     
     def calculateThreat(self): #TODO: Come up with a formula for this that also includes mass

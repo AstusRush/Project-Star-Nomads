@@ -701,7 +701,7 @@ class Fleet(FleetBase):
             Name: {self.Name}
             Team: {self.Team}
             Positions: {self.hex().Coordinates}
-            Movement Points: {self.MovePoints}/{self.MovePoints_max}
+            Movement Points: {round(self.MovePoints,3)}/{round(self.MovePoints_max,3)}
             """)
             # Hull HP: {[f"{i.Stats.HP_Hull}/{i.Stats.HP_Hull_max}" for i in self.Ships]}
             # Shield HP: {[f"{i.Stats.HP_Shields}/{i.Stats.HP_Shields_max}" for i in self.Ships]}
@@ -838,7 +838,7 @@ class Flotilla(FleetBase):
             Name: {self.Name}
             Team: {self.Team}
             Positions: {self.hex().Coordinates}
-            Movement Points: {self.MovePoints}/{self.MovePoints_max}
+            Movement Points: {round(self.MovePoints,3)}/{round(self.MovePoints_max,3)}
             """)
             # Hull HP: {[f"{i.Stats.HP_Hull}/{i.Stats.HP_Hull_max}" for i in self.Ships]}
             # Shield HP: {[f"{i.Stats.HP_Shields}/{i.Stats.HP_Shields_max}" for i in self.Ships]}

@@ -135,7 +135,7 @@ class ShipsStats():
         if self.ship().sensor:
             return float("inf"), self.ship().sensor().LowRange, self.ship().sensor().MediumRange, self.ship().sensor().HighRange, self.ship().sensor().PerfectRange
         else:
-            return float("inf"), 0, 0, 0, 0,
+            return float("inf"), 0, 0, 0, 0
     
     def _getMaxMovement(self, maxThrust:float):
         #OLD: return round(maxThrust/self.Mass,2)
@@ -512,7 +512,7 @@ class ShipBase():
         self.ExplosionEffect:p3dc.NodePath = None
         self.ExplosionEffect2:p3dc.NodePath = None
         self.ExplosionSoundEffect = base().loader.loadSfx(self.ExplosionSoundEffectPath)
-        self.ExplosionSoundEffect.setVolume(0.35)
+        self.ExplosionSoundEffect.setVolume(0.12)
     
     def removeNode(self, node:p3dc.NodePath, time = 1):
         base().taskMgr.doMethodLater(time, lambda task: self._removeNode(node), str(id(node)))
