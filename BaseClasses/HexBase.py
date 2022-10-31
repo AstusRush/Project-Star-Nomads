@@ -524,6 +524,14 @@ class _Hex():
         #TODO: If the this is already selected while new content is added the new content should be informed about this and act accordingly (display/update movement range, add/update UI elements, etc).
         #       Furthermore the other content might need to be informed that there is new content which might require them to update their UI elements or highlighting
         raise NotImplementedError("_Hex.addContent is not implemented yet")
+    
+    def hideContent(self):
+        if self.fleet:
+            self.fleet().hide()
+    
+    def showContent(self):
+        if self.fleet:
+            self.fleet().show()
   #endregion Content
     
   #region Colour

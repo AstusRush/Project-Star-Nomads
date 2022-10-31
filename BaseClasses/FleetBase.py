@@ -121,6 +121,7 @@ class FleetBase():
         self.Team = team
         self.Destroyed = False
         self.IsMoving = False
+        self.Hidden = False
         
         #TEMPORARY
         self.hex: 'weakref.ref[HexBase._Hex]' = None
@@ -511,8 +512,9 @@ class FleetBase():
         """
         #self.hex().grid().highlightHexes(clearFirst=True)
         self.hex().grid().clearAllHexHighlighting(forceAll=get.window().Menu.HighlightOptionsWidget.RedrawEntireGridWhenHighlighting())
-        if highlight:
+        if highlight and not self.Hidden:
             self.highlightMovementRange(highlight, clearFirst=False)
+        self.handleSensors()
     
     def highlightMovementRange(self, highlight=True, clearFirst=True): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
         """
@@ -596,6 +598,28 @@ class FleetBase():
         """Returns which information level a scan at `level` can procure. 0 means that it can not detect this fleet at all and 4 means that all information are visible"""
         #TODO: make some checks for the ships stealth capabilities
         return level
+    
+    def hide(self):
+        if get.unitManager().isHostile(self.Team, 1):
+            self.Hidden = True
+            self.Node.hide()
+    
+    def show(self):
+        self.Hidden = False
+        self.Node.show()
+    
+    def handleSensors(self):
+        for i in get.hexGrid().Hexes:
+            for j in i:
+                j.hideContent()
+        for team in get.unitManager().getAllies(1):
+            for fleet in get.unitManager().Teams[team]:
+                fleet.hex().showContent()
+                fleet._showAllEnemies()
+    
+    def _showAllEnemies(self):
+        for i in self.detectEnemies():
+            i[1].hex().showContent()
   #region Detection
     
   #region overwrite
@@ -691,7 +715,7 @@ class Fleet(FleetBase):
   #endregion Combat Offensive
   #region Display Information
     def displayStats(self, display=True, forceRebuild=False): #TODO: Overhaul this! The displayed information should not be the combat interface but the campaign interface!
-        if display:
+        if display and not self.Hidden:
             if forceRebuild or not self.Widget:
                 get.window().UnitStatDisplay.addWidget(self.getInterface())
             else:
@@ -828,7 +852,7 @@ class Flotilla(FleetBase):
     
   #region Display Information
     def displayStats(self, display=True, forceRebuild=False):
-        if display:
+        if display and not self.Hidden:
             if forceRebuild or not self.Widget:
                 get.window().UnitStatDisplay.addWidget(self.getInterface())
             else:
@@ -866,7 +890,7 @@ class Flotilla(FleetBase):
         If `highlight = False` the highlighted hexes are instead un-highlighted.
         """
         super().highlightRanges(highlight)
-        if highlight and get.window().Menu.HighlightOptionsWidget.HighlightWeaponRange():
+        if highlight and get.window().Menu.HighlightOptionsWidget.HighlightWeaponRange() and not self.Hidden:
             self.highlightAttackRange(highlight, clearFirst=False)
     
     def highlightAttackRange(self, highlight=True, clearFirst=True): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
