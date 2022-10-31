@@ -218,7 +218,7 @@ class Engine(Module): # FTL Engine
         self.Widget:ModuleWidgets.EngineWidget = None
     
     def calculateValue(self): #TODO: Come up with a better formula for this
-        return (self.Thrust / 10)**1.7 + 1
+        return self.Thrust / 10
     
     def handleNewCampaignTurn(self):
         self.RemainingThrust = self.Thrust
@@ -261,7 +261,7 @@ class Thruster(Module): # Sublight Thruster
         self.Widget:ModuleWidgets.ThrusterWidget = None
     
     def calculateValue(self): #TODO: Come up with a better formula for this
-        return (self.Thrust / 10)**1.7 + 1
+        return self.Thrust / 10
     
     def handleNewCampaignTurn(self):
         self.RemainingThrust = self.Thrust

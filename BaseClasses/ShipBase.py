@@ -137,31 +137,44 @@ class ShipsStats():
         else:
             return float("inf"), 0, 0, 0, 0,
     
+    def _getMaxMovement(self, maxThrust:float):
+        #OLD: return round(maxThrust/self.Mass,2)
+        # maybe : log(x^1.6+1)^1.41   with x = maxThrust/self.Mass
+        return np.log(maxThrust/self.Mass**1.6+1)**1.41
+    
+    def _getRemainingMovement(self, maxThrust:float, remainingThrust:float):
+        #OLD: return round(remainingThrust/self.Mass,2)
+        return self._getMaxMovement(maxThrust) * remainingThrust/maxThrust
+    
+    def _getSpendThrust(self, maxThrust:float, remainingThrust:float, value:float):
+        #OLD: return value*self.Mass
+        return value/self._getMaxMovement(maxThrust) * maxThrust
+    
     @property
     def Movement_Sublight(self) -> typing.Tuple[float,float]:
         "Remaining and maximum movement on the combat map."
         if self.ship().thruster:
             mass = self.Mass
-            return round(self.ship().thruster().RemainingThrust/mass,2) , round(self.ship().thruster().Thrust/mass,2)
+            return self._getRemainingMovement(self.ship().thruster().Thrust, self.ship().thruster().RemainingThrust) , self._getMaxMovement(self.ship().thruster().Thrust)
         else:
             return 0, 0
     
     def spendMovePoints_Sublight(self, value:float):
         if self.ship().thruster:
-            self.ship().thruster().RemainingThrust -= value*self.Mass
+            self.ship().thruster().RemainingThrust -= self._getSpendThrust(self.ship().thruster().Thrust, self.ship().thruster().RemainingThrust, value)
     
     @property
     def Movement_FTL(self) -> typing.Tuple[float,float]:
         "Remaining and maximum movement on the campaign map."
         if self.ship().engine:
             mass = self.Mass
-            return round(self.ship().engine().RemainingThrust/mass,2) , round(self.ship().engine().Thrust/mass,2)
+            return self._getRemainingMovement(self.ship().engine().Thrust, self.ship().engine().RemainingThrust) , self._getMaxMovement(self.ship().engine().Thrust)
         else:
             return 0, 0
     
     def spendMovePoints_FTL(self, value:float):
         if self.ship().engine:
-            self.ship().engine().RemainingThrust -= value*self.Mass
+            self.ship().engine().RemainingThrust -= self._getSpendThrust(self.ship().engine().Thrust, self.ship().engine().RemainingThrust, value)
     
     @property
     def Movement(self) -> typing.Tuple[float,float]:

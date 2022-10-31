@@ -175,11 +175,11 @@ class ShipInterface:
     
     def updateInterface(self):
         text = textwrap.dedent(f"""
-        Class: {self.ship().ClassName}
-        Name: {self.ship().Name}
-        Hull: {self.ship().Stats.HP_Hull}/{self.ship().Stats.HP_Hull_max}
-        Shields: {self.ship().Stats.HP_Shields}/{self.ship().Stats.HP_Shields_max}
-        Movement: {self.ship().Stats.Movement_FTL[0]}/{self.ship().Stats.Movement_FTL[1]}
+        Class: {round(self.ship().ClassName,3)}
+        Name: {round(self.ship().Name,3)}
+        Hull: {round(self.ship().Stats.HP_Hull,3)}/{round(self.ship().Stats.HP_Hull_max,3)}
+        Shields: {round(self.ship().Stats.HP_Shields,3)}/{round(self.ship().Stats.HP_Shields_max,3)}
+        Movement: {round(self.ship().Stats.Movement_FTL[0],3)}/{round(self.ship().Stats.Movement_FTL[1],3)}
         """)
         try:
             if self.Label:
@@ -208,12 +208,12 @@ class ShipInterface:
     
     def updateCombatInterface(self):
         text = textwrap.dedent(f"""
-        Class: {self.ship().ClassName}
-        Name: {self.ship().Name}
-        Hull: {self.ship().Stats.HP_Hull}/{self.ship().Stats.HP_Hull_max}
-        Shields: {self.ship().Stats.HP_Shields}/{self.ship().Stats.HP_Shields_max}
-        Movement: {self.ship().Stats.Movement_Sublight[0]}/{self.ship().Stats.Movement_Sublight[1]}
-        Evasion: {self.ship().Stats.Evasion}
+        Class: {round(self.ship().ClassName,3)}
+        Name: {round(self.ship().Name,3)}
+        Hull: {round(self.ship().Stats.HP_Hull,3)}/{round(self.ship().Stats.HP_Hull_max,3)}
+        Shields: {round(self.ship().Stats.HP_Shields,3)}/{round(self.ship().Stats.HP_Shields_max,3)}
+        Movement: {round(self.ship().Stats.Movement_Sublight[0],3)}/{round(self.ship().Stats.Movement_Sublight[1],3)}
+        Evasion: {round(self.ship().Stats.Evasion,3)}
         """)
         try:
             if self.Label:
