@@ -191,6 +191,8 @@ class StrategyCamera(DirectObject):
         self.SpaceSkyBox.setTwoSided(True)
         self.SpaceSkyBox.setTexGen(p3dc.TextureStage.getDefault(),p3dc.TexGenAttrib.MWorldCubeMap)
         self.SpaceSkyBox.reparentTo(self.SpaceSkyBoxCentre)
+        directions = [0,90,180,270]
+        self.SpaceSkyBox.setHpr(random.choice(directions),random.choice(directions),random.choice(directions))
         #self.SpaceSkyBox.setPos((-size/2,-size/2,-size/2)) #VALIDATE: I think it already is centred correctly...
     
     def acceptAllCombinations(self, key, *args):
