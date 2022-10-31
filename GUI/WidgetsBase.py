@@ -126,14 +126,14 @@ class ShipQuickView(AGeWidgets.TightGridFrame): #TODO: Should This be part of th
     
     def updateCombatInterface(self):
         self.Label_Info.setText(f"Name: {self.ship().Name}\nClass: {self.ship().ClassName}\nMovement: {self.ship().Stats.MovementStr}")
-        self.Label_Def.setText(f"Hull: {self.ship().Stats.HP_Hull}/{self.ship().Stats.HP_Hull_max}\nShields: {self.ship().Stats.HP_Shields}/{self.ship().Stats.HP_Shields_max}\nEvasion: {self.ship().Stats.Evasion}")
+        self.Label_Def.setText(f"Hull: {round(self.ship().Stats.HP_Hull,3)}/{round(self.ship().Stats.HP_Hull_max,3)}\nShields: {round(self.ship().Stats.HP_Shields,3)}/{round(self.ship().Stats.HP_Shields_max,3)}\nEvasion: {round(self.ship().Stats.Evasion,3)}")
         w = [i for i in self.ship().Modules if hasattr(i,"Ready")]
         wa = [i for i in w if i.Ready]
         self.Label_Weapons.setText(f"Weapons: {len(wa)}/{len(w)}")
     
     def updateInterface(self):
         self.Label_Info.setText(f"Name: {self.ship().Name}\nClass: {self.ship().ClassName}\nMovement: {self.ship().Stats.MovementStr}")
-        self.Label_Def.setText(f"Hull: {self.ship().Stats.HP_Hull}/{self.ship().Stats.HP_Hull_max}\nShields: {self.ship().Stats.HP_Shields}/{self.ship().Stats.HP_Shields_max}")
+        self.Label_Def.setText(f"Hull: {round(self.ship().Stats.HP_Hull,3)}/{round(self.ship().Stats.HP_Hull_max,3)}\nShields: {round(self.ship().Stats.HP_Shields,3)}/{round(self.ship().Stats.HP_Shields_max,3)}")
         #w = [i for i in self.ship().Modules if hasattr(i,"Ready")]
         #wa = [i for i in w if i.Ready]
     
