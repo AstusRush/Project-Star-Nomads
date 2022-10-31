@@ -175,8 +175,8 @@ class ShipInterface:
     
     def updateInterface(self):
         text = textwrap.dedent(f"""
-        Class: {round(self.ship().ClassName,3)}
-        Name: {round(self.ship().Name,3)}
+        Class: {self.ship().ClassName}
+        Name: {self.ship().Name}
         Hull: {round(self.ship().Stats.HP_Hull,3)}/{round(self.ship().Stats.HP_Hull_max,3)}
         Shields: {round(self.ship().Stats.HP_Shields,3)}/{round(self.ship().Stats.HP_Shields_max,3)}
         Movement: {round(self.ship().Stats.Movement_FTL[0],3)}/{round(self.ship().Stats.Movement_FTL[1],3)}
@@ -208,8 +208,8 @@ class ShipInterface:
     
     def updateCombatInterface(self):
         text = textwrap.dedent(f"""
-        Class: {round(self.ship().ClassName,3)}
-        Name: {round(self.ship().Name,3)}
+        Class: {self.ship().ClassName}
+        Name: {self.ship().Name}
         Hull: {round(self.ship().Stats.HP_Hull,3)}/{round(self.ship().Stats.HP_Hull_max,3)}
         Shields: {round(self.ship().Stats.HP_Shields,3)}/{round(self.ship().Stats.HP_Shields_max,3)}
         Movement: {round(self.ship().Stats.Movement_Sublight[0],3)}/{round(self.ship().Stats.Movement_Sublight[1],3)}
