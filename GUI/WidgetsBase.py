@@ -235,6 +235,7 @@ class Menu(AGeWidgets.TightGridWidget):
         super().__init__(parent)
         self.SaveLoadWidget = self.addWidget(SaveLoadWidget(self))
         self.HighlightOptionsWidget = self.addWidget(HighlightOptionsWidget(self))
+        self.SkyboxOptionsWidget = self.addWidget(SkyboxOptionsWidget(self))
 
 class SaveLoadWidget(AGeWidgets.TightGridFrame):
     def __init__(self, parent: typing.Optional['QtWidgets.QWidget'] = None) -> None:
@@ -247,3 +248,11 @@ class HighlightOptionsWidget(AGeWidgets.TightGridFrame):
         super().__init__(parent)
         self.RedrawEntireGridWhenHighlighting = self.addWidget(AGeInput.Bool(self,"Redraw entire grid when highlighting",True))
         self.HighlightWeaponRange = self.addWidget(AGeInput.Bool(self,"Highlight weapon range",True))
+
+class SkyboxOptionsWidget(AGeWidgets.TightGridFrame):
+    def __init__(self, parent: typing.Optional['QtWidgets.QWidget'] = None) -> None:
+        super().__init__(parent)
+        self.ChangeSkyboxButton = self.addWidget(AGeWidgets.Button(self,"Change Skybox", self.newSkybox))
+    
+    def newSkybox(self):
+        get.scene().loadSkybox()

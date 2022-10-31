@@ -167,6 +167,14 @@ class EngineClass(ape.APE):
         # else:
         #     return self.Scene.HexGrid
     
+    def getScene(self, campaign = None) -> 'Scene.BaseScene':
+        if campaign is None:
+            campaign = not bool(self.BattleScene)
+        if campaign:
+            return self.Scene
+        else:
+            return self.BattleScene
+    
     def getUnitManager(self, campaign = None) -> 'UnitManagerBase.UnitManager':
         if campaign is None:
             campaign = not bool(self.BattleScene)
