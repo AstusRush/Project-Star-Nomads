@@ -575,11 +575,12 @@ class FleetBase():
     
     def detectEnemies(self) -> typing.List[typing.Tuple[int,'FleetBase']]:
         "Returns a list of tuples with the detection level of a fleet and the fleet in question. Only considers hostile fleets"
-        ranges = list(self.getSensorRanges_Int())+[0,]
+        ranges = list(self.getSensorRanges_Int())+[-1,]
         fleets:typing.List[typing.Tuple[int,'FleetBase']] = []
         for i,r in enumerate(ranges):
             if i == 0 or i == 5: continue
-            potentialFleets = [h.fleet() for h in self.hex().getDisk(r,ranges[i+1]) if h.fleet]
+            if ranges[i+1] >= ranges[i]: continue
+            potentialFleets = [h.fleet() for h in self.hex().getDisk(r,ranges[i+1]+1) if h.fleet]
             fleets += [(f.detectCheck(i), f) for f in potentialFleets if f.detectCheck(i) and get.unitManager().isHostile(self.Team,f.Team)]
         return fleets
     

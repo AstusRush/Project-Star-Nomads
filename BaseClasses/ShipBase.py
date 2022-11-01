@@ -187,7 +187,7 @@ class ShipsStats():
         "'Remaining/Maximum' movement on the current map."
         if get.engine().CurrentlyInBattle: m = self.Movement_Sublight
         else: m = self.Movement_FTL
-        return f"{m[0]}/{m[1]}"
+        return f"{round(m[0],3)}/{round(m[1],3)}"
     
     def spendMovePoints(self, value:float):
         if get.engine().CurrentlyInBattle: self.spendMovePoints_Sublight(value)
@@ -351,13 +351,13 @@ class ShipBase():
         Especially returns false if the module would occupy an already occupied unique module slot like the hull.
         """
         from BaseClasses import BaseModules
-        if (isinstance(module, BaseModules.Hull) or issubclass(module, BaseModules.Hull)) and self.hull:
+        if AGeAux.isInstanceOrSubclass(module, BaseModules.Hull) and self.hull:
             return False
-        if (isinstance(module, BaseModules.Thruster) or issubclass(module, BaseModules.Thruster)) and self.thruster:
+        if AGeAux.isInstanceOrSubclass(module, BaseModules.Thruster) and self.thruster:
             return False
-        if (isinstance(module, BaseModules.Engine) or issubclass(module, BaseModules.Engine)) and self.engine:
+        if AGeAux.isInstanceOrSubclass(module, BaseModules.Engine) and self.engine:
             return False
-        if (isinstance(module, BaseModules.Sensor) or issubclass(module, BaseModules.Sensor)) and self.sensor:
+        if AGeAux.isInstanceOrSubclass(module, BaseModules.Sensor) and self.sensor:
             return False
         return True
     
@@ -595,7 +595,7 @@ class ShipBase():
         """
         #FEATURE:HULLTYPES
         #FEATURE:WEAPONSTRUCTURES: instead of handing over a bazillion parameters there should be a class for weapons which can handle everything. That class should probably replace this takeDamage method all together
-        hit = np.random.random_sample() < accuracy-self.Stats.Evasion
+        hit = np.random.random_sample() < min(0.95 , max(0.05 , accuracy-self.Stats.Evasion))
         finalDamage = 0
         destroyed = False
         if hit:

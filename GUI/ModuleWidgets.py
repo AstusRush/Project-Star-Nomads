@@ -187,7 +187,7 @@ class ConstructionModuleWidget(WidgetsBase.ModuleWidget):
         get.engine().constructionWindow.positionReset()
         App().processEvents()
         get.engine().constructionWindow.activateWindow()
-        NC(2,"The construction window is very much a work in progress.\nThere are barely any checks to prevent that something goes wrong!\nYou have been warned!",DplStr="Attention! WIP!",unique=True)
+        #NC(2,"The construction window is very much a work in progress.\nThere are barely any checks to prevent that something goes wrong!\nYou have been warned!",DplStr="Attention! WIP!",unique=True)
 
 class SensorWidget(WidgetsBase.ModuleWidget):
     module: 'weakref.ref[BaseModules.Sensor]' = None

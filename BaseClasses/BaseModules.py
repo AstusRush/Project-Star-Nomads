@@ -80,10 +80,15 @@ class Module():
     Threat = 0
     def __init__(self) -> None:
         self.ship:'weakref.ref[ShipBase.ShipBase]' = None
-        if self.Threat == Module.Threat and hasattr(self, "calculateThreat"):
+        self.automaticallyDetermineValues()
+    
+    def automaticallyDetermineValues(self):
+        if hasattr(self, "calculateThreat"):
             self.Threat = self.calculateThreat()
-        if self.Value == Module.Value and hasattr(self, "calculateValue"):
+        if hasattr(self, "calculateValue"):
             self.Value = self.calculateValue()
+        if hasattr(self, "calculateMass"):
+            self.Mass = self.calculateMass()
     
     def setShip(self, ship:'ShipBase.ShipBase') -> None:
         self.ship = weakref.ref(ship)
@@ -145,6 +150,19 @@ class Module():
         }
         if tech.statCustomisationUnlocked(self,"Mass"): d["Mass"] = lambda: AGeInput.Float(None,"Mass",self.Mass,tech.moduleStatMin(self,"Mass"),tech.moduleStatMax(self,"Mass"))
         return d
+    
+    def copy(self) -> "Module": #VALIDATE: Does this work as intended?
+        l = {}
+        exec(AGeToPy.formatObject(self,"moduleCopy"),globals(),l)
+        module:"Module" = l["moduleCopy"]
+        module.resetCondition()
+        return module
+    
+    def resetCondition(self):
+        pass
+    
+    def makeValuesValid(self) -> 'str':
+        return ""
 
 class Hull(Module):
     # The hull of a ship (can be tied to a ship model)
@@ -163,6 +181,10 @@ class Hull(Module):
         return self.HP_Hull_max / 100
     
     def handleNewCampaignTurn(self):
+        self.resetCondition()
+    
+    def resetCondition(self):
+        super().resetCondition()
         self.HP_Hull = self.HP_Hull_max
     
     def handleNewCombatTurn(self):
@@ -223,6 +245,10 @@ class Engine(Module): # FTL Engine
     def handleNewCampaignTurn(self):
         self.RemainingThrust = self.Thrust
     
+    def resetCondition(self):
+        super().resetCondition()
+        self.RemainingThrust = self.Thrust
+    
     def getInterface(self) -> QtWidgets.QWidget:
         self.Widget = ModuleWidgets.EngineWidget(self)
         return self.Widget
@@ -264,6 +290,10 @@ class Thruster(Module): # Sublight Thruster
         return self.Thrust / 10
     
     def handleNewCampaignTurn(self):
+        self.resetCondition()
+    
+    def resetCondition(self):
+        super().resetCondition()
         self.RemainingThrust = self.Thrust
     
     def handleNewCombatTurn(self):
@@ -311,6 +341,10 @@ class Shield(Module):
         return self.HP_Shields_max / 400 + self.HP_Shields_Regeneration / 400
     
     def handleNewCampaignTurn(self):
+        self.resetCondition()
+    
+    def resetCondition(self):
+        super().resetCondition()
         self.HP_Shields = self.HP_Shields_max
     
     def handleNewCombatTurn(self):
@@ -430,6 +464,11 @@ class ConstructionModule(Module):
             "ConstructionResourcesGeneratedPerTurn" : self.ConstructionResourcesGeneratedPerTurn ,
             "ConstructionResourcesStored" : self.ConstructionResourcesStored ,
         }
+    
+    def copy(self) -> "ConstructionModule":
+        module = super().copy()
+        module.ConstructionResourcesStored = 0 #NOTE: This is only a temporary system
+        return module
 
 class Sensor(Module):
     # Includes sensors that increase weapon accuracy
@@ -488,7 +527,7 @@ class Weapon(Module):
     ShieldFactor = 1
     HullFactor = 1
     Range = 3
-    # MinimalRange = 1
+    MinimalRange = 0
     ShieldPiercing = False
     
     def __init__(self) -> None:
@@ -497,15 +536,29 @@ class Weapon(Module):
         self.Ready = True
         self.SFX = base().loader.loadSfx(self.SoundEffectPath)
         self.SFX.setVolume(0.07)
-        print(f"{self.Name = }\n{self.Threat = }\n{self.Value = }\n")
+        print(f"{self.Name = }\n{self.Threat = }\n{self.Value = }\n{self.Mass = }\n")
     
-    def calculateThreat(self): #TODO: Come up with a formula for this that also includes mass
-        return self.Damage/100 * self.Accuracy * ((20 if self.ShieldPiercing else self.ShieldFactor) + self.HullFactor)/2 * (1.5+self.Range/3)/2.5
+    def calculateThreat(self):
+        return self.Damage/100 * self.Accuracy * ((20 if self.ShieldPiercing else self.ShieldFactor) + self.HullFactor)/2 * ((1+self.Range-self.MinimalRange/2)/4.5)**2
     
-    def calculateValue(self): #TODO: Come up with a formula for this that also includes mass
+    def calculateValue(self):
         return self.calculateThreat()/3
     
+    def calculateMass(self):
+        return max(0.01 , self.calculateThreat()/3 + ((1+self.Range-self.MinimalRange/3)/4.5)**2 - 1)/2 * self.Accuracy
+    
+    def makeValuesValid(self) -> 'str':
+        adjustments = super().makeValuesValid()
+        if self.Range < self.MinimalRange:
+            adjustments += "The maximal range was smaller than the minimal range and was therefore increased to match. The outcome may be undesirable.\n"
+            self.Range = self.MinimalRange
+        return adjustments
+    
     def handleNewCampaignTurn(self):
+        self.resetCondition()
+    
+    def resetCondition(self):
+        super().resetCondition()
         self.Ready = True
     
     def handleNewCombatTurn(self):
@@ -528,7 +581,7 @@ class Weapon(Module):
             #TODO: Do we want a notification?
             #NC(2, "A weapon was fired on a hex with no fleet or an already destroyed fleet." ,input=f"Fleet: {self.ship().fleet().Name}\nShip: {self.ship().Name}\nModule: {self.Name}\nTarget coordinates: {target.Coordinates}")
             return
-        if self.Ready and self.ship().fleet().hex().distance(target) <= self.Range:
+        if self.Ready and self.MinimalRange <= self.ship().fleet().hex().distance(target) <= self.Range:
             for _ in range(6):
                 targetShip = random.choice(target.fleet().Ships)
                 if not targetShip.Destroyed:
@@ -555,17 +608,20 @@ class Weapon(Module):
             "ShieldFactor" : self.ShieldFactor ,
             "HullFactor" : self.HullFactor ,
             "Range" : self.Range ,
+            "MinimalRange" : self.MinimalRange ,
             "ShieldPiercing" : self.ShieldPiercing ,
             "Ready" : self.Ready ,
         }
     
     def getCustomisableStats(self) -> 'dict[str,typing.Callable[[],AGeInput._TypeWidget]]':
         d = super().getCustomisableStats()
+        del d["Mass"]
         if tech.statCustomisationUnlocked(self,"Damage"): d["Damage"] = lambda: AGeInput.Float(None,"Damage",self.Damage,tech.moduleStatMin(self,"Damage"),tech.moduleStatMax(self,"Damage"))
         if tech.statCustomisationUnlocked(self,"Accuracy"): d["Accuracy"] = lambda: AGeInput.Float(None,"Accuracy",self.Accuracy,tech.moduleStatMin(self,"Accuracy"),tech.moduleStatMax(self,"Accuracy"))
         if tech.statCustomisationUnlocked(self,"ShieldFactor"): d["ShieldFactor"] = lambda: AGeInput.Float(None,"ShieldFactor",self.ShieldFactor,tech.moduleStatMin(self,"ShieldFactor"),tech.moduleStatMax(self,"ShieldFactor"))
         if tech.statCustomisationUnlocked(self,"HullFactor"): d["HullFactor"] = lambda: AGeInput.Float(None,"HullFactor",self.HullFactor,tech.moduleStatMin(self,"HullFactor"),tech.moduleStatMax(self,"HullFactor"))
         if tech.statCustomisationUnlocked(self,"Range"): d["Range"] = lambda: AGeInput.Int(None,"Range",self.Range,tech.moduleStatMin(self,"Range"),tech.moduleStatMax(self,"Range"))
+        if tech.statCustomisationUnlocked(self,"MinimalRange"): d["MinimalRange"] = lambda: AGeInput.Int(None,"MinimalRange",self.MinimalRange,tech.moduleStatMin(self,"MinimalRange"),tech.moduleStatMax(self,"MinimalRange"))
         if tech.statCustomisationUnlocked(self,"ShieldPiercing"): d["ShieldPiercing"] = lambda: AGeInput.Bool(None,"ShieldPiercing",self.ShieldPiercing)
         return d
 

@@ -100,27 +100,27 @@ class TestBeam_M(BaseModules.Weapon_Beam):
     Accuracy = 1
     ShieldFactor = 1
     HullFactor = 1
-    Range = 4
+    Range = 3
 
 class TestEngine_M(BaseModules.Engine): # FTL Engine
     Name = "TestEngine_M"
-    Thrust = 8
-    RemainingThrust = 8
+    Thrust = 12
+    RemainingThrust = 12
 
 class TestEngine_L(BaseModules.Engine): # FTL Engine
     Name = "TestEngine_L"
-    Thrust = 14
-    RemainingThrust = 14
+    Thrust = 20
+    RemainingThrust = 20
 
 class TestThruster_M(BaseModules.Thruster): # Sublight Thruster
     Name = "TestThruster_M"
-    Thrust = 8
-    RemainingThrust = 8
+    Thrust = 12
+    RemainingThrust = 12
 
 class TestThruster_L(BaseModules.Thruster): # Sublight Thruster
     Name = "TestThruster_L"
-    Thrust = 14
-    RemainingThrust = 14
+    Thrust = 20
+    RemainingThrust = 20
 
 class TestConstructionModule(BaseModules.ConstructionModule): # ConstructionModule
     Name = "TestConstructionModule"

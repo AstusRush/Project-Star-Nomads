@@ -211,13 +211,15 @@ class ModuleList(QtWidgets.QListWidget):
     def parent(self) -> 'ModuleListWidget':
         return super().parent()
     
-    def addModule(self, module:'type[BaseModules.Module]'):
+    def addModule(self, module:'typing.Union[BaseModules.Module,type[BaseModules.Module]]'):
         if not self.parent().parent().canModuleBeAdded(module):
             NC(2,"Module can not be added.")
         else:
+            if isinstance(module,type):
+                module = module()
             item = ModuleItem()
             item.setText(module.Name)
-            item.setData(100, module())
+            item.setData(100, module)
             self.addItem(item)
             self.parent().parent().addModule(item.data(100))
             self.parent().parent().ModuleEditor.setModule(item)
@@ -230,6 +232,9 @@ class ModuleList(QtWidgets.QListWidget):
         self.parent().parent().removeModule(item.data(100))
         self.takeItem(self.row(item))
     
+    def duplicateModule(self, item:"ModuleItem"):
+        self.addModule(item.data(100).copy())
+    
     def eventFilter(self, source, event):
         #TODO: Add Tooltips for the Actions! These should also specify whether the action will be executed on all selected items or only the right-clicked-one! "Delete" should also mention "Del" as the hotkey!
         #FEATURE: When multiple items are selected the context menu should be different: instead of the usual options there should be options to format the selected items in a specific way and copy the result to the clipboard
@@ -237,13 +242,15 @@ class ModuleList(QtWidgets.QListWidget):
         try:
             if event.type() == 82: # QtCore.QEvent.ContextMenu
             # ---------------------------------- History Context Menu ----------------------------------
-                if source.itemAt(event.pos()):
-                    item = source.itemAt(event.pos())
+                item = source.itemAt(event.pos())
+                if item:
                     menu = QtWidgets.QMenu()
                     action = menu.addAction('Select [DoubleClick]')
                     action.triggered.connect(lambda: self.selectModuleForEditor(item))
+                    action = menu.addAction('Duplicate')
+                    action.triggered.connect(lambda: self.duplicateModule(item))
                     action = menu.addAction('Remove [Del]')
-                    action.triggered.connect(lambda: self.removeModule(source.itemAt(event.pos())))
+                    action.triggered.connect(lambda: self.removeModule(item))
                     menu.setPalette(self.palette())
                     menu.setFont(self.font())
                     menu.exec_(event.globalPos())
@@ -278,7 +285,7 @@ class ModuleEditor(AGeWidgets.TightGridFrame):
         self.ActiveModule = module
         self.ActiveModuleItem = item
         self.NameLabel.setText(module.Name)
-        self.updateValue()
+        self.updateValueLabel()
         self.loadModuleStats()
     
     def unsetModule(self, item:'ModuleItem'):
@@ -306,13 +313,15 @@ class ModuleEditor(AGeWidgets.TightGridFrame):
         if self.ModuleStatContainer and self.ActiveModule and self.StatDict:
             for k,v in self.StatDict.items():
                 setattr(self.ActiveModule,k,v())
-            if hasattr(self.ActiveModule, "calculateThreat"):
-                self.ActiveModule.Threat = self.ActiveModule.calculateThreat()
-            if hasattr(self.ActiveModule, "calculateValue"):
-                self.ActiveModule.Value = self.ActiveModule.calculateValue()
+            adjustments = self.ActiveModule.makeValuesValid()
+            if adjustments: NC(2, "Not all values were valid. The following adjustments were made:\n"+adjustments)
+            self.ActiveModule.resetCondition()
+            self.ActiveModule.automaticallyDetermineValues()
             self.parent().ShipStats.updateShipInterface()
-            self.updateValue()
+            self.updateValueLabel()
             self.ActiveModuleItem.setText(self.ActiveModule.Name)
+            self.loadModuleStats()
+            self.NameLabel.setText(module.Name)
     
-    def updateValue(self):
-        self.ValueLabel.setText(f"Value: {self.ActiveModule.Value}\nThreat {self.ActiveModule.Threat}")
+    def updateValueLabel(self):
+        self.ValueLabel.setText(f"Value: {self.ActiveModule.Value}\nThreat {self.ActiveModule.Threat}\nMass {self.ActiveModule.Mass}")
