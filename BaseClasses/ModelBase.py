@@ -64,11 +64,12 @@ def createModel(IconPath,ModelPath):
 class ModelBase():
     IconPath = "" #TODO: we need a default icon for ships
     ModelPath = "Models/Simple Geometry/cube.ply"
-    def __init__(self) -> None:
+    def __init__(self, loadImmediately=True) -> None:
         self.Model:p3dc.NodePath = None
         self.Node:p3dc.NodePath = None
         self.CouldLoadModel = False
-        self._init_model()
+        if loadImmediately:
+            self._init_model()
     
     def _init_model(self):
         if hasattr(self,"Model") and self.Model:
@@ -79,7 +80,7 @@ class ModelBase():
         try:
             self.Node.reparentTo(render())
             try:
-                self.Model:p3dc.NodePath = loader().loadModel(self.ModelPath)
+                self.Model:p3dc.NodePath = self.getModel()
                 self.CouldLoadModel = True
             except:
                 self.CouldLoadModel = False
@@ -92,13 +93,19 @@ class ModelBase():
             raise
         try:
             self.Model.reparentTo(self.Node)
-            self.Model.setColor((1,1,1,1))
+            self.setColour()
         except:
             self.CouldLoadModel = False
             self.Model.removeNode()
             self.Node.removeNode()
             self.Node, self.Model = None, None
             raise
+    
+    def setColour(self):
+        self.Model.setColor((1,1,1,1))
+    
+    def getModel(self):
+        return loader().loadModel(self.ModelPath)
     
     def destroy(self):
         if hasattr(self,"Model") and self.Model:

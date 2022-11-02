@@ -454,15 +454,17 @@ class _Hex():
             meshRing = "Models/Simple Geometry/hexagonRing.ply"
             meshRingInner = "Models/Simple Geometry/hexagonRingInner.ply"
             # Load, parent, colour, and position the model (a hexagon-shaped ring consisting of 6 polygons)
+            self.Node:p3dc.NodePath = p3dc.NodePath(p3dc.PandaNode(f"Central node of hex: {name}"))
+            self.Node.reparentTo(root)
+            self.Node.setPos(self.Pos)
             self.Model:p3dc.NodePath = loader().loadModel(meshRing)
-            self.Model.reparentTo(root)
-            self.Model.setPos(self.Pos)
+            self.Model.reparentTo(self.Node)
             if self.TransparentHexRings:
                 self.Model.setTransparency(p3dc.TransparencyAttrib.MAlpha)
             self._setColor(self.Colour)
             # Load, parent, hide, and position the face (a single hexagon polygon)
             self.Face:p3dc.NodePath = loader().loadModel(mesh)
-            self.Face.reparentTo(self.Model)
+            self.Face.reparentTo(self.Node)
             self.Face.setPos(p3dc.LPoint3((0,0,-0.01)))
             self._setColorFace(self.CurrentColour_Face)
             #TODO: Make transparent
@@ -477,7 +479,7 @@ class _Hex():
             
             # Load, parent, colour, and position the model (a hexagon-shaped ring consisting of 6 polygons)
             self.InnerRing:p3dc.NodePath = loader().loadModel(meshRingInner)
-            self.InnerRing.reparentTo(self.Model)
+            self.InnerRing.reparentTo(self.Node)
             self.InnerRing.setPos(p3dc.LPoint3((0,0,0)))
             if self.TransparentHexRings:
                 self.InnerRing.setTransparency(p3dc.TransparencyAttrib.MAlpha)
@@ -489,14 +491,20 @@ class _Hex():
             self.fleet = None # type: 'weakref.ref[FleetBase.FleetBase]'
             self.Navigable = True
             
+            self.Selected = False
             self.Highlighted = False
+            self.HighlightedEdge = False
+            self.HighlightedInner = False
+            self.HighlightedFace = False
         except:
             NC(1,f"Error while creating {name}",exc=True)  #CRITICAL: Clean up all nodes by removing them if they were created!!
     
     def __del__(self):
         del self.content
+        self.InnerRing.removeNode()
         self.Face.removeNode()
         self.Model.removeNode()
+        self.Node.removeNode()
         
     def isHighlighted(self):
         return self is self.grid().HighlightedHex
@@ -602,10 +610,13 @@ class _Hex():
             if self.TransparentHexRings:
                 self.Model.setTransparency(p3dc.TransparencyAttrib.MNone)
             self._setColor(self.COLOUR_HIGHLIGHT)
+            self.Model.show()
         else:
             if self.TransparentHexRings and not self.CurrentColour_Edge == self.COLOUR_SELECT:
                 self.Model.setTransparency(p3dc.TransparencyAttrib.MAlpha)
             self._setColor(self.CurrentColour_Edge)
+            if get.menu().HighlightOptionsWidget.HideGrid() and not self.HighlightedEdge and not self.Selected:
+                self.Model.hide()
     
     def highlight(self, edge = False, inner = False, face = False, clearFirst = False):
         if clearFirst:
@@ -613,6 +624,8 @@ class _Hex():
         if not edge and not inner and not face:
             if self.TransparentHexRings and not self.CurrentColour_Edge == self.COLOUR_SELECT:
                 self.Model.setTransparency(p3dc.TransparencyAttrib.MAlpha)
+                if get.menu().HighlightOptionsWidget.HideGrid() and not self.Selected: self.Model.hide()
+            if not get.menu().HighlightOptionsWidget.HideGrid(): self.Model.show()
             #if self.isHighlighted():
             #    self.CurrentColour_Edge = self.COLOUR_SELECT
             #    self.CurrentColour_Face = self.COLOUR_SELECT_FACE
@@ -635,27 +648,32 @@ class _Hex():
             self.Face.setTransparency(p3dc.TransparencyAttrib.MNone)
             self.Face.hide()
             self.InnerRing.hide()
-            #TODO:Inner
             self.Highlighted = False
+            self.HighlightedEdge = False
+            self.HighlightedInner = False
+            self.HighlightedFace = False
         else:
             self.Highlighted = True
             if edge:
+                self.HighlightedEdge = True
                 if self.TransparentHexRings:
                     self.Model.setTransparency(p3dc.TransparencyAttrib.MAlpha)
                 self.CurrentColour_Edge = edge
                 self._setColor(self.CurrentColour_Edge)
+                self.Model.show()
             if inner:
+                self.HighlightedInner = True
                 if self.TransparentHexRings:
                     self.InnerRing.setTransparency(p3dc.TransparencyAttrib.MAlpha)
                 self.CurrentColour_InnerRing = inner
                 self._setColorInnerRing(self.CurrentColour_InnerRing)
                 self.InnerRing.show()
             if face:
+                self.HighlightedFace = True
                 self.Face.setTransparency(p3dc.TransparencyAttrib.MAlpha)
                 self.CurrentColour_Face = face
                 self._setColourFace(self.CurrentColour_Face)
                 self.Face.show()
-            #TODO:Inner
     
     def select(self, select:bool = True):
         self.grid().selectHex(self, select)
@@ -665,6 +683,7 @@ class _Hex():
         self.selectContent(select)
     
     def _select_highlighting(self, select:bool = True):
+        self.Selected = select
         if select:
             self.CurrentColour_Edge = self.COLOUR_SELECT
             if self.TransparentHexRings:
@@ -673,6 +692,7 @@ class _Hex():
             self._setColorFace(self.COLOUR_SELECT_FACE)
             self.Face.setTransparency(p3dc.TransparencyAttrib.MAlpha)
             self.Face.show()
+            self.Model.show()
             self.InnerRing.hide()
         else:
             self.CurrentColour_Edge = self.Colour
@@ -682,6 +702,7 @@ class _Hex():
             self.Face.setTransparency(p3dc.TransparencyAttrib.MNone)
             self.Face.hide()
             self.InnerRing.hide()
+            if get.menu().HighlightOptionsWidget.HideGrid() and not self.HighlightedEdge: self.Model.hide()
     
   #endregion Highlighting
   #region Hex Math

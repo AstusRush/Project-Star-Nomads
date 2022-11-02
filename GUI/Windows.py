@@ -71,7 +71,10 @@ class MainWindowClass(ape.APELabWindow):#APEWindow):
         self.cw.setLayout(layout)
         
         #self.Console1.setText("self.Pawn = Unit((25,25),App().MiscColours[\"Self\"])\n")
+        
         self.Console1.setText(TEMP_CODE)
+        #self.Console1.setText(TEMP_CODE_PROC_TEST)
+        
         self.Console2.setText("engine().endBattleScene()\n")
         
         self.UnitStatDisplay = WidgetsBase.FleetStats(self)
@@ -157,6 +160,28 @@ if False:
         self.P3_Fleet2.addShip(ship)
     self.P3_Fleet2.moveToHex(self.getHex((24,25)))
     ###########################################
+"""
+
+TEMP_CODE_PROC_TEST = """
+if not hasattr(self, "ship"):
+    from ProceduralGeneration import GeomBuilder
+    self.GeomBuilder = GeomBuilder
+    
+    self.P1_Fleet1 = FleetBase.Fleet(1)
+    self.P1_Fleet1.Name = "Fleet 1"
+    
+    self.ship = Ships.TestShips.ProcTestShip()
+    self.ship.Name = f"Test 1"
+    self.P1_Fleet1.addShip(self.ship)
+    
+    self.P1_Fleet1.moveToHex(self.getHex((25,25)))
+else:
+    self.ship.Model._init_model()
+    self.ship.Model.centreModel()
+    self.ship.Model.Node.reparentTo(self.ship.Node)
+    self.ship.Model.Node.setPos(0,0,0)
+# self.ship.Model.generateModel
+# self.GeomBuilder.GeomBuilder.add_sphere
 """
 
 

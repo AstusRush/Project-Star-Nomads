@@ -235,24 +235,39 @@ class Menu(AGeWidgets.TightGridWidget):
         super().__init__(parent)
         self.SaveLoadWidget = self.addWidget(SaveLoadWidget(self))
         self.HighlightOptionsWidget = self.addWidget(HighlightOptionsWidget(self))
-        self.SkyboxOptionsWidget = self.addWidget(SkyboxOptionsWidget(self))
+        self.GraphicsOptionsWidget = self.addWidget(GraphicsOptionsWidget(self))
+        self.layout().addItem(QtWidgets.QSpacerItem(2, 2, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding))
 
 class SaveLoadWidget(AGeWidgets.TightGridFrame):
     def __init__(self, parent: typing.Optional['QtWidgets.QWidget'] = None) -> None:
         super().__init__(parent)
+        self.Label = self.addWidget(QtWidgets.QLabel("Save/Load",self))
+        self.HeadlineLine = self.addWidget(QtWidgets.QFrame(self))
+        self.HeadlineLine.setFrameShape(QtWidgets.QFrame.HLine)
+        self.HeadlineLine.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.SaveButton = self.addWidget(AGeWidgets.Button(self,"Save",lambda: get.engine().save()))
         self.LoadButton = self.addWidget(AGeWidgets.Button(self,"Load",lambda: get.engine().load()))
 
 class HighlightOptionsWidget(AGeWidgets.TightGridFrame):
     def __init__(self, parent: typing.Optional['QtWidgets.QWidget'] = None) -> None:
         super().__init__(parent)
-        self.RedrawEntireGridWhenHighlighting = self.addWidget(AGeInput.Bool(self,"Redraw entire grid when highlighting",True))
+        self.Label = self.addWidget(QtWidgets.QLabel("Highlighting",self))
+        self.HeadlineLine = self.addWidget(QtWidgets.QFrame(self))
+        self.HeadlineLine.setFrameShape(QtWidgets.QFrame.HLine)
+        self.HeadlineLine.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.HighlightWeaponRange = self.addWidget(AGeInput.Bool(self,"Highlight weapon range",True))
+        self.HideGrid = self.addWidget(AGeInput.Bool(self,"Hide Grid",False))
 
-class SkyboxOptionsWidget(AGeWidgets.TightGridFrame):
+class GraphicsOptionsWidget(AGeWidgets.TightGridFrame):
     def __init__(self, parent: typing.Optional['QtWidgets.QWidget'] = None) -> None:
         super().__init__(parent)
+        self.Label = self.addWidget(QtWidgets.QLabel("Graphics",self))
+        self.HeadlineLine = self.addWidget(QtWidgets.QFrame(self))
+        self.HeadlineLine.setFrameShape(QtWidgets.QFrame.HLine)
+        self.HeadlineLine.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.ChangeSkyboxButton = self.addWidget(AGeWidgets.Button(self,"Change Skybox", self.newSkybox))
+        self.AsteroidResolution = self.addWidget(AGeInput.Int(self,"Asteroid Resolution\n(lower=faster battle loading)",10,5,50,"²"))
+        self.RedrawEntireGridWhenHighlighting = self.addWidget(AGeInput.Bool(self,"Redraw entire grid when highlighting\n(Useful when changing hex colours)\n(Disable if selecting a unit is slow)",True))
     
     def newSkybox(self):
         get.scene().loadSkybox()

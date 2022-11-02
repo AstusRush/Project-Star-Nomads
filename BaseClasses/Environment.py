@@ -53,6 +53,7 @@ from BaseClasses import ShipBase
 from BaseClasses import get
 from BaseClasses import HexBase
 from BaseClasses import ModelBase
+from ProceduralGeneration import ProceduralModels
 
 class EnvironmentCreator():
     ClusterNumberMin = 6
@@ -65,18 +66,22 @@ class EnvironmentCreator():
     
     def generate(self, hexGrid:HexBase.HexGrid, combat:bool):
         if not self.ObjectTypes: raise Exception("No object types were given")
-        for _ in range(random.choice(range(self.ClusterNumberMin, self.ClusterNumberMax+1))):
+        clusterTotal = random.choice(range(self.ClusterNumberMin, self.ClusterNumberMax+1))
+        for clusterNum in range(clusterTotal):
             for _ in range(20):
                 clusterCentre = random.choice(random.choice(hexGrid.Hexes))
                 if not clusterCentre.fleet: break
             if clusterCentre.fleet: continue
-            self._createCluster(clusterCentre, combat)
+            self._createCluster(clusterCentre, combat, clusterTotal, clusterNum)
     
-    def _createCluster(self, clusterCentre:HexBase._Hex, combat:bool):
+    def _createCluster(self, clusterCentre:HexBase._Hex, combat:bool, clusterTotal, clusterNum):
         #TODO: It is currently possible that fleets are completely blocked in by obstacles. There needs to be a check that ensures that all tiles are reachable
         objectType = random.choice(self.ObjectTypes)
         currentHex = clusterCentre
-        for _ in range(random.choice(range(self.ClusterSizeMin, self.ClusterSizeMax+1))):
+        entityTotal = random.choice(range(self.ClusterSizeMin, self.ClusterSizeMax+1))
+        for entityNum in range(entityTotal):
+            get.window().Statusbar.showMessage(f"Generating entity {entityNum}/{entityTotal} for environment cluster {clusterNum}/{clusterTotal}")
+            App().processEvents()
             object = objectType()
             if not combat: objectGroup = EnvironmentalObjectGroup_Campaign()
             else: objectGroup = EnvironmentalObjectGroup_Battle()
@@ -118,6 +123,7 @@ class Asteroid(EnvironmentalObject):
         super().__init__()
         from BaseClasses import BaseModules
         if generateModel:
-            self.setModel(AsteroidModel())
+            #self.setModel(AsteroidModel())
+            self.setModel(ProceduralModels.ProceduralModel_Asteroid())
             if not self.Model.CouldLoadModel and self.Model.Model: self.Model.Model.setColor(ape.colour(QtGui.QColor(0x6d4207)))
         self.addModule(BaseModules.Asteroid_Hull())

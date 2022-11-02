@@ -52,6 +52,7 @@ from BaseClasses import ShipBase
 from BaseClasses import ModelBase
 from BaseClasses import BaseModules
 from BaseClasses import FleetBase
+from ProceduralGeneration import ProceduralModels
 import ShipModules
 
 class EnterpriseModel(ModelBase.ShipModel):
@@ -167,6 +168,26 @@ class TestShip(ShipBase.Ship):
         super().__init__()
         if generateModel:
             self.setModel(TestModel())
+        self.addModule(ShipModules.TestModules.TestHull_M())
+        self.addModule(ShipModules.TestModules.TestSensors_M())
+        self.addModule(ShipModules.TestModules.TestShield_L())
+        self.addModule(ShipModules.TestModules.TestBeam_M())
+        self.addModule(ShipModules.TestModules.TestEngine_M())
+        self.addModule(ShipModules.TestModules.TestThruster_M())
+
+
+
+class ProceduralTestModel(ProceduralModels.ProceduralModel_Asteroid):
+    #IconPath = "tempModels/SpaceDockNar30974/dock3.jpg"
+    pass
+
+class ProcTestShip(ShipBase.Ship):
+    Name = "Proc Test"
+    ClassName = "Proc Test Class"
+    def __init__(self, generateModel=True) -> None:
+        super().__init__()
+        if generateModel:
+            self.setModel(ProceduralTestModel())
         self.addModule(ShipModules.TestModules.TestHull_M())
         self.addModule(ShipModules.TestModules.TestSensors_M())
         self.addModule(ShipModules.TestModules.TestShield_L())

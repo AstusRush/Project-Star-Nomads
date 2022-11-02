@@ -511,7 +511,7 @@ class FleetBase():
         If `highlight = False` the highlighted hexes are instead un-highlighted.
         """
         #self.hex().grid().highlightHexes(clearFirst=True)
-        self.hex().grid().clearAllHexHighlighting(forceAll=get.window().Menu.HighlightOptionsWidget.RedrawEntireGridWhenHighlighting())
+        self.hex().grid().clearAllHexHighlighting(forceAll=get.menu().GraphicsOptionsWidget.RedrawEntireGridWhenHighlighting())
         if highlight and not self.Hidden:
             self.highlightMovementRange(highlight, clearFirst=False)
         self.handleSensors()
@@ -891,7 +891,7 @@ class Flotilla(FleetBase):
         If `highlight = False` the highlighted hexes are instead un-highlighted.
         """
         super().highlightRanges(highlight)
-        if highlight and get.window().Menu.HighlightOptionsWidget.HighlightWeaponRange() and not self.Hidden:
+        if highlight and get.menu().HighlightOptionsWidget.HighlightWeaponRange() and not self.Hidden:
             self.highlightAttackRange(highlight, clearFirst=False)
     
     def highlightAttackRange(self, highlight=True, clearFirst=True): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!

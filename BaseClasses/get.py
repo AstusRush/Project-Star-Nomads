@@ -49,7 +49,6 @@ else:
 
 if typing.TYPE_CHECKING:
     # These imports make the IDE happy
-    from GUI.Windows import MainWindowClass
     #from Main_temp import * #TODO: This is temporary
     from BaseClasses import UnitManagerBase
     from BaseClasses import HexBase
@@ -58,11 +57,14 @@ if typing.TYPE_CHECKING:
     from BaseClasses import ModelBase
     from ApplicationClasses import Scene
     from ApplicationClasses import MainAppClass
+    from GUI import Windows
+    from GUI import WidgetsBase
 
-def window():
-    # type: () -> MainWindowClass
-    #w:MainWindowClass = _window()
-    return _window()#w
+def window() -> 'Windows.MainWindowClass':
+    return _window()
+
+def menu() -> 'WidgetsBase.Menu':
+    return window().Menu
 
 def engine() -> 'MainAppClass.EngineClass':
     return _engine()

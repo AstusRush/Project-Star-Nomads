@@ -96,7 +96,8 @@ class EngineWidget(WidgetsBase.ModuleWidget):
     
     def updateInterface(self):
         c,m = self.module().ship().Stats.Movement_FTL
-        self.Label.setText(f"{self.module().Name} (FLT Engine):\n\tMovement: {c}/{m}\n\tThrust: {self.module().RemainingThrust}/{self.module().Thrust}\n\tShip Mass: {self.module().ship().Stats.Mass}")
+        c,m = round(c,3),round(m,3)
+        self.Label.setText(f"{self.module().Name} (FLT Engine):\n\tMovement: {c}/{m}\n\tThrust: {round(self.module().RemainingThrust,3)}/{round(self.module().Thrust,3)}\n\tShip Mass: {round(self.module().ship().Stats.Mass,3)}")
 
 class ThrusterWidget(WidgetsBase.ModuleWidget):
     module: 'weakref.ref[BaseModules.Thruster]' = None
@@ -106,7 +107,8 @@ class ThrusterWidget(WidgetsBase.ModuleWidget):
     
     def updateInterface(self):
         c,m = self.module().ship().Stats.Movement_Sublight
-        self.Label.setText(f"{self.module().Name} (Sublight Thruster):\n\tMovement: {c}/{m}\n\tThrust: {self.module().RemainingThrust}/{self.module().Thrust}\n\tShip Mass: {self.module().ship().Stats.Mass}")
+        c,m = round(c,3),round(m,3)
+        self.Label.setText(f"{self.module().Name} (Sublight Thruster):\n\tMovement: {c}/{m}\n\tThrust: {round(self.module().RemainingThrust,3)}/{round(self.module().Thrust,3)}\n\tShip Mass: {round(self.module().ship().Stats.Mass,3)}")
 
 class ShieldWidget(WidgetsBase.ModuleWidget):
     module: 'weakref.ref[BaseModules.Shield]' = None
@@ -115,7 +117,7 @@ class ShieldWidget(WidgetsBase.ModuleWidget):
         self.Label = self.addWidget(QtWidgets.QLabel(self))
     
     def updateInterface(self):
-        self.Label.setText(f"{self.module().Name} (Shield):\n\tHP: {self.module().HP_Shields}/{self.module().HP_Shields_max}\n\tRegeneration per turn: {self.module().HP_Shields_Regeneration} (Halved if damaged last turn)\n\t(It takes one turn to reactivate the shields if their HP reaches 0)")
+        self.Label.setText(f"{self.module().Name} (Shield):\n\tHP: {round(self.module().HP_Shields,3)}/{round(self.module().HP_Shields_max,3)}\n\tRegeneration per turn: {round(self.module().HP_Shields_Regeneration,3)} (Halved if damaged last turn)\n\t(It takes one turn to reactivate the shields if their HP reaches 0)")
 
 class QuartersWidget(WidgetsBase.ModuleWidget):
     module: 'weakref.ref[BaseModules.Quarters]' = None
@@ -221,4 +223,10 @@ class WeaponWidget(WidgetsBase.ModuleWidget):
         self.Label = self.addWidget(QtWidgets.QLabel(self))
     
     def updateInterface(self):
-        self.Label.setText(f"{self.module().Name} is {'Ready' if self.module().Ready else 'Used'}\n\tRange: {self.module().Range}\n\tDamage: {self.module().Damage}\n\tAccuracy: {self.module().Accuracy}\n\tHullFactor: {self.module().HullFactor}\n\tShieldFactor: {self.module().ShieldFactor}")
+        self.Label.setText( f"{self.module().Name} is {'Ready' if self.module().Ready else 'Used'}"
+                            f"\n\tRange: {round(self.module().Range,3)}"
+                            f"\n\tDamage: {round(self.module().Damage,3)}"
+                            f"\n\tAccuracy: {round(self.module().Accuracy,3)}"
+                            f"\n\tHullFactor: {round(self.module().HullFactor,3)}"
+                            f"\n\tShieldFactor: {round(self.module().ShieldFactor,3)}"
+                            )
