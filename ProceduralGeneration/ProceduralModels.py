@@ -58,6 +58,7 @@ class _ProceduralModel(ModelBase.ModelBase):
         if seed is None:
             seed = np.random.randint(1000000)
         self.rng = np.random.default_rng(seed)
+        self.Seed = seed
         super().__init__(loadImmediately)
     
     def _init_model(self):
@@ -79,10 +80,9 @@ class _ProceduralModel(ModelBase.ModelBase):
     
     def resetModel(self):
         super().resetModel()
-        #self.Model.setHpr(0,0,0)
-        #self.Model.setPos(0,0,0)
-        #self.Model.setScale(1)
-        #self.Model.setH(180) # Required for .obj that I create with blender regardless of whether their front is x or -x (z is up)
+        self.Model.setHpr(0,0,0)
+        self.Model.setPos(0,0,0)
+        self.Model.setScale(1)
     
     def centreModel(self):
         super().centreModel()
@@ -117,9 +117,9 @@ class _ProceduralModel(ModelBase.ModelBase):
 
 class ProceduralModel_Asteroid(_ProceduralModel):
     def generateModel(self):
-        gb = GeomBuilder.GeomBuilder('asteroid')
+        gb = GeomBuilder.GeomBuilder('asteroid', rng=self.rng)
         res = get.menu().GraphicsOptionsWidget.AsteroidResolution()
-        gb.add_asteroid(phi_resolution=res, theta_resolution=res, rng=self.rng)
+        gb.add_asteroid(phi_resolution=res, theta_resolution=res)
         node = p3dc.NodePath(gb.get_geom_node())
         return node
 

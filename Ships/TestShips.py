@@ -53,6 +53,7 @@ from BaseClasses import ModelBase
 from BaseClasses import BaseModules
 from BaseClasses import FleetBase
 from ProceduralGeneration import ProceduralModels
+from ProceduralGeneration import ProceduralShips
 import ShipModules
 
 class EnterpriseModel(ModelBase.ShipModel):
@@ -177,7 +178,7 @@ class TestShip(ShipBase.Ship):
 
 
 
-class ProceduralTestModel(ProceduralModels.ProceduralModel_Asteroid):
+class ProceduralTestModel(ProceduralShips.ProceduralShip):
     #IconPath = "tempModels/SpaceDockNar30974/dock3.jpg"
     pass
 

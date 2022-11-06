@@ -321,7 +321,7 @@ class ModuleEditor(AGeWidgets.TightGridFrame):
             self.updateValueLabel()
             self.ActiveModuleItem.setText(self.ActiveModule.Name)
             self.loadModuleStats()
-            self.NameLabel.setText(module.Name)
+            self.NameLabel.setText(self.ActiveModule.Name)
     
     def updateValueLabel(self):
         self.ValueLabel.setText(f"Value: {self.ActiveModule.Value}\nThreat {self.ActiveModule.Threat}\nMass {self.ActiveModule.Mass}")

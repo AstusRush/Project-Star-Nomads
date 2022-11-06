@@ -36,8 +36,6 @@ limitations under the License.
 # add_wedge - This is pretty much an extruded triangle shape
 # add_dome - Very simple UV half-sphere generation
 
-#CRITICAL: All the rotations are wrong in regards to the game. Everything lies on its side... This must be fixed!
-
 import math
 import panda3d.core as p3dc
 
@@ -291,10 +289,10 @@ class GeomBuilder():
         # Generate polygons for all but the top tier. (Quads)
         for i in range(0, len(elevations) - 2):
             for j in range(0, len(azimuths) - 1):
-                x1, y1, z1 = to_cartesian(azimuths[j], elevations[i], radius)
-                x2, y2, z2 = to_cartesian(azimuths[j], elevations[i + 1], radius)
-                x3, y3, z3 = to_cartesian(azimuths[j + 1], elevations[i + 1], radius)
-                x4, y4, z4 = to_cartesian(azimuths[j + 1], elevations[i], radius)
+                x1, y1, z1 = pol_to_cart(azimuths[j], elevations[i], radius)
+                x2, y2, z2 = pol_to_cart(azimuths[j], elevations[i + 1], radius)
+                x3, y3, z3 = pol_to_cart(azimuths[j + 1], elevations[i + 1], radius)
+                x4, y4, z4 = pol_to_cart(azimuths[j + 1], elevations[i], radius)
                 
                 vertices = (
                     p3dc.Point3(x1, y1, z1),
@@ -308,9 +306,9 @@ class GeomBuilder():
         
         # Generate polygons for the top tier. (Tris)
         for k in range(0, len(azimuths) - 1):
-            x1, y1, z1 = to_cartesian(azimuths[k], elevations[len(elevations) - 2], radius)
+            x1, y1, z1 = pol_to_cart(azimuths[k], elevations[len(elevations) - 2], radius)
             x2, y2, z2 = p3dc.Vec3(0, radius, 0)
-            x3, y3, z3 = to_cartesian(azimuths[k + 1], elevations[len(elevations) - 2], radius)
+            x3, y3, z3 = pol_to_cart(azimuths[k + 1], elevations[len(elevations) - 2], radius)
             
             vertices = (
                 p3dc.Point3(x1, y1, z1),
@@ -321,8 +319,7 @@ class GeomBuilder():
             
             self._commit_polygon(Polygon(vertices), color)
         
-        return self
-    
+        return selfare
     def get_geom(self):
         geom = p3dc.Geom(self.vdata)
         geom.add_primitive(self.tris)
@@ -334,7 +331,7 @@ class GeomBuilder():
         return node
 
 
-def to_cartesian(azimuth:float, elevation:float, length:float):
+def pol_to_cart(azimuth:float, elevation:float, length:float): # Originally named to_cartesian
     x = length * math.sin(azimuth) * math.cos(elevation)
     y = length * math.sin(elevation)
     z = -length * math.cos(azimuth) * math.cos(elevation)
