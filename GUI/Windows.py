@@ -74,6 +74,7 @@ class MainWindowClass(ape.APELabWindow):#APEWindow):
         
         self.Console1.setText(TEMP_CODE)
         #self.Console1.setText(TEMP_CODE_PROC_TEST)
+        #self.Console1.setText(TEMP_CODE_PROC_TEST_ASTEROID)
         
         self.Console2.setText("engine().endBattleScene()\n")
         
@@ -182,6 +183,30 @@ else:
     self.ship.Model.Node.setPos(0,0,0)
 # self.ship.Model.generateModel
 # self.GeomBuilder.GeomBuilder.add_sphere
+"""
+
+TEMP_CODE_PROC_TEST_ASTEROID = """
+if not hasattr(self, "ship"):
+    from ProceduralGeneration import GeomBuilder
+    self.GeomBuilder = GeomBuilder
+    
+    self.P1_Fleet1 = FleetBase.Fleet(1)
+    self.P1_Fleet1.Name = "Fleet 1"
+    
+    self.ship = Ships.TestShips.ProcTest_Asteroid()
+    self.ship.Name = f"Test 1"
+    self.P1_Fleet1.addShip(self.ship)
+    
+    self.P1_Fleet1.moveToHex(self.getHex((25,25)))
+else:
+    self.ship.Model._init_model()
+    self.ship.Model.centreModel()
+    self.ship.Model.Node.reparentTo(self.ship.Node)
+    self.ship.Model.Node.setPos(0,0,0)
+# self.ship.Model.generateModel
+# self.ship.Model.applyTexture
+# self.ship.Model.generateTexture
+# self.GeomBuilder.GeomBuilder.add_asteroid
 """
 
 

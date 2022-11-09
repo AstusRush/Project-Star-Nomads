@@ -319,7 +319,8 @@ class GeomBuilder():
             
             self._commit_polygon(Polygon(vertices), color)
         
-        return selfare
+        return self
+    
     def get_geom(self):
         geom = p3dc.Geom(self.vdata)
         geom.add_primitive(self.tris)

@@ -74,7 +74,7 @@ class ShipBuilder(GeomBuilder.GeomBuilder):
         dVec = ProceduralShips.Directions.getVector(direction)
         dVecAbs = p3dc.LVecBase3f(abs(dVec.x),abs(dVec.y),abs(dVec.z))
         size = (p3dc.Point3(1,1,1)-dVecAbs)*connection_size+dVec*0.5
-        size = (size.x,size.y,size.z)
+        size = (abs(size.x),abs(size.y),abs(size.z))
         self.add_block(center=connection+dVec*0.25, size=size , color=color) # (connection_size,0.5,connection_size)
         #if   direction == ProceduralShips.Directions.rear   : self.add_block(center=connection+p3dc.Point3(0,+0.25,0), size=(connection_size,0.5,connection_size), color=color)
         #elif direction == ProceduralShips.Directions.front  : self.add_block(center=connection+p3dc.Point3(0,-0.25,0), size=(connection_size,0.5,connection_size), color=color)
@@ -114,4 +114,26 @@ class ShipBuilder(GeomBuilder.GeomBuilder):
         module.addConnector("front", position=connection_front, connection_size=connection_front_size, color=color)
         self.add_block(center=connection_rear+(connection_front-connection_rear)/2, size=(width,((connection_front-connection_rear)).y-0.5,height), color=color)
         module.addConnector("rear", position=connection_rear, connection_size=connection_rear_size, color=color)
+        return self
+    
+    def add_aftSection_cone(self,
+                module:'ProceduralShips.ShipModule',
+                connection_front:'typing.Union[p3dc.Point3,typing.Iterable[float,float,float]]',
+                connection_front_size:float,
+                width:float,
+                height:float,
+                length:float,
+                color:'tuple[float,float,float,float]' = (0,0,0,1),
+                ):
+        connection_front = self.toPoint3(connection_front)
+        module.addConnector("front", position=connection_front, connection_size=connection_front_size, color=color)
+        self.add_block(center=connection_front-p3dc.Point3(0,length/4+0.25,0), size=(width,length/2,height), color=color)
+        self.add_cylinder(  base = connection_front-p3dc.Point3(0,length/2+0.25,0),
+                            base_radius = height/4,
+                            top = connection_front-p3dc.Point3(0,length,0),
+                            top_radius = height/2,
+                            radial_resolution = 10,
+                            color = color,
+                            top_cap_color= (1,0,0),
+                            )
         return self

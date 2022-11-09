@@ -233,6 +233,9 @@ class ShipInterface:
 class Menu(AGeWidgets.TightGridWidget):
     def __init__(self, parent: typing.Optional['QtWidgets.QWidget'] = None) -> None:
         super().__init__(parent)
+        #TODO: This should be put into a scroll area so that long labels do not restrict the UI for big font sizes and for the time when there are so many options that they no longer fit on the screen
+        #       (Though this should probably become part of the options window with individual tabs for different option categories so that scrolling is not necessary
+        #           as scrolling can result in accidental changes for spin boxes)
         self.SaveLoadWidget = self.addWidget(SaveLoadWidget(self))
         self.HighlightOptionsWidget = self.addWidget(HighlightOptionsWidget(self))
         self.GraphicsOptionsWidget = self.addWidget(GraphicsOptionsWidget(self))
@@ -267,6 +270,8 @@ class GraphicsOptionsWidget(AGeWidgets.TightGridFrame):
         self.HeadlineLine.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.ChangeSkyboxButton = self.addWidget(AGeWidgets.Button(self,"Change Skybox", self.newSkybox))
         self.AsteroidResolution = self.addWidget(AGeInput.Int(self,"Asteroid Resolution\n(lower=faster battle loading)",10,5,50,"²"))
+        self.AsteroidNoisePasses = self.addWidget(AGeInput.Int(self,"Asteroid Noise Passes\n(higher=more diverse asteroids\n but higher likelihood of 'negative volume')",2,1,4))
+        self.AsteroidTexture = self.addWidget(AGeInput.Bool(self,"Use a randomly generated texture for asteroids\nIf disabled the individual faces are\n coloured which results in a retro look",False))
         self.RedrawEntireGridWhenHighlighting = self.addWidget(AGeInput.Bool(self,"Redraw entire grid when highlighting\n(Useful when changing hex colours)\n(Disable if selecting a unit is slow)",True))
     
     def newSkybox(self):

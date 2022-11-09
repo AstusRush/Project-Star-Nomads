@@ -119,9 +119,69 @@ class ProceduralModel_Asteroid(_ProceduralModel):
     def generateModel(self):
         gb = GeomBuilder.GeomBuilder('asteroid', rng=self.rng)
         res = get.menu().GraphicsOptionsWidget.AsteroidResolution()
-        gb.add_asteroid(phi_resolution=res, theta_resolution=res)
+        gb.add_asteroid(phi_resolution=res, theta_resolution=res, noise_passes=get.menu().GraphicsOptionsWidget.AsteroidNoisePasses(), colour_faces=not get.menu().GraphicsOptionsWidget.AsteroidTexture())
         node = p3dc.NodePath(gb.get_geom_node())
+        
+        if get.menu().GraphicsOptionsWidget.AsteroidTexture(): self.applyTexture(node)
+        
         return node
+    
+    def applyTexture(self, node:'p3dc.NodePath'):
+        try: #if True: #texture:
+            import io
+            import PIL
+            col = self.generateTexture()
+            cMap = PIL.Image.fromarray(np.uint8((np.flip(col,(1)).transpose(1,0,2))),'RGBA')
+            cBuf = io.BytesIO()
+            cMap.save(cBuf, format="png")
+            ciMap = p3dc.PNMImage()
+            ciMap.read(p3dc.StringStream(cBuf.getvalue()),"t.png")
+            
+            panda_tex = p3dc.Texture("default")
+            panda_tex.load(ciMap)
+            panda_mat = p3dc.Material("default")
+            #panda_mat.emission = 0
+            panda_mat.setEmission((0.1,0.1,0.1,1))
+            node.set_material(panda_mat)
+            node.set_texture(panda_tex)
+        except:
+            ExceptionOutput()
+    
+    def generateTexture(self):
+        #mat = self.rng.random((100,100))*15 - 7
+        #def putColour(colourMatrix, mask, colour):
+        #    np.putmask(colourMatrix[:,:,0], mask, colour[0])
+        #    np.putmask(colourMatrix[:,:,1], mask, colour[1])
+        #    np.putmask(colourMatrix[:,:,2], mask, colour[2])
+        #col = np.ones((mat.shape[0], mat.shape[1]  , 4))
+        ##np.putmask(col, mat >=4.5 , ( 1  , 1  , 1   ))
+        #putColour(col, mat < 4.5 , ( 0.4, 0.4, 0.4 ))
+        #putColour(col, mat < 1   , ( 0  , 0.4, 0.2 ))
+        #putColour(col, mat < -3  , ( 0  , 0.2, 0.1 ))
+        #putColour(col, mat < -5  , ( 0  , 0.1, 0.5 ))
+        size = 200
+        import pyvista as pv
+        frequency_variance:'tuple[float,float]' = (10,20)
+        amplitude_variance:'tuple[float,float]' = (0.2,0.4)
+        f_min,f_max = frequency_variance
+        a_min,a_max = amplitude_variance
+        freq = [self.rng.uniform(f_min,f_max),self.rng.uniform(f_min,f_max),self.rng.uniform(f_min,f_max)]
+        phase = [self.rng.uniform(0,1),self.rng.uniform(0,1),self.rng.uniform(0,1)]
+        noise = pv.perlin_noise((a_max-a_min)/2, freq, phase)
+        col1 = pv.sample_function(noise, dim=(size,size,1)).get_array("scalars").reshape((size,size))+a_min+(a_max-a_min)/2
+        col = np.ones((*col1.shape,4))
+        #print(col.shape)
+        col[:,:,0] = col1[:,:]*200
+        col[:,:,1] = col1[:,:]*100
+        col[:,:,2] = col1[:,:]*70
+        #print(col.shape)
+        
+        #from matplotlib import pyplot as plt
+        #plt.figure()
+        #plt.imshow(col[:,:,:3]/255)
+        #plt.show()
+        #input("WAITING")
+        return col
 
 class ProceduralModel_Planet(_ProceduralModel):
     def generateModel(self):

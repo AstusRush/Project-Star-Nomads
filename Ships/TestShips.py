@@ -196,3 +196,21 @@ class ProcTestShip(ShipBase.Ship):
         self.addModule(ShipModules.TestModules.TestEngine_M())
         self.addModule(ShipModules.TestModules.TestThruster_M())
 
+class ProceduralTestModel_Asteroid(ProceduralModels.ProceduralModel_Asteroid):
+    #IconPath = "tempModels/SpaceDockNar30974/dock3.jpg"
+    pass
+
+class ProcTest_Asteroid(ShipBase.Ship):
+    Name = "Proc Test Asteroid"
+    ClassName = "Proc Test Asteroid Class"
+    def __init__(self, generateModel=True) -> None:
+        super().__init__()
+        if generateModel:
+            self.setModel(ProceduralTestModel_Asteroid())
+        self.addModule(ShipModules.TestModules.TestHull_M())
+        self.addModule(ShipModules.TestModules.TestSensors_M())
+        self.addModule(ShipModules.TestModules.TestShield_L())
+        self.addModule(ShipModules.TestModules.TestBeam_M())
+        self.addModule(ShipModules.TestModules.TestEngine_M())
+        self.addModule(ShipModules.TestModules.TestThruster_M())
+

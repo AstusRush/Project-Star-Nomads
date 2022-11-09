@@ -52,6 +52,8 @@ from BaseClasses import ModelBase
 from ProceduralGeneration import GeomBuilder_Ships
 from ProceduralGeneration import ProceduralModels
 
+#REMINDER: use node.place() to get a gui to position and transform a node! That sounds very cool and useful and might even allow for an in-game ship-model editor!
+
 class Directions:
     rear    = "rear"
     front   = "front"
@@ -96,6 +98,10 @@ class ModuleTypes:
         @classmethod
         def block(cls, gb:'GeomBuilder_Ships.ShipBuilder',module:'ShipModule') -> 'GeomBuilder_Ships.ShipBuilder':
             return gb.add_midSection_block(module, connection_front=p3dc.Point3(0,0,0), connection_front_size=2, connection_rear=p3dc.Point3(0,-10,0), connection_rear_size=2, width=4, height=2.5, color=(1,0.3,1,1))
+    class AftSection(ModuleType):
+        @classmethod
+        def cone(cls, gb:'GeomBuilder_Ships.ShipBuilder',module:'ShipModule') -> 'GeomBuilder_Ships.ShipBuilder':
+            return gb.add_aftSection_cone(module, connection_front=p3dc.Point3(0,0,0), connection_front_size=2, width=4, height=2.5, length=10, color=(0,1,1,1))
 
 class ProceduralShip(ProceduralModels._ProceduralModel):
     IconPath = ""
@@ -103,7 +109,7 @@ class ProceduralShip(ProceduralModels._ProceduralModel):
     def __init__(self, loadImmediately=True, seed:int=None) -> None:
         style = ""
         self.Modules:'list[ShipModule]' = []
-        self.ProceduralShipCentralNode:p3dc.NodePath = None
+        self.ProceduralShipCentralNode:'p3dc.NodePath' = None
         self.CentralModule:'ShipModule' = None
         super().__init__(loadImmediately=loadImmediately,seed=seed)
     
@@ -138,6 +144,7 @@ class ProceduralShip(ProceduralModels._ProceduralModel):
         self.ProceduralShipCentralNode = p3dc.NodePath(p3dc.PandaNode(f"Central node of procedural ship model: {id(self)}"))
         front = self.createModule(ModuleTypes.FrontSection).setAsCentralModule()
         centre = self.createModule(ModuleTypes.MidSection).connectTo(front)
+        engines = self.createModule(ModuleTypes.AftSection).connectTo(centre)
         return self.ProceduralShipCentralNode
 
 class ShipModule():
@@ -226,11 +233,12 @@ class Connector():
         self.IsMaster:'bool' = False
         gb = GeomBuilder_Ships.ShipBuilder('Connector', rng=module.rng)
         self.Position = gb.toPoint3(position)
-        gb.add_connection(direction=direction, connection=position, connection_size=connection_size, color=color)
+        gb.add_connection(direction=direction, connection=p3dc.Point3(0,0,0), connection_size=connection_size, color=color)
         self.Model = p3dc.NodePath(gb.get_geom_node())
         self.Node:p3dc.NodePath = p3dc.NodePath(p3dc.PandaNode(f"Central node of connector: {id(self)}"))
         self.Model.reparentTo(self.Node)
         self.Node.reparentTo(module.Node)
+        self.Node.setPos(position)
     
     def destroy(self):
         if self.connection and self.IsMaster:
