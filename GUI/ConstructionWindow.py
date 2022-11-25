@@ -106,6 +106,8 @@ class ConstructionWidget(QtWidgets.QSplitter):
         self.ShipStats.getInterface()
     
     def buildShip(self):
+        self.Ship.Name = self.ShipStats.NameInput()
+        self.Ship.ClassName = self.ShipStats.ClassInput()
         if not self.Ship.hull:
             NC(2, "Could not build ship as critical component is missing: hull")
             return
@@ -142,6 +144,8 @@ class ShipStats(AGeWidgets.TightGridFrame):
         super().__init__(parent)
         self.ShipStats = None
         self.ModelSelectBox = self.addWidget(QtWidgets.QComboBox(self))
+        self.NameInput = self.addWidget(AGeInput.Str(None,"Name",self.ship().Name))
+        self.ClassInput = self.addWidget(AGeInput.Str(None,"Class",self.ship().ClassName))
         self.Label = self.addWidget(QtWidgets.QLabel("Ship Stats\nAll of the Ship Stats", self))
         self.BuildButton = self.addWidget(AGeWidgets.Button(self,"Build Ship",lambda: self.parent().buildShip()))
         self.InterfaceButton = self.addWidget(AGeWidgets.Button(self,"Get Stats",lambda: self.getInterface()))
