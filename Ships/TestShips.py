@@ -56,6 +56,8 @@ from ProceduralGeneration import ProceduralModels
 from ProceduralGeneration import ProceduralShips
 import ShipModules
 
+ALL_PROCEDURAL = True
+
 class EnterpriseModel(ModelBase.ShipModel):
     ModelPath = "tempModels/NCC-1701-D.gltf"
     IconPath = "tempModels/Icons/gbfgalaxy.tga"
@@ -76,7 +78,7 @@ class Enterprise(ShipBase.Ship):
     ClassName = "Galaxy Class"
     def __init__(self, generateModel=True) -> None:
         super().__init__()
-        if generateModel:
+        if generateModel and not ALL_PROCEDURAL:
             self.setModel(EnterpriseModel())
         self.addModule(ShipModules.TestModules.TestHull_M())
         self.addModule(ShipModules.TestModules.TestSensors_M())
@@ -89,6 +91,8 @@ class Enterprise(ShipBase.Ship):
         self.addModule(ShipModules.TestModules.TestBeam_S())
         self.addModule(ShipModules.TestModules.TestEngine_M())
         self.addModule(ShipModules.TestModules.TestThruster_M())
+        if generateModel and ALL_PROCEDURAL:
+            self.generateProceduralModel()
 
 class PrometheusModel(ModelBase.ShipModel):
     ModelPath = "tempModels/Prometheus NX 59650/prometheus.obj"
@@ -109,7 +113,7 @@ class Prometheus(ShipBase.Ship):
     ClassName = "Prometheus Class"
     def __init__(self, generateModel=True) -> None:
         super().__init__()
-        if generateModel:
+        if generateModel and not ALL_PROCEDURAL:
             self.setModel(PrometheusModel())
         self.addModule(ShipModules.TestModules.TestHull_M())
         self.addModule(ShipModules.TestModules.TestSensors_M())
@@ -119,6 +123,8 @@ class Prometheus(ShipBase.Ship):
         self.addModule(ShipModules.TestModules.TestBeam_M())
         self.addModule(ShipModules.TestModules.TestEngine_L())
         self.addModule(ShipModules.TestModules.TestThruster_L())
+        if generateModel and ALL_PROCEDURAL:
+            self.generateProceduralModel()
 
 class SpaceDockModel(ModelBase.ShipModel):
     ModelPath = "tempModels/SpaceDockNar30974/spacedock.obj"
@@ -139,7 +145,7 @@ class SpaceDock(ShipBase.Ship):
     ClassName = "SpaceDock Class"
     def __init__(self, generateModel=True) -> None:
         super().__init__()
-        if generateModel:
+        if generateModel and not ALL_PROCEDURAL:
             self.setModel(SpaceDockModel())
         self.addModule(ShipModules.TestModules.TestHull_M())
         self.addModule(ShipModules.TestModules.TestSensors_M())
@@ -148,6 +154,8 @@ class SpaceDock(ShipBase.Ship):
         self.addModule(ShipModules.TestModules.TestEngine_L())
         self.addModule(ShipModules.TestModules.TestThruster_L())
         self.addModule(ShipModules.TestModules.TestConstructionModule())
+        if generateModel and ALL_PROCEDURAL:
+            self.generateProceduralModel()
 
 
 
@@ -187,14 +195,19 @@ class ProcTestShip(ShipBase.Ship):
     ClassName = "Proc Test Class"
     def __init__(self, generateModel=True) -> None:
         super().__init__()
-        if generateModel:
-            self.setModel(ProceduralTestModel())
+        #if generateModel:
+        #    self.setModel(ProceduralTestModel())
         self.addModule(ShipModules.TestModules.TestHull_M())
         self.addModule(ShipModules.TestModules.TestSensors_M())
         self.addModule(ShipModules.TestModules.TestShield_L())
+        self.addModule(ShipModules.TestModules.TestShield_M())
         self.addModule(ShipModules.TestModules.TestBeam_M())
-        self.addModule(ShipModules.TestModules.TestEngine_M())
-        self.addModule(ShipModules.TestModules.TestThruster_M())
+        self.addModule(ShipModules.TestModules.TestBeam_M())
+        self.addModule(ShipModules.TestModules.TestBeam_M())#temp
+        self.addModule(ShipModules.TestModules.TestBeam_M())#temp
+        self.addModule(ShipModules.TestModules.TestEngine_L())
+        self.addModule(ShipModules.TestModules.TestThruster_L())
+        self.generateProceduralModel()
 
 class ProceduralTestModel_Asteroid(ProceduralModels.ProceduralModel_Asteroid):
     #IconPath = "tempModels/SpaceDockNar30974/dock3.jpg"

@@ -120,8 +120,8 @@ class ConstructionWidget(QtWidgets.QSplitter):
             return
         if self.constructionModule and not self.constructionModule().ship().Destroyed:
             model = get.shipModels()[self.ShipStats.ModelSelectBox.currentText()]
-            self.constructionModule().buildShip(self.Ship, model)
-            self.window().close() #TODO: This is currently necessary since the constructed ship is still the ship which is being edited and would therefore allow modification but would also eat up resources if the build button is spammed
+            if self.constructionModule().buildShip(self.Ship, model):
+                self.window().close() #TODO: This is currently necessary since the constructed ship is still the ship which is being edited and would therefore allow modification but would also eat up resources if the build button is spammed
         else:
             NC(2, f"Could not construct ship: The construction module no longer exists")
     

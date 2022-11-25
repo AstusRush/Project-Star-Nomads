@@ -492,10 +492,16 @@ class ShipBase():
         model = ModelBase.ModelBase(modelPath)
         self.setModel(model)
     
+    def generateProceduralModel(self):
+        from ProceduralGeneration import ProceduralShips
+        model = ProceduralShips.ProceduralShip(ship=self)
+        self.setModel(model)
+    
     def setModel(self, model: ModelBase.ModelBase):
         if self.Model:
             self.clearModel()
         self.Model = model
+        self.Model.ship = weakref.ref(self)
         self.Model.Node.reparentTo(self.Node)
         self.Model.Node.setPos(0,0,0)
     

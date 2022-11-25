@@ -31,8 +31,9 @@ def getShips() -> 'typing.Dict[str,type[ShipBase.ShipBase]]':
 
 def getShipModels() -> 'typing.Dict[str,type[ModelBase.ShipModel]]':
     from BaseClasses import ModelBase
+    from ProceduralGeneration import ProceduralShips
     ShipModels:'typing.Dict[str,type[ModelBase.ShipModel]]' = {}
-    ListLoader.fillWithType(ShipModels, globals(), ModelBase.ShipModel)
+    ListLoader.fillWithType(ShipModels, globals(), (ModelBase.ShipModel, ProceduralShips.ProceduralShip))
     #for k,v in globals().items():
     #    if isinstance(v, type) and issubclass(v, ModelBase.ShipModel):
     #        ShipModels[k] = v

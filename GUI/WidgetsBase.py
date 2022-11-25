@@ -270,8 +270,9 @@ class GraphicsOptionsWidget(AGeWidgets.TightGridFrame):
         self.HeadlineLine.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.ChangeSkyboxButton = self.addWidget(AGeWidgets.Button(self,"Change Skybox", self.newSkybox))
         self.AsteroidResolution = self.addWidget(AGeInput.Int(self,"Asteroid Resolution\n(lower=faster battle loading)",10,5,50,"²"))
-        self.AsteroidNoisePasses = self.addWidget(AGeInput.Int(self,"Asteroid Noise Passes\n(higher=more diverse asteroids\n but higher likelihood of 'negative volume')",2,1,4))
+        self.AsteroidNoisePasses = self.addWidget(AGeInput.Int(self,"Asteroid Noise Passes\n(higher=more diverse asteroids\n but higher likelihood of 'negative volume')",3,0,5))
         self.AsteroidTexture = self.addWidget(AGeInput.Bool(self,"Use a randomly generated texture for asteroids\nIf disabled the individual faces are\n coloured which results in a retro look",False))
+        self.AsteroidTextureResolution = self.addWidget(AGeInput.Int(self,"Asteroid Texture Resolution\n(lower=faster battle loading)",256,64,1024,"²"))
         self.RedrawEntireGridWhenHighlighting = self.addWidget(AGeInput.Bool(self,"Redraw entire grid when highlighting\n(Useful when changing hex colours)\n(Disable if selecting a unit is slow)",True))
     
     def newSkybox(self):

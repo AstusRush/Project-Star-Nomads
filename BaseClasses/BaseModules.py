@@ -50,6 +50,7 @@ if TYPE_CHECKING:
     from BaseClasses import FleetBase
     from BaseClasses import ShipBase
     from BaseClasses import ModelBase
+    from ProceduralGeneration import ProceduralShips
 from BaseClasses import get
 from Economy import tech
 from BaseClasses import HexBase
@@ -80,9 +81,15 @@ class Module():
     Threat = 0
     def __init__(self) -> None:
         self.ship:'weakref.ref[ShipBase.ShipBase]' = None
+        self.moduleModel:'typing.Union[weakref.ref[ProceduralShips.ShipModule],None]' = None
         self.automaticallyDetermineValues()
     
     def automaticallyDetermineValues(self):
+        """
+        This method is used to automatically determine values that are derived from those that the player can edit.\n
+        These are the threat, value, and mass of the module.\n
+        If your module has other derived values you can reimplement this method to calculate them (though this should rarely be necessary).
+        """
         if hasattr(self, "calculateThreat"):
             self.Threat = self.calculateThreat()
         if hasattr(self, "calculateValue"):
@@ -107,9 +114,16 @@ class Module():
         return self.team() == 1
     
     def handleNewCombatTurn(self):
+        """
+        This method is called at the start of each combat turn to perform all required actions like resetting the movement-points and healing hull and shields as well as rearming the weapons.
+        """
         pass
     
     def handleNewCampaignTurn(self):
+        """
+        This method is called at the start of each campaign turn to perform all required actions like resetting the movement-points and healing hull and shields as well as rearming the weapons.\n
+        This method should also reset everything regarding combat to ensure that the ship is ready for the next combat (i.e. restore shields, sublight movement-points, and weapons)
+        """
         pass
     
     def tocode_AGeLib(self, name="", indent=0, indentstr="    ", ignoreNotImplemented = False) -> typing.Tuple[str,dict]:
@@ -145,6 +159,13 @@ class Module():
         return {}
     
     def getCustomisableStats(self) -> 'dict[str,typing.Callable[[],AGeInput._TypeWidget]]':
+        """
+        This method returns a dictionary with the names (must be the actual member name of the object) of all values that the player can customize in the ship creator as keys
+        and functions (lambda functions) which return widgets with which these values can be edited.\n
+        (These widgets must be widgets from AGeInput or at least behave in the same way in regards to value retrieval and layout behaviour!)\n
+        Don't forget to call `d.update(super().getCustomisableStats())` before returning the dict to ensure that all basic stats like the module name are also customizable!\n
+        You might also want to remove certain entries after calling `d.update(super().getCustomisableStats())` like removing the `Mass` entry if your module derives the mass from the other stats.
+        """
         d = {
             "Name": lambda: AGeInput.Str(None,"Name",self.Name) ,
         }
@@ -159,10 +180,33 @@ class Module():
         return module
     
     def resetCondition(self):
+        """
+        This method should restore the condition of this module.\n
+        It should, for example, set normal weapons to ready, set weapons that need to be charged before usage to not ready,
+        restore the hull integrity, set the remaining movement-points to the maximum movement-points,
+        empty all storage, and restore the shields.\n
+        This method is used when a new module is created via the copy method or when it is edited in the ship creator
+        (to ensure that i.e. an increase in the shield capacity is immediately reflected in the current strength of the shield)
+        """
         pass
     
     def makeValuesValid(self) -> 'str':
+        """
+        This method ensures that all values are valid and should return a string that describes all modification
+        or an empty string in case no modifications were required.\n
+        This method is used, for example, when the user modifies the module values in the ship creator.\n
+        An example for such a modification would be to ensure that the maximum weapon range is larger than the minimum weapon range.\n
+        This method should only enforce rules that arise from the interaction between values.
+        To limit the valid range for each value modify the getCustomisableStats method to limit the users input range as well as the tech tree where these limits are determined.
+        """
         return ""
+    
+    def getModuleModelBuilder(self) -> 'typing.Union[type[ProceduralShips.ShipModule],None]':
+        """
+        This method can return a custom class that inherits from ProceduralShips.ShipModule which is then used to create the model for this module.\n
+        This allows modders to add custom appearances for their modules.
+        """
+        return None
 
 class Hull(Module):
     # The hull of a ship (can be tied to a ship model)
@@ -181,7 +225,7 @@ class Hull(Module):
         return self.HP_Hull_max / 100
     
     def handleNewCampaignTurn(self):
-        self.resetCondition()
+        self.HP_Hull = self.HP_Hull_max
     
     def resetCondition(self):
         super().resetCondition()
@@ -290,13 +334,13 @@ class Thruster(Module): # Sublight Thruster
         return self.Thrust / 10
     
     def handleNewCampaignTurn(self):
-        self.resetCondition()
-    
-    def resetCondition(self):
-        super().resetCondition()
         self.RemainingThrust = self.Thrust
     
     def handleNewCombatTurn(self):
+        self.RemainingThrust = self.Thrust
+    
+    def resetCondition(self):
+        super().resetCondition()
         self.RemainingThrust = self.Thrust
     
     def getCombatInterface(self) -> QtWidgets.QWidget:
@@ -341,14 +385,14 @@ class Shield(Module):
         return self.HP_Shields_max / 400 + self.HP_Shields_Regeneration / 400
     
     def handleNewCampaignTurn(self):
-        self.resetCondition()
-    
-    def resetCondition(self):
-        super().resetCondition()
         self.HP_Shields = self.HP_Shields_max
     
     def handleNewCombatTurn(self):
         self.healAtTurnStart()
+    
+    def resetCondition(self):
+        super().resetCondition()
+        self.HP_Shields = self.HP_Shields_max
     
     def healAtTurnStart(self):
         #TODO: This should be 2 methods: One that calculates the healing and one that the first one and then actually updates the values. This way the first method can be used to display a prediction to the user
@@ -437,7 +481,7 @@ class ConstructionModule(Module):
             except RuntimeError:
                 self.Widget = None # This usually means that the widget is destroyed but I don't know of a better way to test for it...
     
-    def buildShip(self, ship:'ShipBase.Ship', model:'type[ModelBase.ShipModel]'):
+    def buildShip(self, ship:'ShipBase.Ship', model:'type[ModelBase.ShipModel]') -> bool:
         if get.engine().CurrentlyInBattle:
             NC(2,"Could not construct ship: There is a battle taking place.\nThe engineers are too busy fighting to start the construction of a ship!")
             return False
@@ -555,7 +599,7 @@ class Weapon(Module):
         return adjustments
     
     def handleNewCampaignTurn(self):
-        self.resetCondition()
+        self.Ready = True
     
     def resetCondition(self):
         super().resetCondition()
@@ -636,6 +680,9 @@ class Weapon_Beam(Weapon): #TODO: SFX (for now we can reuse the assets from Star
         laserEffect:p3dc.NodePath = loader().loadModel(self.ModelPath)
         try:
             laserEffect.reparentTo(self.ship().Node)
+            if self.moduleModel:
+                laserEffect.setPos(self.ship().Node.getRelativePoint(self.moduleModel().Node,self.moduleModel().Node.get_pos()))
+            #else:
             laserEffect.look_at(target.Node)
             #laserEffect.setZ(1.5)
             # This prevents lights from affecting this particular node

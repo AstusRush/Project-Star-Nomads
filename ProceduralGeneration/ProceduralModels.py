@@ -51,15 +51,18 @@ from BaseClasses import ListLoader
 from BaseClasses import ModelBase
 from ProceduralGeneration import GeomBuilder
 
+if TYPE_CHECKING:
+    from BaseClasses import ShipBase, FleetBase, BaseModules, HexBase
+
 class _ProceduralModel(ModelBase.ModelBase):
     IconPath = ""
     ModelPath = ""
-    def __init__(self, loadImmediately=True, seed:int=None) -> None:
+    def __init__(self, loadImmediately=True, seed:int=None, ship:'ShipBase.ShipBase'=None) -> None:
         if seed is None:
             seed = np.random.randint(1000000)
         self.rng = np.random.default_rng(seed)
         self.Seed = seed
-        super().__init__(loadImmediately)
+        super().__init__(loadImmediately, ship=ship)
     
     def _init_model(self):
         super()._init_model()
@@ -159,9 +162,9 @@ class ProceduralModel_Asteroid(_ProceduralModel):
         #putColour(col, mat < 1   , ( 0  , 0.4, 0.2 ))
         #putColour(col, mat < -3  , ( 0  , 0.2, 0.1 ))
         #putColour(col, mat < -5  , ( 0  , 0.1, 0.5 ))
-        size = 200
+        size = get.menu().GraphicsOptionsWidget.AsteroidTextureResolution()
         import pyvista as pv
-        frequency_variance:'tuple[float,float]' = (10,20)
+        frequency_variance:'tuple[float,float]' = (3,7)
         amplitude_variance:'tuple[float,float]' = (0.2,0.4)
         f_min,f_max = frequency_variance
         a_min,a_max = amplitude_variance

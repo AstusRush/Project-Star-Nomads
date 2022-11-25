@@ -1,5 +1,5 @@
-
-def fillWithType(_dict:dict, _globals:dict, _type:type):
+import typing
+def fillWithType(_dict:dict, _globals:dict, _type:'typing.Union[type,tuple[type]]'):
     """
     Fills _dict with all types that are a subclass of _type that are in the imported modules in _globals.
     """

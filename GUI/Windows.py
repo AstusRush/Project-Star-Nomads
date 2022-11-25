@@ -95,17 +95,19 @@ self.Pawn2 = Unit((25,26),name="USS Galaxy",model="/Users/Robin/Desktop/Projects
 TEMP_CODE = """
 self.P1_Fleet1 = FleetBase.Fleet(1)
 self.P1_Fleet1.Name = "Fleet 1"
-for i in range(3):
-    ship = Ships.TestShips.Prometheus()
-    ship.Name = f"Prometheus 1-{i}"
+if True:
+    for i in range(3):
+        ship = Ships.TestShips.Prometheus()
+        ship.Name = f"Prometheus 1-{i}"
+        self.P1_Fleet1.addShip(ship)
+    
+    ship = Ships.TestShips.SpaceDock()
+    ship.Name = f"Home One"
     self.P1_Fleet1.addShip(ship)
 
-ship = Ships.TestShips.SpaceDock()
-ship.Name = f"Home One"
-self.P1_Fleet1.addShip(ship)
-
 if False:
-    ship = Ships.TestShips.TestShip()
+    ship = Ships.TestShips.ProcTestShip()
+    #ship = Ships.TestShips.TestShip()
     ship.Name = f"Test 1"
     self.P1_Fleet1.addShip(ship)
 

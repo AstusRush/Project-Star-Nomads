@@ -51,6 +51,9 @@ from BaseClasses import get
 #if TYPE_CHECKING:
 from BaseClasses import HexBase
 
+if TYPE_CHECKING:
+    from BaseClasses import ShipBase, FleetBase, BaseModules, HexBase
+
 
 IMP_MODELBASE = [("PSN get","from BaseClasses import get"),("PSN ModelBase","from BaseClasses import ModelBase"),("PSN ModelConstructor","""
 def createModel(IconPath,ModelPath):
@@ -64,10 +67,11 @@ def createModel(IconPath,ModelPath):
 class ModelBase():
     IconPath = "" #TODO: we need a default icon for ships
     ModelPath = "Models/Simple Geometry/cube.ply"
-    def __init__(self, loadImmediately=True) -> None:
+    def __init__(self, loadImmediately=True, ship:'ShipBase.ShipBase'=None) -> None:
         self.Model:p3dc.NodePath = None
         self.Node:p3dc.NodePath = None
         self.CouldLoadModel = False
+        self.ship:'typing.Union[weakref.ref[ShipBase.ShipBase],None]' = weakref.ref(ship) if ship else None
         if loadImmediately:
             self._init_model()
     
@@ -112,6 +116,7 @@ class ModelBase():
             self.Model.removeNode()
         if hasattr(self,"Node") and self.Node:
             self.Node.removeNode()
+        self.ship = None
     
     def resetModel(self):
         self.Model.setHpr(0,0,0)

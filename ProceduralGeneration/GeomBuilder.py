@@ -509,8 +509,8 @@ class GeomBuilder(GeomBuilder_base.GeomBuilder):
                 radius:float = 1,
                 phi_resolution:int = 10,
                 theta_resolution:int = 10,
-                frequency_variance:'tuple[float,float]' = (0.2,0.7),
-                amplitude_variance:'tuple[float,float]' = (0.2,1),
+                frequency_variance:'tuple[float,float]' = (0.2,2),
+                amplitude_variance:'tuple[float,float]' = (0.2,0.5),
                 noise_passes:int = 3,
                 rot:'p3dc.LRotationf' = None,
                 color:'tuple[float,float,float,float]' = (200/255,100/255,70/255,1),
@@ -527,11 +527,11 @@ class GeomBuilder(GeomBuilder_base.GeomBuilder):
         c_min,c_max = color_variance
         f_min,f_max = frequency_variance
         a_min,a_max = amplitude_variance
-        amplitude = self.rng.uniform(a_min,a_max)
         
         mesh:'pv.PolyData' = pv.Sphere(radius=radius, phi_resolution=phi_resolution, theta_resolution=theta_resolution)
         # query the noise at each point manually
         for _ in range(noise_passes):
+            amplitude = self.rng.uniform(a_min,a_max)
             freq = [self.rng.uniform(f_min,f_max),self.rng.uniform(f_min,f_max),self.rng.uniform(f_min,f_max)]
             phase = [self.rng.uniform(0,1),self.rng.uniform(0,1),self.rng.uniform(0,1)]
             noise = pv.perlin_noise(amplitude, freq, phase)
@@ -540,7 +540,7 @@ class GeomBuilder(GeomBuilder_base.GeomBuilder):
             mesh = mesh.warp_by_scalar('scalars')
             mesh = mesh.extract_surface()
         
-        mesh = mesh.warp_by_scalar('scalars')
+        #mesh = mesh.warp_by_scalar('scalars')
         mesh = mesh.extract_surface()
         #
         #from pyvista import examples
