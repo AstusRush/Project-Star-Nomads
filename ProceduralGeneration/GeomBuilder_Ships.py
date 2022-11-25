@@ -61,6 +61,7 @@ class ShipBuilder(GeomBuilder.GeomBuilder):
                 direction:str,
                 connection:'typing.Union[p3dc.Point3,typing.Iterable[float,float,float]]',
                 connection_size:float,
+                thickness:float = 0.25,
                 color:'tuple[float,float,float,float]' = (0,0,0,1),
                 ):
         connection = self.toPoint3(connection)
@@ -73,9 +74,9 @@ class ShipBuilder(GeomBuilder.GeomBuilder):
         from ProceduralGeneration import ProceduralShips
         dVec = ProceduralShips.Directions.getVector(direction)
         dVecAbs = p3dc.LVecBase3f(abs(dVec.x),abs(dVec.y),abs(dVec.z))
-        size = (p3dc.Point3(1,1,1)-dVecAbs)*connection_size+dVecAbs*0.25
+        size = (p3dc.Point3(1,1,1)-dVecAbs)*connection_size+dVecAbs*thickness
         size = (abs(size.x),abs(size.y),abs(size.z))
-        self.add_block(center=connection-dVec*0.125, size=size, color=color) # (connection_size,0.5,connection_size)
+        self.add_block(center=connection-dVec*thickness/2, size=size, color=color) # (connection_size,0.5,connection_size)
         #if   direction == ProceduralShips.Directions.rear   : self.add_block(center=connection+p3dc.Point3(0,+0.25,0), size=(connection_size,0.5,connection_size), color=color)
         #elif direction == ProceduralShips.Directions.front  : self.add_block(center=connection+p3dc.Point3(0,-0.25,0), size=(connection_size,0.5,connection_size), color=color)
         #elif direction == ProceduralShips.Directions.left   : self.add_block(center=connection+p3dc.Point3(0,0.25,0), size=(connection_size,0.5,connection_size), color=color)
@@ -117,15 +118,36 @@ class ShipBuilder(GeomBuilder.GeomBuilder):
         module.addConnector(ProceduralShips.Directions.front, position=connection_front, connection_size=connection_front_size, color=color)
         self.add_block(center=block_center, size=(width,((connection_front-connection_rear)).y,height), color=color)
         module.addConnector(ProceduralShips.Directions.rear, position=connection_rear, connection_size=connection_rear_size, color=color)
-        #TEMP
-        if module.logicalModule and isinstance(module.logicalModule(),BaseModules.Hull):
-            connection_size_turret = 1
-            TurretConnectorOffset = 0
-            module.addConnector(ProceduralShips.Directions.left, position=block_center+(width/2+TurretConnectorOffset,0,0), connection_size=connection_size_turret, color=color)
-            module.addConnector(ProceduralShips.Directions.right, position=block_center+(-width/2-TurretConnectorOffset,0,0), connection_size=connection_size_turret, color=color)
-            module.addConnector(ProceduralShips.Directions.dorsal, position=block_center+(0,0,height/2+TurretConnectorOffset), connection_size=connection_size_turret, color=color)
-            module.addConnector(ProceduralShips.Directions.ventral, position=block_center+(0,0,-height/2-TurretConnectorOffset), connection_size=connection_size_turret, color=color)
-        #END TEMP
+        return self
+    
+    def add_hardpointSection_block(self,
+                module:'ProceduralShips.ShipModule',
+                connection_front:'typing.Union[p3dc.Point3,typing.Iterable[float,float,float]]',
+                connection_front_size:float,
+                connection_rear:'typing.Union[p3dc.Point3,typing.Iterable[float,float,float]]',
+                connection_rear_size:float,
+                width:float,
+                height:float,
+                color:'tuple[float,float,float,float]' = (0,0,0,1),
+                ):
+        from ProceduralGeneration import ProceduralShips
+        from BaseClasses import BaseModules
+        connection_front, connection_rear = self.toPoint3(connection_front), self.toPoint3(connection_rear)
+        block_center = connection_rear+(connection_front-connection_rear)/2
+        module.addConnector(ProceduralShips.Directions.front, position=connection_front, connection_size=connection_front_size, color=color)
+        self.add_block(center=block_center, size=(width,((connection_front-connection_rear)).y,height), color=color)
+        module.addConnector(ProceduralShips.Directions.rear, position=connection_rear, connection_size=connection_rear_size, color=color)
+        
+        
+        connection_size_turret = 1
+        TurretConnectorOffset = 0
+        numHardpoints:int = module.ExtraInfo.get("numHardpoints", 4)
+        if numHardpoints > 4: raise Exception(f"{numHardpoints} is an invalid number of hardpoints for this module")
+        if numHardpoints > 1: module.addConnector(ProceduralShips.Directions.left, position=block_center+(width/2+TurretConnectorOffset,0,0), connection_size=connection_size_turret, color=color)
+        if numHardpoints > 1: module.addConnector(ProceduralShips.Directions.right, position=block_center+(-width/2-TurretConnectorOffset,0,0), connection_size=connection_size_turret, color=color)
+        if numHardpoints != 2: module.addConnector(ProceduralShips.Directions.dorsal, position=block_center+(0,0,height/2+TurretConnectorOffset), connection_size=connection_size_turret, color=color)
+        if numHardpoints == 4: module.addConnector(ProceduralShips.Directions.ventral, position=block_center+(0,0,-height/2-TurretConnectorOffset), connection_size=connection_size_turret, color=color)
+        
         return self
     
     def add_aftSection_cone_static(self,
@@ -177,7 +199,7 @@ class ShipBuilder(GeomBuilder.GeomBuilder):
                 ):
         from BaseClasses import BaseModules
         if not module.logicalModule or not isinstance(module.logicalModule(),BaseModules.Weapon): raise Exception("A turret model must be connected to a turret module!")
-        module.addConnector("radial", position=(0,0,-1), connection_size=1, color=color)
+        module.addConnector("radial", position=(0,0,-1), connection_size=1, thickness=0.5 ,color=color)
         self.add_block(center=(0,0,0), size=(2,2,2), color=color)
         self.add_cylinder(  base = (0,1,0),
                             base_radius = module.logicalModule().Damage/100,

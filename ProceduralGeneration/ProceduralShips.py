@@ -16,6 +16,7 @@ import weakref
 import inspect
 import importlib
 import textwrap
+import math
 
 # External imports
 import numpy as np
@@ -157,10 +158,15 @@ class ModuleTypes:
         @classmethod
         def block(cls, gb:'GeomBuilder_Ships.ShipBuilder',module:'ShipModule') -> 'GeomBuilder_Ships.ShipBuilder':
             return gb.add_midSection_block(module, connection_front=p3dc.Point3(0,0,0), connection_front_size=2, connection_rear=p3dc.Point3(0,-module.logicalModule().HP_Shields_max/100,0), connection_rear_size=2, width=4, height=2.5, color=(0.7,0.2,1,1))
+    class HardpointSection(ModuleType):
+        @classmethod
+        def block(cls, gb:'GeomBuilder_Ships.ShipBuilder',module:'ShipModule') -> 'GeomBuilder_Ships.ShipBuilder':
+            return gb.add_hardpointSection_block(module, connection_front=p3dc.Point3(0,0,0), connection_front_size=2, connection_rear=p3dc.Point3(0,-3,0), connection_rear_size=2, width=4, height=2.5, color=(1,0.3,1,1))
 
 class ProceduralShip(ProceduralModels._ProceduralModel):
     IconPath = ""
     ModelPath = ""
+    AutogenerateOnAssignment = True
     def __init__(self, loadImmediately=True, seed:int=None, ship:'ShipBase.ShipBase'=None) -> None:
         style = ""
         self.Modules:'list[ShipModule]' = []
@@ -187,10 +193,10 @@ class ProceduralShip(ProceduralModels._ProceduralModel):
         if hasattr(self,"ProceduralShipCentralNode") and self.ProceduralShipCentralNode:
             self.ProceduralShipCentralNode.removeNode()
     
-    def createModule(self, type_:'type[ModuleTypes.ModuleType]', module:'typing.Union[BaseModules.Module,None]'=None) -> 'ShipModule':
+    def createModule(self, type_:'type[ModuleTypes.ModuleType]', module:'typing.Union[BaseModules.Module,None]'=None, extraInfo:'typing.Union[dict,None]'=None) -> 'ShipModule':
         if module and module.getModuleModelBuilder():
-            return module.getModuleModelBuilder()(self, type_, self.Seed, module)
-        return self.addModule(ShipModule(self, type_, self.Seed, module))
+            return module.getModuleModelBuilder()(self, type_, self.Seed, module, extraInfo=extraInfo)
+        return self.addModule(ShipModule(self, type_, self.Seed, module, extraInfo=extraInfo))
     
     def addModule(self, module:'ShipModule') -> 'ShipModule':
         self.Modules.append(module)
@@ -224,9 +230,9 @@ class ProceduralShip(ProceduralModels._ProceduralModel):
                             return module
         raise NoMatchingConnectorException("Could not find any free matching connector")
     
-    def createAndConnectModule(self, type_:'type[ModuleTypes.ModuleType]', module:'typing.Union[BaseModules.Module,None]'=None) -> 'ShipModule':
+    def createAndConnectModule(self, type_:'type[ModuleTypes.ModuleType]', module:'typing.Union[BaseModules.Module,None]'=None, extraInfo:'typing.Union[dict,None]'=None) -> 'ShipModule':
         asRoot = not bool(len(self.Modules))
-        return self.connectModule(self.createModule(type_,module),asRoot)
+        return self.connectModule(self.createModule(type_,module,extraInfo),asRoot)
     
     def generateModel(self):
         try:
@@ -254,7 +260,15 @@ class ProceduralShip(ProceduralModels._ProceduralModel):
         
         self.clearProceduralNodes()
         self.ProceduralShipCentralNode = p3dc.NodePath(p3dc.PandaNode(f"Central node of procedural ship model: {id(self)}"))
+        
         front = self.createAndConnectModule(ModuleTypes.FrontSection)
+        
+        numWeapons = len(self.ship().Weapons)
+        #for _ in range(math.ceil(len(self.ship().Weapons)/4)):
+        while numWeapons > 0:
+            hardpoints = self.createAndConnectModule(ModuleTypes.HardpointSection, extraInfo={"numHardpoints":4 if numWeapons>4 else numWeapons})
+            numWeapons -= 4
+        
         for module in self.ship().Modules:
             if isinstance(module, (BaseModules.Hull,)):
                 hull = self.createAndConnectModule(ModuleTypes.MidSection, module)
@@ -265,12 +279,14 @@ class ProceduralShip(ProceduralModels._ProceduralModel):
         
         if self.ship().thruster:
             engines = self.createAndConnectModule(ModuleTypes.AftSection, self.ship().thruster())
+        
         for module in self.ship().Weapons:
             weapon = self.createAndConnectModule(ModuleTypes.Turret, module)
+        
         return self.ProceduralShipCentralNode
 
 class ShipModule():
-    def __init__(self, ship:'ProceduralShip', type_:'type[ModuleTypes.ModuleType]', seed:int=None, module:'typing.Union[BaseModules.Module,None]'=None) -> None:
+    def __init__(self, ship:'ProceduralShip', type_:'type[ModuleTypes.ModuleType]', seed:int=None, module:'typing.Union[BaseModules.Module,None]'=None, extraInfo:'typing.Union[dict,None]'=None) -> None:
         self.Destroyed = False
         self.Type:'type[ModuleTypes.ModuleType]' = type_
         if seed is None:
@@ -278,6 +294,7 @@ class ShipModule():
         self.rng = np.random.default_rng(seed)
         self.ship:'weakref.ref[ProceduralShip]' = weakref.ref(ship)
         self.logicalModule:'typing.Union[weakref.ref[BaseModules.Module],None]' = weakref.ref(module) if module else None
+        self.ExtraInfo:'dict' = extraInfo if extraInfo is not None else {}
         if module: module.moduleModel = weakref.ref(self)
         
         self.emptyConnectorDict()
@@ -349,9 +366,10 @@ class ShipModule():
                 direction:'str',
                 position:'typing.Union[p3dc.Point3,typing.Iterable[float,float,float]]',
                 connection_size:float,
+                thickness:float = 0.125,
                 color:'tuple[float,float,float,float]' = (0,0,0,1),
                 ) -> 'Connector':
-        con = Connector(self, direction, position, connection_size, color)
+        con = Connector(module=self, direction=direction, position=position, connection_size=connection_size, thickness=thickness, color=color)
         self.Connectors.add(direction,con)
         return con
 
@@ -361,8 +379,10 @@ class Connector():
                 direction:'str',
                 position:'typing.Union[p3dc.Point3,typing.Iterable[float,float,float]]',
                 connection_size:float,
+                thickness:float = 0.125,
                 color:'tuple[float,float,float,float]' = (0,0,0,1),
                 ) -> None:
+        #print(f"{thickness = }")
         self.Direction:'str' = direction
         self.Size:'float' = connection_size
         self.module:'weakref.ref[ShipModule]' = weakref.ref(module)
@@ -370,8 +390,8 @@ class Connector():
         self.IsMaster:'bool' = False
         gb = GeomBuilder_Ships.ShipBuilder('Connector', rng=module.rng)
         if Directions.isUnspecific(self.Direction): direction = Directions.ventral
-        self.Position = gb.toPoint3(position)+Directions.getVector(direction)*0.25
-        gb.add_connection(direction=direction, connection=p3dc.Point3(0,0,0), connection_size=connection_size, color=color)
+        self.Position = gb.toPoint3(position)+Directions.getVector(direction)*thickness
+        gb.add_connection(direction=direction, connection=p3dc.Point3(0,0,0), connection_size=connection_size, thickness=thickness, color=color)
         self.Model = p3dc.NodePath(gb.get_geom_node())
         self.Node:p3dc.NodePath = p3dc.NodePath(p3dc.PandaNode(f"Central node of connector: {id(self)}"))
         self.Model.reparentTo(self.Node)

@@ -143,7 +143,12 @@ class ConstructionModuleWidget(WidgetsBase.ModuleWidget):
         self.ShipComboBox = self.addWidget(QtWidgets.QComboBox(self))
         self.populateBuildList()
         if self.module().isPlayer(): self.BuildButton = self.addWidget(AGeWidgets.Button(self, "Build", lambda: self.build()))
+        if advancedMode(): self.DEBUG_AddResourceButton = self.addWidget(AGeWidgets.Button(self, "DEBUG: Add resources", lambda: self.debug_addResources()))
         self.MessageLabel = self.addWidget(QtWidgets.QLabel(self))
+    
+    def debug_addResources(self):
+        self.module().ConstructionResourcesStored += 100
+        self.updateInterface()
     
     def updateInterface(self):
         self.Label.setText(f"{self.module().Name} (Construction Module):\n\tConstruction resources stored: {self.module().ConstructionResourcesStored}\n\tConstruction resources generated per turn: {self.module().ConstructionResourcesGeneratedPerTurn}")

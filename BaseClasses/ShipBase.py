@@ -489,15 +489,19 @@ class ShipBase():
         self.Node.setPos(0,0,0)
     
     def makeModel(self, modelPath):
-        model = ModelBase.ModelBase(modelPath)
-        self.setModel(model)
+        if not modelPath:
+            return self.generateProceduralModel()
+        else:
+            model = ModelBase.ModelBase(modelPath)
+            return self.setModel(model)
     
     def generateProceduralModel(self):
         from ProceduralGeneration import ProceduralShips
         model = ProceduralShips.ProceduralShip(ship=self)
-        self.setModel(model)
+        return self.setModel(model)
     
-    def setModel(self, model: ModelBase.ModelBase):
+    def setModel(self, model: 'typing.Union[ModelBase.ModelBase,None]'):
+        if model is None: return self.generateProceduralModel()
         if self.Model:
             self.clearModel()
         self.Model = model

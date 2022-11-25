@@ -155,6 +155,7 @@ class ShipStats(AGeWidgets.TightGridFrame):
     def populateAddModuleSelectBox(self):
         for k,v in get.shipModels().items():
             self.ModelSelectBox.addItem(k)
+        self.ModelSelectBox.setCurrentText("Procedural")
     
     def ship(self) -> ShipBase.Ship:
         return self.parent().Ship

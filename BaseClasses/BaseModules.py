@@ -481,7 +481,7 @@ class ConstructionModule(Module):
             except RuntimeError:
                 self.Widget = None # This usually means that the widget is destroyed but I don't know of a better way to test for it...
     
-    def buildShip(self, ship:'ShipBase.Ship', model:'type[ModelBase.ShipModel]') -> bool:
+    def buildShip(self, ship:'ShipBase.Ship', model:'typing.Union[type[ModelBase.ShipModel],None]') -> bool:
         if get.engine().CurrentlyInBattle:
             NC(2,"Could not construct ship: There is a battle taking place.\nThe engineers are too busy fighting to start the construction of a ship!")
             return False
@@ -490,7 +490,8 @@ class ConstructionModule(Module):
             return False
         else:
             self.ConstructionResourcesStored -= ship.Stats.Value
-            ship.setModel(model())
+            if model is None: ship.generateProceduralModel()
+            else: ship.setModel(model())
             self.ship().fleet().addShip(ship)
             self.updateInterface()
             #TODO: update the fleet Quick View to show the new ship!
