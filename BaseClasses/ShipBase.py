@@ -67,8 +67,8 @@ def createShip(d:dict):
     ship.ClassName = d["ClassName"]
     ship.WasHitLastTurn = d["WasHitLastTurn"]
     ship.ShieldsWereOffline = d["ShieldsWereOffline"]
-    ship.setModel(d["Model"])
     ship.setModules(d["Modules"])
+    ship.setModel(d["Model"])
     
     ship.ExplosionSoundEffectPath = d["ExplosionSoundEffectPath"]
     ship.init_effects()

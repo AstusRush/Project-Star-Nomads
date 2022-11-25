@@ -174,6 +174,12 @@ class ProceduralShip(ProceduralModels._ProceduralModel):
         self.CentralModule:'ShipModule' = None
         super().__init__(loadImmediately=loadImmediately,seed=seed,ship=ship)
     
+    def tocode_AGeLib(self, name="", indent=0, indentstr="    ", ignoreNotImplemented = False) -> typing.Tuple[str,dict]:
+        # We save the models by not saving them since this tells the ships to autogenerate new procedural models which is exactly what we want
+        # Later on we might want to save the seed and maybe the style and so on but for now saving literally nothing is entirely sufficient to accurately restore everything
+        ret, imp = "None", {}
+        return ret, imp
+    
     def _init_model(self):
         self.clearProceduralNodes()
         return super()._init_model()
