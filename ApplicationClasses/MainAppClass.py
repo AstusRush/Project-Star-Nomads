@@ -15,6 +15,7 @@ import typing
 import weakref
 import inspect
 import importlib
+import math
 from heapq import heappush, heappop
 
 # External imports
@@ -67,7 +68,7 @@ class EngineClass(ape.APE):
         self.Scene = Scene.CampaignScene()
         self.Scene.start()
     
-    def startBattleScene(self, fleets:typing.List[FleetBase.Fleet], battleType=0):
+    def startBattleScene(self, fleets:'list[FleetBase.Fleet]', battleType=0):
         if self.CurrentlyInBattle: raise Exception("A battle is already happening")
         #TODO: What happens when no player fleet is involved?!
         #self._CameraPositionBeforeBattle = self.Scene.Camera.CameraCenter.getPos()
@@ -80,6 +81,12 @@ class EngineClass(ape.APE):
         self.BattleUnitManager = UnitManagerBase.CombatUnitManager()
         self.BattleScene = Scene.BattleScene()
         self.BattleScene.start()
+        self.transferFleetsToBattle(fleets, battleType)
+        environmentCreator = Environment.EnvironmentCreator()
+        environmentCreator.generate(self.BattleScene.HexGrid, combat=True)
+        self.BattleScene.Camera.moveToHex(random.choice(self.BattleUnitManager.Teams[1]).hex())
+    
+    def transferFleetsToBattle(self, fleets:'list[FleetBase.Fleet]', battleType):
         for fleet in fleets:
             fleet_parts = self.splitFleetIntoFlotillas(fleet)
             for num, ships in enumerate(fleet_parts):
@@ -88,9 +95,6 @@ class EngineClass(ape.APE):
                 for ship in ships:
                     flotilla.addShip(ship)
                 self.placeFlotillaInBattle(flotilla, fleet, battleType)
-        environmentCreator = Environment.EnvironmentCreator()
-        environmentCreator.generate(self.BattleScene.HexGrid, combat=True)
-        self.BattleScene.Camera.moveToHex(random.choice(self.BattleUnitManager.Teams[1]).hex())
     
     def placeFlotillaInBattle(self, flotilla:FleetBase.Flotilla, fleet:FleetBase.Fleet, battleType):
         #TODO: Implement battle types and have special positioning rules for things like ambushes or imprecise jump drives
@@ -203,24 +207,38 @@ class EngineClass(ape.APE):
         self.getHexGrid().OnClearDo = onClear
     
     def splitFleetIntoFlotillas(self, fleet:'FleetBase.FleetBase') -> typing.List[typing.List['ShipBase.ShipBase']]:
-        #TODO: It would be great if we were to group the ships according to their types and movement
-        if fleet.Team != 1 and len(fleet.Ships) >= 6:
-            sNum = len(fleet.Ships) // 3
-            sRem = len(fleet.Ships) % 3
-            ships = []
-            for i in range(sNum):
-                ships.append(fleet.Ships[i::sNum])
-            for i in ships:
-                for j in i:
-                    if j not in fleet.Ships:
-                        NC(1,"One ship would not be in the fleet.Ships!")
-                        return [fleet.Ships]
-            if sum([len(i) for i in ships]) != len(fleet.Ships):
-                NC(3,"One ship would be in two flotillas!")
-                return [fleet.Ships]
-            return ships
-        else:
+        #TODO: It would be great if we were to group the ships according to their types and movement ###DONE (at least the movement part) but would benefit from more fine-tuning
+        try:
+            #speedGroups = []
+            #for ship in fleet.Ships:
+            #    speed = math.floor(ship.Stats.Movement_Sublight[1])
+            #    if speed not in speedGroups: speedGroups.append(speed)
+            flotillasDict:'dict[int,list[ShipBase.ShipBase]]' = {}
+            for ship in fleet.Ships:
+                speed = math.floor(ship.Stats.Movement_Sublight[1])
+                if speed not in flotillasDict: flotillasDict[speed] = [ship]
+                else: flotillasDict[speed].append(ship)
+            ships = list(flotillasDict.values())
+            #TODO: Ensure that flotillas do not have more than 4 ships and separate them is necessary
+        except:
+            NC(2,"Could not split fleet into flotillas in the usual way. Splitting the ships by number instead.", exc=True)
+            if fleet.Team != 1 and len(fleet.Ships) >= 6:
+                sNum = len(fleet.Ships) // 3
+                sRem = len(fleet.Ships) % 3
+                ships = []
+                for i in range(sNum):
+                    ships.append(fleet.Ships[i::sNum])
+            else:
+                return [fleet.Ships.copy()]
+        for i in ships:
+            for j in i:
+                if j not in fleet.Ships:
+                    NC(1,"One ship would not be in the fleet.Ships!")
+                    return [fleet.Ships]
+        if sum([len(i) for i in ships]) != len(fleet.Ships):
+            NC(3,"One ship would be in two flotillas!")
             return [fleet.Ships]
+        return ships
     
     def _getNumOfGridsFormatted(self):
         return f"There have been a total of {self._NumHexGridsCampaign} campaign grids and {self._NumHexGridsBattle} battle grids since this application started."

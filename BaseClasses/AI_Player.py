@@ -71,20 +71,49 @@ class PlayerAI_Campaign(PlayerAI):
             await i.AI.executeTurn(orders)
     
     def spawnFleets(self):
+        self.spawnFleets_Value()
+    
+    def spawnFleets_Value(self):
+        if self.unitList().value() < get.unitManager().Teams[1].value(adj=True)*3:
+            fleet = self.createNewFleetInstance()
+            while self.unitList().value() < get.unitManager().Teams[1].value(adj=True)*3:
+                if fleet.value() >= get.unitManager().Teams[1].value(adj=True):
+                    # New fleet once the old fleet gets quite big
+                    # Do note that construction ships have quite a high value and we therefore need to be careful to not spawn too many enemies per fleet
+                    fleet = self.createNewFleetInstance()
+                ship:'ShipBase.Ship' = random.choice(self.getValidShipTypes())()
+                ship.Name = ship.ClassName[0:-1]+str(random.randint(1000,9999))
+                fleet.addShip(ship=ship)
+    
+    def createNewFleetInstance(self) -> 'FleetBase.Fleet':
         from BaseClasses import FleetBase
+        fleet = FleetBase.Fleet(self.unitList().ID)
+        fleet.Name = f"{self.unitList().name()} Fleet"
+        while True:
+            hexList = get.hexGrid(campaign=True).getEdgeHexes()
+            hex_ = random.choice(hexList)
+            if fleet._navigable(hex_):
+                break
+        fleet.moveToHex(hex_,animate=False)
+        return fleet
+    
+    def getValidShipTypes(self) -> 'ShipBase.Ship':
+        from Ships import AI_faction_ships
+        l = []
+        for _ in range(5): l.append(AI_faction_ships.AI_PatrolCraft_1)
+        for _ in range(5): l.append(AI_faction_ships.AI_Corvette_1)
+        for _ in range(4): l.append(AI_faction_ships.AI_Frigate_1)
+        for _ in range(2): l.append(AI_faction_ships.AI_Frigate_LR_1)
+        for _ in range(2): l.append(AI_faction_ships.AI_Frigate_H_1)
+        return l
+    
+    def spawnFleets_NumShips(self):
         if self.unitList().ID > 1 and self.unitList().numberOfShips() < get.unitManager().Teams[1].numberOfShips():
-            fleet = FleetBase.Fleet(self.unitList().ID)
-            fleet.Name = f"{self.unitList().name()} Fleet"
+            fleet = self.createNewFleetInstance()
             for i in range(6 if get.unitManager().Teams[1].numberOfShips() > 4 else 3):
                 ship = get.shipClasses()["TestShips: Enterprise"]()
                 ship.Name = f"{ship.Name} {i}"
                 fleet.addShip(ship)
-            while True:
-                hexList = get.hexGrid(campaign=True).getEdgeHexes()
-                hex_ = random.choice(hexList)
-                if fleet._navigable(hex_):
-                    break
-            fleet.moveToHex(hex_,animate=False)
 
 class PlayerAI_Combat(PlayerAI):
     

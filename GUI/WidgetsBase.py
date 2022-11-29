@@ -114,8 +114,7 @@ class ShipQuickView(AGeWidgets.TightGridFrame): #TODO: Should This be part of th
         #self.Button = self.addWidget(AGeWidgets.Button(self,"",lambda: self.showFullInterface()),0,0)
         self.Button = self.addWidget(AGeWidgets.ToolButton(self),0,0)
         self.Button.clicked.connect(lambda: self.showFullInterface())
-        self.Button.setIcon(QtGui.QIcon(self.ship().Model.IconPath))
-        self.Button.setIconSize(60,60)
+        self.handleIcon()
         self.Label_Info = self.addWidget(QtWidgets.QLabel(self),0,1)
         self.Label_Def = self.addWidget(QtWidgets.QLabel(self),0,2)
         if not get.engine().CurrentlyInBattle:
@@ -123,6 +122,14 @@ class ShipQuickView(AGeWidgets.TightGridFrame): #TODO: Should This be part of th
         else:
             self.Label_Weapons = self.addWidget(QtWidgets.QLabel(self),0,3)
             self.updateCombatInterface()
+    
+    def handleIcon(self):
+        if self.ship().Model.IconPath:
+            self.Button.setIcon(QtGui.QIcon(self.ship().Model.IconPath))
+            self.Button.setIconSize(60,60)
+        else:
+            self.Button.setText(self.ship().ClassName[0:3])
+            self.Button.setMinimumSize(60,60)
     
     def updateCombatInterface(self):
         self.Label_Info.setText(f"Name: {self.ship().Name}\nClass: {self.ship().ClassName}\nMovement: {self.ship().Stats.MovementStr}")
@@ -239,6 +246,7 @@ class Menu(AGeWidgets.TightGridWidget):
         self.SaveLoadWidget = self.addWidget(SaveLoadWidget(self))
         self.HighlightOptionsWidget = self.addWidget(HighlightOptionsWidget(self))
         self.GraphicsOptionsWidget = self.addWidget(GraphicsOptionsWidget(self))
+        self.SoundOptionsWidget = self.addWidget(SoundOptionsWidget(self))
         self.layout().addItem(QtWidgets.QSpacerItem(2, 2, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding))
 
 class SaveLoadWidget(AGeWidgets.TightGridFrame):
@@ -273,7 +281,18 @@ class GraphicsOptionsWidget(AGeWidgets.TightGridFrame):
         self.AsteroidNoisePasses = self.addWidget(AGeInput.Int(self,"Asteroid Noise Passes\n(higher=more diverse asteroids\n but higher likelihood of 'negative volume')",3,0,5))
         self.AsteroidTexture = self.addWidget(AGeInput.Bool(self,"Use a randomly generated texture for asteroids\nIf disabled the individual faces are\n coloured which results in a retro look",False))
         self.AsteroidTextureResolution = self.addWidget(AGeInput.Int(self,"Asteroid Texture Resolution\n(lower=faster battle loading)",256,64,1024,"²"))
+        self.ShipTexture = self.addWidget(AGeInput.Bool(self,"Use a randomly generated texture for ships\nThis makes it look more interesting.",True))
         self.RedrawEntireGridWhenHighlighting = self.addWidget(AGeInput.Bool(self,"Redraw entire grid when highlighting\n(Useful when changing hex colours)\n(Disable if selecting a unit is slow)",True))
     
     def newSkybox(self):
         get.scene().loadSkybox()
+
+class SoundOptionsWidget(AGeWidgets.TightGridFrame):
+    def __init__(self, parent: typing.Optional['QtWidgets.QWidget'] = None) -> None:
+        super().__init__(parent)
+        self.Label = self.addWidget(QtWidgets.QLabel("Sound",self))
+        self.HeadlineLine = self.addWidget(QtWidgets.QFrame(self))
+        self.HeadlineLine.setFrameShape(QtWidgets.QFrame.HLine)
+        self.HeadlineLine.setFrameShadow(QtWidgets.QFrame.Sunken)
+        self.WeaponSoundVolume = self.addWidget(AGeInput.Float(self,"Weapon Sound Volume",0.07,0.001,1.0))
+        self.ExplosionSoundVolume = self.addWidget(AGeInput.Float(self,"Explosion Sound Volume",0.12,0.001,1.0))

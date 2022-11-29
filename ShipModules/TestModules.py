@@ -61,6 +61,22 @@ class TestHull_M(BaseModules.Hull):
     HP_Hull_Regeneration = HP_Hull_max / 20
     NoticeableDamage = HP_Hull_max / 10
 
+class TestHull_L(BaseModules.Hull):
+    Name = "TestHull_L"
+    Evasion = 0.05
+    HP_Hull_max = 200
+    HP_Hull = HP_Hull_max
+    HP_Hull_Regeneration = HP_Hull_max / 20
+    NoticeableDamage = HP_Hull_max / 10
+
+class TestHull_XL(BaseModules.Hull):
+    Name = "TestHull_XL"
+    Evasion = 0.01
+    HP_Hull_max = 400
+    HP_Hull = HP_Hull_max
+    HP_Hull_Regeneration = HP_Hull_max / 20
+    NoticeableDamage = HP_Hull_max / 10
+
 class TestSensors_M(BaseModules.Sensor):
     Name = "TestSensors_M"
     LowRange = 20
@@ -102,6 +118,14 @@ class TestBeam_M(BaseModules.Weapon_Beam):
     HullFactor = 1
     Range = 3
 
+class TestBeam_L(BaseModules.Weapon_Beam):
+    Name = "TestBeam_L"
+    Damage = 100
+    Accuracy = 1
+    ShieldFactor = 1
+    HullFactor = 1
+    Range = 4
+
 class TestEngine_M(BaseModules.Engine): # FTL Engine
     Name = "TestEngine_M"
     Thrust = 12
@@ -112,6 +136,11 @@ class TestEngine_L(BaseModules.Engine): # FTL Engine
     Thrust = 20
     RemainingThrust = 20
 
+class TestEngine_XL(BaseModules.Engine): # FTL Engine
+    Name = "TestEngine_XL"
+    Thrust = 44
+    RemainingThrust = 44
+
 class TestThruster_M(BaseModules.Thruster): # Sublight Thruster
     Name = "TestThruster_M"
     Thrust = 12
@@ -121,6 +150,11 @@ class TestThruster_L(BaseModules.Thruster): # Sublight Thruster
     Name = "TestThruster_L"
     Thrust = 20
     RemainingThrust = 20
+
+class TestThruster_XL(BaseModules.Thruster): # Sublight Thruster
+    Name = "TestThruster_XL"
+    Thrust = 44
+    RemainingThrust = 44
 
 class TestConstructionModule(BaseModules.ConstructionModule): # ConstructionModule
     Name = "TestConstructionModule"

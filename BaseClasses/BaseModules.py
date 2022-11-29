@@ -630,6 +630,7 @@ class Weapon(Module):
             for _ in range(6):
                 targetShip = random.choice(target.fleet().Ships)
                 if not targetShip.Destroyed:
+                    self.SFX.setVolume(get.menu().SoundOptionsWidget.WeaponSoundVolume())
                     self.SFX.play() #TODO: do not play a sound effect too many times at the same time
                     hit , targetDestroyed, damageDealt = targetShip.takeDamage(self.Damage,self.Accuracy,self.ShieldFactor,self.HullFactor,self.ShieldPiercing)
                     self.fireEffectAt(targetShip, hit) #TODO: loading too many effects at the same time is too slow...

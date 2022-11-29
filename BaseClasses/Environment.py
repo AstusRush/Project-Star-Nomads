@@ -55,7 +55,7 @@ from BaseClasses import HexBase
 from BaseClasses import ModelBase
 from ProceduralGeneration import ProceduralModels
 
-class EnvironmentCreator():
+class EnvironmentCreator(): #TODO: Clusters should scale with map-size
     ClusterNumberMin = 6
     ClusterNumberMax = 40
     ClusterSizeMin = 3

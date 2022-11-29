@@ -3,6 +3,7 @@ from BaseClasses import ListLoader
 from BaseClasses import BaseModules
 if typing.TYPE_CHECKING:
     import TestModules
+    import AI_faction_modules
 else:
     """Import all modules that exist in the current directory."""
     # Ref https://stackoverflow.com/a/60861023/

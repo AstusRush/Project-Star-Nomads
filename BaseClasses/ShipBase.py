@@ -542,6 +542,7 @@ class ShipBase():
         explosionDuration = 1.0
         self.Model.Model.setColor((0.1,0.1,0.1,1))
         
+        self.ExplosionSoundEffect.setVolume(get.menu().SoundOptionsWidget.WeaponSoundVolume())
         self.ExplosionSoundEffect.play()
         
         self.ExplosionEffect:p3dc.NodePath = loader().loadModel("Models/Simple Geometry/sphere.ply")

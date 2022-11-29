@@ -671,7 +671,7 @@ class Fleet(FleetBase):
                 ships_to_be_removed.append(ship)
         salvageValue = 0
         for ship in ships_to_be_removed:
-            salvageValue += ship.Stats.Value/5
+            salvageValue += ship.Stats.Value/8
             self.removeShip(ship,arrange=False)
         print("Ships in fleet after cleanup:", len(self.Ships))
         if self.Destroyed:

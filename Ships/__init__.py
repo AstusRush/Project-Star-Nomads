@@ -5,6 +5,7 @@ if typing.TYPE_CHECKING:
     from BaseClasses import ModelBase
     #
     import TestShips
+    import AI_faction_ships
 else:
     """Import all modules that exist in the current directory."""
     # Ref https://stackoverflow.com/a/60861023/

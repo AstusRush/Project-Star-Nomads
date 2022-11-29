@@ -89,7 +89,8 @@ class GeomBuilder(GeomBuilder_base.GeomBuilder):
         Transmutes colors and vertices for tris and quads into visible geometry.
         """
         point_id = self.writer.count
-        if uv is None: uv = [(0.0,0.0),(1.0,0.0),(1.0,1.0),(0.0,1.0),(0.0,0.0),(1.0,0.0),(1.0,1.0),(0.0,1.0)]
+        min_, max_ = 0.1, 0.9
+        if uv is None: uv = [(min_,min_),(max_,min_),(max_,max_),(min_,max_),(min_,min_),(max_,min_),(max_,max_),(min_,max_)]
         for i,p in enumerate(poly.points):
             self.writer.add_vertex(p, poly.get_normal(), color, uv[i]) # (0.0, 1.0)
         if len(poly.points) == 3:

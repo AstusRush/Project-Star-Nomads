@@ -63,6 +63,7 @@ class MainWindowClass(ape.APELabWindow):#APEWindow):
         #genLayout.addWidget(self.genCB)
         self.EndTurnButton = AGeWidgets.Button(self,"End Turn",lambda: get.unitManager().endTurn())
         base().accept("control-enter",lambda: get.unitManager().endTurn()) # ctrl + Enter
+        base().accept("control-space",lambda: get.unitManager().endTurn()) # ctrl + Space
         genLayout.addWidget(self.EndTurnButton)
         
         self.genWidget.setLayout(genLayout)
@@ -96,17 +97,12 @@ TEMP_CODE = """
 self.P1_Fleet1 = FleetBase.Fleet(1)
 self.P1_Fleet1.Name = "Fleet 1"
 if True:
-    for i in range(3):
-        ship = Ships.TestShips.Prometheus()
-        ship.Name = f"Prometheus 1-{i}"
-        self.P1_Fleet1.addShip(ship)
-    
-    ship = Ships.TestShips.SpaceDock()
-    ship.Name = f"Home One"
+    ship = Ships.TestShips.NomadOne()
     self.P1_Fleet1.addShip(ship)
 
 if False:
-    ship = Ships.TestShips.ProcTestShip()
+    ship = Ships.AI_faction_ships.AI_PatrolCraft_1()
+    #ship = Ships.TestShips.ProcTestShip()
     #ship = Ships.TestShips.TestShip()
     ship.Name = f"Test 1"
     self.P1_Fleet1.addShip(ship)
@@ -114,6 +110,13 @@ if False:
 self.P1_Fleet1.moveToHex(self.getHex((25,25)))
 
 if False:
+    #ship = Ships.TestShips.SpaceDock()
+    #ship.Name = f"Home One"
+    #self.P1_Fleet1.addShip(ship)
+    for i in range(3):
+        ship = Ships.TestShips.Prometheus()
+        ship.Name = f"Prometheus 1-{i}"
+        self.P1_Fleet1.addShip(ship)
     ###########################################
     self.P1_Fleet2 = FleetBase.Fleet(1)
     self.P1_Fleet2.Name = "Fleet 2"

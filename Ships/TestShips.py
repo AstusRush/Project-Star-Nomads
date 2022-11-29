@@ -58,6 +58,23 @@ import ShipModules
 
 ALL_PROCEDURAL = True
 
+class NomadOne(ShipBase.Ship):
+    Name = "Nomad One"
+    ClassName = "Arc Ship"
+    def __init__(self, generateModel=True) -> None:
+        super().__init__()
+        self.addModule(ShipModules.TestModules.TestHull_XL())
+        self.addModule(ShipModules.TestModules.TestSensors_M())
+        self.addModule(ShipModules.TestModules.TestEngine_XL())
+        self.addModule(ShipModules.TestModules.TestThruster_XL())
+        self.addModule(ShipModules.TestModules.TestConstructionModule())
+        self.addModule(ShipModules.TestModules.TestShield_L())
+        self.addModule(ShipModules.TestModules.TestShield_L())
+        self.addModule(ShipModules.TestModules.TestBeam_L())
+        self.addModule(ShipModules.TestModules.TestBeam_L())
+        if generateModel:
+            self.generateProceduralModel()
+
 class EnterpriseModel(ModelBase.ShipModel):
     ModelPath = "tempModels/NCC-1701-D.gltf"
     IconPath = "tempModels/Icons/gbfgalaxy.tga"

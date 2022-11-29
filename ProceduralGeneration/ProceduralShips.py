@@ -242,10 +242,13 @@ class ProceduralShip(ProceduralModels._ProceduralModel):
     
     def generateModel(self):
         try:
-            return self.generateModelFromShipModules()
+            node = self.generateModelFromShipModules()
         except HasNoShipException as e:
             print(f"{self} could not generate a model from the ship modules: {e.args}")
-            return self.generateGenericModel()
+            node = self.generateGenericModel()
+        
+        if get.menu().GraphicsOptionsWidget.ShipTexture(): self.applyTexture(node)
+        return node
     
     def generateGenericModel(self):
         self.clearProceduralNodes()
@@ -290,6 +293,40 @@ class ProceduralShip(ProceduralModels._ProceduralModel):
             weapon = self.createAndConnectModule(ModuleTypes.Turret, module)
         
         return self.ProceduralShipCentralNode
+    
+    def applyTexture(self, node:'p3dc.NodePath'):
+        try: #if True: #texture:
+            import io
+            import PIL
+            col = self.generateTexture()
+            cMap = PIL.Image.fromarray(np.uint8((np.flip(col,(1)).transpose(1,0,2))),'RGBA')
+            cBuf = io.BytesIO()
+            cMap.save(cBuf, format="png")
+            ciMap = p3dc.PNMImage()
+            ciMap.read(p3dc.StringStream(cBuf.getvalue()),"t.png")
+            
+            panda_tex = p3dc.Texture("default")
+            panda_tex.load(ciMap)
+            panda_mat = p3dc.Material("default")
+            #panda_mat.emission = 0
+            panda_mat.setEmission((0.1,0.1,0.1,1))
+            node.set_material(panda_mat)
+            node.set_texture(panda_tex)
+        except:
+            ExceptionOutput()
+    
+    def generateTexture(self):
+        a, b = 200, 256 # col ∈ [a,b)
+        col = self.rng.random((50,50,4))*(b-a)+a
+        col[:,:3] = 1
+        col = col.astype(int)
+        
+        #from matplotlib import pyplot as plt
+        #plt.figure()
+        #plt.imshow(col[:,:,:3]/255)
+        #plt.show()
+        #input("WAITING")
+        return col
 
 class ShipModule():
     def __init__(self, ship:'ProceduralShip', type_:'type[ModuleTypes.ModuleType]', seed:int=None, module:'typing.Union[BaseModules.Module,None]'=None, extraInfo:'typing.Union[dict,None]'=None) -> None:
