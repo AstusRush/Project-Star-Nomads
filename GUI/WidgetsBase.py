@@ -187,6 +187,9 @@ class ShipInterface:
         Hull: {round(self.ship().Stats.HP_Hull,3)}/{round(self.ship().Stats.HP_Hull_max,3)}
         Shields: {round(self.ship().Stats.HP_Shields,3)}/{round(self.ship().Stats.HP_Shields_max,3)}
         Movement: {round(self.ship().Stats.Movement_FTL[0],3)}/{round(self.ship().Stats.Movement_FTL[1],3)}
+        Value: {self.ship().Stats.Value}
+        Threat: {self.ship().Stats.Threat}
+        Defensiveness: {self.ship().Stats.Defensiveness}
         """)
         try:
             if self.Label:
@@ -221,6 +224,9 @@ class ShipInterface:
         Shields: {round(self.ship().Stats.HP_Shields,3)}/{round(self.ship().Stats.HP_Shields_max,3)}
         Movement: {round(self.ship().Stats.Movement_Sublight[0],3)}/{round(self.ship().Stats.Movement_Sublight[1],3)}
         Evasion: {round(self.ship().Stats.Evasion,3)}
+        Value: {self.ship().Stats.Value}
+        Threat: {self.ship().Stats.Threat}
+        Defensiveness: {self.ship().Stats.Defensiveness}
         """)
         try:
             if self.Label:
@@ -244,6 +250,7 @@ class Menu(AGeWidgets.TightGridWidget):
         #       (Though this should probably become part of the options window with individual tabs for different option categories so that scrolling is not necessary
         #           as scrolling can result in accidental changes for spin boxes)
         self.SaveLoadWidget = self.addWidget(SaveLoadWidget(self))
+        self.DifficultyOptionsWidget = self.addWidget(DifficultyOptionsWidget(self))
         self.HighlightOptionsWidget = self.addWidget(HighlightOptionsWidget(self))
         self.GraphicsOptionsWidget = self.addWidget(GraphicsOptionsWidget(self))
         self.SoundOptionsWidget = self.addWidget(SoundOptionsWidget(self))
@@ -258,6 +265,16 @@ class SaveLoadWidget(AGeWidgets.TightGridFrame):
         self.HeadlineLine.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.SaveButton = self.addWidget(AGeWidgets.Button(self,"Save",lambda: get.engine().save()))
         self.LoadButton = self.addWidget(AGeWidgets.Button(self,"Load",lambda: get.engine().load()))
+
+class DifficultyOptionsWidget(AGeWidgets.TightGridFrame):
+    def __init__(self, parent: typing.Optional['QtWidgets.QWidget'] = None) -> None:
+        super().__init__(parent)
+        self.Label = self.addWidget(QtWidgets.QLabel("Difficulty",self))
+        self.HeadlineLine = self.addWidget(QtWidgets.QFrame(self))
+        self.HeadlineLine.setFrameShape(QtWidgets.QFrame.HLine)
+        self.HeadlineLine.setFrameShadow(QtWidgets.QFrame.Sunken)
+        self.EnemyTotalStrength = self.addWidget(AGeInput.Float(self,"Enemy Total Strength",3.0,0.5,10.0))
+        self.EnemyStrengthPerFleet = self.addWidget(AGeInput.Float(self,"Enemy Strength per Fleet",1.0,0.5,10.0))
 
 class HighlightOptionsWidget(AGeWidgets.TightGridFrame):
     def __init__(self, parent: typing.Optional['QtWidgets.QWidget'] = None) -> None:

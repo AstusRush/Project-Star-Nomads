@@ -221,10 +221,10 @@ class UnitList(typing.List['FleetBase.FleetBase']):
     def value(self, adj=False) -> float:
         """
         Returns the sum of all the value of all ships of this team.\n
-        If adj is True and this is the player team 10 will be deducted from the return value to adjust for the initial construction module.
+        If adj is True and this is the player team 20 will be deducted from the return value to adjust for the initial construction module.
         This is used to adjust the spawning behaviour of enemies to not wipe out the player o game start.
         """
-        if adj and self.ID == 1: return sum([i.value() for i in self]) - 16
+        if adj and self.ID == 1: return sum([i.value() for i in self]) - 24
         return sum([i.value() for i in self])
     
     def threat(self) -> float:

@@ -108,15 +108,15 @@ class Shield_XL(BaseModules.Shield):
 
 class Beam_XXS(BaseModules.Weapon_Beam):
     Name = "Beam XXS"
-    Damage = 15
-    Accuracy = 0.85
+    Damage = 10
+    Accuracy = 0.80
     ShieldFactor = 1
     HullFactor = 1
     Range = 2
 
 class Beam_XS(BaseModules.Weapon_Beam):
     Name = "Beam XS"
-    Damage = 25
+    Damage = 20
     Accuracy = 0.85
     ShieldFactor = 1
     HullFactor = 1
@@ -152,7 +152,7 @@ class Beam_XL(BaseModules.Weapon_Beam):
     Accuracy = 1
     ShieldFactor = 1
     HullFactor = 1
-    Range = 4
+    Range = 5
 
 class Beam_XXL(BaseModules.Weapon_Beam):
     Name = "Beam XXL"
@@ -161,6 +161,11 @@ class Beam_XXL(BaseModules.Weapon_Beam):
     ShieldFactor = 1
     HullFactor = 1
     Range = 5
+
+class Engine_XS(BaseModules.Engine): # FTL Engine
+    Name = "Engine XS"
+    Thrust = 8
+    RemainingThrust = 8
 
 class Engine_S(BaseModules.Engine): # FTL Engine
     Name = "Engine S"
@@ -171,6 +176,11 @@ class Engine_S(BaseModules.Engine): # FTL Engine
 #    Name = "Engine M"
 #    Thrust = 20
 #    RemainingThrust = 20
+
+class Thruster_XS(BaseModules.Thruster): # Sublight Thruster
+    Name = "Thruster XS"
+    Thrust = 8
+    RemainingThrust = 8
 
 class Thruster_S(BaseModules.Thruster): # Sublight Thruster
     Name = "Thruster S"

@@ -74,10 +74,10 @@ class PlayerAI_Campaign(PlayerAI):
         self.spawnFleets_Value()
     
     def spawnFleets_Value(self):
-        if self.unitList().value() < get.unitManager().Teams[1].value(adj=True)*3:
+        if self.unitList().value() < get.unitManager().Teams[1].value(adj=True)*get.menu().DifficultyOptionsWidget.EnemyTotalStrength():
             fleet = self.createNewFleetInstance()
-            while self.unitList().value() < get.unitManager().Teams[1].value(adj=True)*3:
-                if fleet.value() >= get.unitManager().Teams[1].value(adj=True):
+            while self.unitList().value() < get.unitManager().Teams[1].value(adj=True)*get.menu().DifficultyOptionsWidget.EnemyTotalStrength():
+                if fleet.value() >= get.unitManager().Teams[1].value(adj=True)*get.menu().DifficultyOptionsWidget.EnemyStrengthPerFleet():
                     # New fleet once the old fleet gets quite big
                     # Do note that construction ships have quite a high value and we therefore need to be careful to not spawn too many enemies per fleet
                     fleet = self.createNewFleetInstance()
