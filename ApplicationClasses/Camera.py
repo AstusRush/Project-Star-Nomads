@@ -70,6 +70,7 @@ class StrategyCamera(DirectObject):
         ape.base().camera.reparentTo(self.CameraRotCenter)
         ape.base().camera.setPos(0,-15,0)
         ape.base().camera.lookAt(self.CameraCenter)
+        ape.base().camLens.set_near(0.1)
         
         self.LimitX: typing.Tuple[float,float] = (float("-inf"), float("inf"))
         self.LimitY: typing.Tuple[float,float] = (float("-inf"), float("inf"))
@@ -249,7 +250,11 @@ class StrategyCamera(DirectObject):
     def zoomCamera(self, sign): #TODO: Support zoom-to-cursor and use it as a standard as it feels way more intuitive. Make a flag (as a member) that governs this behaviour
         if not self.Active:
             return
-        if -ape.base().camera.getY() <= 5:
+        if -ape.base().camera.getY() <= 1:
+            y = -ape.base().camera.getY() + sign*0.1
+            if y > 1: y = 2
+            elif y < 0.1: y = 0.1
+        elif -ape.base().camera.getY() <= 5:
             y = -ape.base().camera.getY() + sign
             if y > 5: y = 10
             elif y < 1: y = 1
