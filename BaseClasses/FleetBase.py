@@ -561,7 +561,7 @@ class FleetBase():
         Sensor ranges: no resolution, low resolution, medium resolution, high resolution, perfect resolution \n
         Note: no resolution is always infinite and only exist so that the indices match with the information levels 0='Not visible' to 4='Fully visible' \n
         """
-        ranges = np.asarray([i.Stats.SensorRanges for i in self.Ships])
+        ranges = np.asarray([i.Stats.SensorRanges for i in self.Ships]) if self.Ships else np.zeros((1,5))
         return float("inf"), max(ranges[:,1]), max(ranges[:,2]), max(ranges[:,3]), max(ranges[:,4])
         
     def getSensorRanges_Int(self) -> typing.Tuple[int,int,int,int,int]: #TODO: The sensors of the ships in the fleet should enhance each other
@@ -800,6 +800,7 @@ class Flotilla(FleetBase):
     
   #region Combat Offensive
     async def attack(self, target: 'HexBase._Hex', orders:AI_Base.Orders = None):
+        #TODO: Ships that are firing should be visible to the player they are firing on... But maybe not for all weapons? Stealth torpedo salvo?
         if self.Destroyed or not self.isActiveTurn():
             return False
         if self.MovementSequence and self.MovementSequence.isPlaying():

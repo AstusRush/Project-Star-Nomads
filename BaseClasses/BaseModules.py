@@ -563,6 +563,127 @@ class Special(Module):
     Buildable = False
     pass
 
+class MicroJumpDrive(Special):
+    Name = "Unnamed Micro Jump Drive"
+    Buildable = True
+    Value = 3
+    Threat = 2
+    MaxCharges = 1
+    Cooldown = 8 #REMINDER: Cooldown = float("inf") means that the ability can only be used once per campaign turn
+    Range = 10
+    #MAYBE: Increase the MaxCharges and make longer jumps use up more charges. Something maybe one charge per hex travelled and a recharge rate of one charge per turn and MaxCharges = 10
+    def __init__(self) -> None:
+        super().__init__()
+        self.Charge = self.MaxCharges
+    
+    #def calculateThreat(self):
+    #    return self.Damage/100 * self.Accuracy * ((20 if self.ShieldPiercing else self.ShieldFactor) + self.HullFactor)/2 * ((1+self.Range-self.MinimalRange/2)/4.5)**2
+    
+    #def calculateValue(self):
+    #    return self.calculateThreat()/3
+    
+    #def calculateMass(self):
+    #    return max(0.01 , self.calculateThreat()/3 + ((1+self.Range-self.MinimalRange/3)/4.5)**2 - 1)/2 * self.Accuracy
+    
+    #def makeValuesValid(self) -> 'str':
+    #    adjustments = super().makeValuesValid()
+    #    if self.Range < self.MinimalRange:
+    #        adjustments += "The maximal range was smaller than the minimal range and was therefore increased to match. The outcome may be undesirable.\n"
+    #        self.Range = self.MinimalRange
+    #    return adjustments
+    
+    def handleNewCampaignTurn(self):
+        self.Charge = self.MaxCharges
+    
+    def resetCondition(self):
+        super().resetCondition()
+        self.Charge = self.MaxCharges
+    
+    def handleNewCombatTurn(self):
+        self.Charge = min(self.Charge+1/self.Cooldown , self.MaxCharges)
+        #self.updateCombatInterface()
+    
+    def getCombatInterface(self) -> QtWidgets.QWidget:
+        self.Widget = ModuleWidgets.MicroJumpDriveWidget(self)
+        return self.Widget
+    
+    def updateCombatInterface(self):
+        if self.Widget:
+            try:
+                self.Widget.updateInterface()
+            except RuntimeError:
+                self.Widget = None # This usually means that the widget is destroyed but I don't know of a better way to test for it...
+    
+    def jump(self):
+        if self.Charge < 1: raise Exception("Not enough charge to jump!")
+        #TODO: onHover should give a tooltip that informs the user about the interaction
+        #TODO: The select button should be marked to signal that the jump action is selected, clicking the button again should cancel the selection,
+        #       and onClear should remove the marking of the button (if it still exists since the selection could have changed and thus removed the button!)
+        get.engine().setHexInteractionFunctions(self.jumpTo, lambda _:(False,True), None, self.clearInteraction)
+        self.highlightRange(True)
+    
+    def highlightRange(self, highlight=True):
+        get.hexGrid().clearAllHexHighlighting(True)
+        if highlight:
+            get.hexGrid().highlightHexes(self.ship().fleet().hex().getDisk(self.Range), HexBase._Hex.COLOUR_REACHABLE, HexBase._Hex.COLOUR_REACHABLE, False, clearFirst=True)
+    
+    def jumpTo(self, hex:'HexBase._Hex') -> 'tuple[bool,bool]':
+        if ( self.Charge < 1
+            or hex.distance(self.ship().fleet().hex()) > self.Range
+            or not self.isActiveTurn()
+            ): return False,True
+        
+        if hex.fleet:
+            if self.team() == hex.fleet().Team:
+                self.ship().fleet().removeShip(self.ship())
+                hex.fleet().addShip(self.ship())
+                self.Charge -= 1
+                self.playEffect()
+                return True, True
+            else:
+                return False,True
+        elif self.ship().fleet()._navigable(hex):
+            from BaseClasses import FleetBase
+            if get.engine().CurrentlyInBattle: f = FleetBase.Flotilla(self.team())
+            else: f = FleetBase.Fleet(self.team())
+            f.moveToHex(hex,False)
+            self.ship().fleet().removeShip(self.ship())
+            hex.fleet().addShip(self.ship())
+            self.Charge -= 1
+            self.playEffect()
+            return True, True
+        
+        return False, True
+    
+    def playEffect(self):
+        pass #TODO: micro jump effect
+    
+    def clearInteraction(self):
+        self.highlightRange(False)
+        if self.ship().fleet().isSelected():
+            self.ship().fleet().highlightRanges(True)
+    
+    def save(self) -> dict:
+        """
+        Returns a dictionary with all values (and their names) that need to be saved to fully recreate this module.\n
+        This method is called automatically when this module is saved.\n
+        Reimplement this method if you create custom values. But don't forget to call `d.update(super().save())` before returning the dict!
+        """
+        return {
+            "MaxCharges" : self.MaxCharges ,
+            "Cooldown" : self.Cooldown ,
+            "Range" : self.Range ,
+            "Charge" : self.Charge ,
+        }
+    
+    def getCustomisableStats(self) -> 'dict[str,typing.Callable[[],AGeInput._TypeWidget]]':
+        d = super().getCustomisableStats()
+        #del d["Mass"]
+        if tech.statCustomisationUnlocked(self,"MaxCharges"): d["MaxCharges"] = lambda: AGeInput.Float(None,"MaxCharges",self.MaxCharges,tech.moduleStatMin(self,"MaxCharges"),tech.moduleStatMax(self,"MaxCharges"))
+        if tech.statCustomisationUnlocked(self,"Cooldown"): d["Cooldown"] = lambda: AGeInput.Float(None,"Cooldown",self.Cooldown,tech.moduleStatMin(self,"Cooldown"),tech.moduleStatMax(self,"Cooldown"))
+        if tech.statCustomisationUnlocked(self,"Range"): d["Range"] = lambda: AGeInput.Int(None,"Range",self.Range,tech.moduleStatMin(self,"Range"),tech.moduleStatMax(self,"Range"))
+        return d
+
 class Weapon(Module):
     Name = "Unnamed Weapon Module"
     Buildable = False
@@ -581,7 +702,7 @@ class Weapon(Module):
         self.Ready = True
         self.SFX = base().loader.loadSfx(self.SoundEffectPath)
         self.SFX.setVolume(0.07)
-        print(f"{self.Name = }\n{self.Threat = }\n{self.Value = }\n{self.Mass = }\n")
+        #print(f"{self.Name = }\n{self.Threat = }\n{self.Value = }\n{self.Mass = }\n")
     
     def calculateThreat(self):
         return self.Damage/100 * self.Accuracy * ((20 if self.ShieldPiercing else self.ShieldFactor) + self.HullFactor)/2 * ((1+self.Range-self.MinimalRange/2)/4.5)**2

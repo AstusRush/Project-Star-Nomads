@@ -224,15 +224,15 @@ class ProceduralShip(ProceduralModels._ProceduralModel):
     def connectModule(self, module:'ShipModule', setAsRoot=False) -> 'ShipModule':
         if setAsRoot: return module.setAsCentralModule()
         connectors = self.updateConnectorsDict()
-        print(f"\nsearching for {module.Type}")
+        #print(f"\nsearching for {module.Type}") # This line is for debugging purposes
         for d,dCon in module.Connectors.items():
             for con in dCon:
-                print(f"for con {d} which is opposed by {Directions.getOpposite(d)}\nThe Options are {connectors[Directions.getOpposite(d)]}")
+                #print(f"for con {d} which is opposed by {Directions.getOpposite(d)}\nThe Options are {connectors[Directions.getOpposite(d)]}") # This line is for debugging purposes
                 if not con.connection:
                     for otherCon in connectors[Directions.getOpposite(d)]:
                         if otherCon.module() is not module and not otherCon.connection:
                             otherCon.connect(con)
-                            print("Connected!\n")
+                            #print("Connected!\n") # This line is for debugging purposes
                             return module
         raise NoMatchingConnectorException("Could not find any free matching connector")
     
@@ -279,12 +279,14 @@ class ProceduralShip(ProceduralModels._ProceduralModel):
             numWeapons -= 4
         
         for module in self.ship().Modules:
-            if isinstance(module, (BaseModules.Hull,)):
+            if isinstance(module, BaseModules.Hull):
                 hull = self.createAndConnectModule(ModuleTypes.MidSection, module)
             if isinstance(module, BaseModules.ConstructionModule):
                 constructionBay = self.createAndConnectModule(ModuleTypes.ConstructionBay, module)
             if isinstance(module, BaseModules.Shield):
                 shield = self.createAndConnectModule(ModuleTypes.ShieldGenerator, module)
+            if isinstance(module, (BaseModules.Economic, BaseModules.Augment, BaseModules.Support, BaseModules.Special,)):
+                other = self.createAndConnectModule(ModuleTypes.MidSection, module)
         
         if self.ship().thruster:
             engines = self.createAndConnectModule(ModuleTypes.AftSection, self.ship().thruster())

@@ -85,6 +85,7 @@ class EnvironmentCreator(): #TODO: Clusters should scale with map-size
             object = objectType()
             if not combat: objectGroup = EnvironmentalObjectGroup_Campaign()
             else: objectGroup = EnvironmentalObjectGroup_Battle()
+            objectGroup.Name = object.Name
             objectGroup.addShip(object)
             objectGroup.moveToHex(currentHex, False)
             nextHexCandidates:'list[HexBase._Hex]' = currentHex.getNeighbour()

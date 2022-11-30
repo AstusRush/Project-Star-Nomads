@@ -69,6 +69,7 @@ class FleetStats(QtWidgets.QSplitter):
         self.FleetScrollWidget = QtWidgets.QScrollArea(self)
         self.FleetScrollWidget.setWidgetResizable(True)
         super().addWidget(self.FleetScrollWidget)
+        #TODO: Rename Fleets (All Fleets including enemies. After all it is up to the player how they call the enemy fleets. The enemy crew will still call their fleet however they want.)
         self.FleetOverview = AGeWidgets.TightGridWidget(self)
         self.FleetScrollWidget.setWidget(self.FleetOverview)
         
@@ -156,6 +157,7 @@ class ShipInterface:
     #       This also means that all actions for the UI must be inoperable while in this special view to not allow a ship to fire its weapons on the campaign map...
     def __init__(self, ship: 'ShipBase.ShipBase') -> None:
         self.ship = weakref.ref(ship)
+        #TODO: Rename Ships (All Ships including enemies. After all it is up to the player how they call the enemy ships. The enemy crew will still call their ship however they want.)
         self.Label:QtWidgets.QLabel = None
         self.QuickView:'ShipQuickView' = None
     
@@ -246,15 +248,19 @@ class ShipInterface:
 class Menu(AGeWidgets.TightGridWidget):
     def __init__(self, parent: typing.Optional['QtWidgets.QWidget'] = None) -> None:
         super().__init__(parent)
-        #TODO: This should be put into a scroll area so that long labels do not restrict the UI for big font sizes and for the time when there are so many options that they no longer fit on the screen
-        #       (Though this should probably become part of the options window with individual tabs for different option categories so that scrolling is not necessary
-        #           as scrolling can result in accidental changes for spin boxes)
-        self.SaveLoadWidget = self.addWidget(SaveLoadWidget(self))
-        self.DifficultyOptionsWidget = self.addWidget(DifficultyOptionsWidget(self))
-        self.HighlightOptionsWidget = self.addWidget(HighlightOptionsWidget(self))
-        self.GraphicsOptionsWidget = self.addWidget(GraphicsOptionsWidget(self))
-        self.SoundOptionsWidget = self.addWidget(SoundOptionsWidget(self))
-        self.layout().addItem(QtWidgets.QSpacerItem(2, 2, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding))
+        #TODO: This should probably become part of the options window with individual tabs for different option categories so that scrolling is not necessary
+        #                                                                                        as scrolling can result in accidental changes for spin boxes
+        self.ScrollWidget = self.addWidget(QtWidgets.QScrollArea(self))
+        self.ScrollWidget.setWidgetResizable(True)
+        self.MainWidget = AGeWidgets.TightGridWidget(self)
+        self.ScrollWidget.setWidget(self.MainWidget)
+        
+        self.SaveLoadWidget = self.MainWidget.addWidget(SaveLoadWidget(self.MainWidget))
+        self.DifficultyOptionsWidget = self.MainWidget.addWidget(DifficultyOptionsWidget(self.MainWidget))
+        self.HighlightOptionsWidget = self.MainWidget.addWidget(HighlightOptionsWidget(self.MainWidget))
+        self.GraphicsOptionsWidget = self.MainWidget.addWidget(GraphicsOptionsWidget(self.MainWidget))
+        self.SoundOptionsWidget = self.MainWidget.addWidget(SoundOptionsWidget(self.MainWidget))
+        self.MainWidget.layout().addItem(QtWidgets.QSpacerItem(2, 2, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding))
 
 class SaveLoadWidget(AGeWidgets.TightGridFrame):
     def __init__(self, parent: typing.Optional['QtWidgets.QWidget'] = None) -> None:
