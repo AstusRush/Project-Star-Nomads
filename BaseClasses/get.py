@@ -58,12 +58,13 @@ if typing.TYPE_CHECKING:
     from ApplicationClasses import Scene
     from ApplicationClasses import MainAppClass
     from GUI import Windows
-    from GUI import WidgetsBase
+    from GUI import BaseInfoWidgets
+    from GUI import Menu
 
 def window() -> 'Windows.MainWindowClass':
     return _window()
 
-def menu() -> 'WidgetsBase.Menu':
+def menu() -> 'Menu.Menu':
     return window().Menu
 
 def engine() -> 'MainAppClass.EngineClass':

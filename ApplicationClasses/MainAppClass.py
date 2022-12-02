@@ -48,7 +48,7 @@ else:
 
 from ApplicationClasses import Scene, StarNomadsColourPalette
 from BaseClasses import HexBase, FleetBase, ShipBase, ModelBase, BaseModules, UnitManagerBase, Environment, get
-from GUI import Windows, WidgetsBase
+from GUI import BaseInfoWidgets, Windows
 
 class EngineClass(ape.APE):
     def start(self):
@@ -129,7 +129,7 @@ class EngineClass(ape.APE):
         self.CurrentlyInBattle = False
         #self.Scene.Camera.CameraCenter.setPos(self._CameraPositionBeforeBattle)
         self.Scene.Camera.moveToHex(self.getHex(self._HexToLookAtAfterBattle))
-        NC(3, f"The battle has ended!\n{salvageMessage}") #TODO: Give more information about the battle
+        NC(3, f"The battle has ended!\n{salvageMessage}", DplStr="Battle Ended") #TODO: Give more information about the battle
         if self.UnitManager.CurrentlyHandlingTurn:
             base().taskMgr.add(self.UnitManager._endTurn_handleAICombat())
     
@@ -233,10 +233,10 @@ class EngineClass(ape.APE):
         for i in ships:
             for j in i:
                 if j not in fleet.Ships:
-                    NC(1,"One ship would not be in the fleet.Ships!")
+                    NC(2,"One ship would not be in the fleet.Ships! Putting all ships into one flotilla instead!", input=f"{fleet = }\n{fleet.Ships = }\n{ships = }")
                     return [fleet.Ships]
         if sum([len(i) for i in ships]) != len(fleet.Ships):
-            NC(3,"One ship would be in two flotillas!")
+            NC(2,"One ship would be in two flotillas! Putting all ships into one flotilla instead!", input=f"{fleet = }\n{fleet.Ships = }\n{ships = }")
             return [fleet.Ships]
         return ships
     
@@ -256,7 +256,7 @@ class EngineClass(ape.APE):
     def save(self, name="LastSave"):
         #REMINDER: The name of the Save File must be not only a valid file name but also a valid python file name
         if self.CurrentlyInBattle:
-            NC(2,"Currently, saving is only possible on the campaign map")
+            NC(2,"Currently, saving is only possible on the campaign map", DplStr="Could NOT Save!")
             return
         name += ".py"
         self._save(name)
@@ -278,7 +278,7 @@ class EngineClass(ape.APE):
             fleetList += team
         with open(os.path.join(saveFolder,name),"w") as file:
             file.write(AGeToPy.formatObject(fleetList))
-        NC(3,f"Save successful! Saved at {os.path.join(saveFolder,name)}")
+        NC(3,f"Save successful! Saved at {os.path.join(saveFolder,name)}", DplStr="Game Saved!")
     
     def load(self):
         #TODO: See _save

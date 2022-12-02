@@ -49,7 +49,7 @@ if TYPE_CHECKING:
     from BaseClasses import ShipBase, FleetBase, BaseModules, HexBase
 
 from BaseClasses import get
-from GUI import WidgetsBase
+from GUI import BaseInfoWidgets
 
 """ Template for constructor: (replace # with the module name)
 class #Widget(WidgetsBase.ModuleWidget):
@@ -78,63 +78,114 @@ l = [
 ]
 """
 
-class HullWidget(WidgetsBase.ModuleWidget):
+class ModuleWidget(AGeWidgets.TightGridWidget):
+    module: 'weakref.ref[BaseModules.Module]' = None
+    def __init__(self, parent: typing.Optional['QtWidgets.QWidget'] = None, module:typing.Optional['BaseModules.Module'] = None) -> None:
+        from BaseClasses import BaseModules
+        if isinstance(parent,BaseModules.Module):
+            parent, module = module, parent
+        super().__init__(parent=parent)
+        self.module = weakref.ref(module)
+    
+    def updateFullInterface(self):
+        if not hasattr(self,"Label"):
+            self.Label = self.addWidget(QtWidgets.QLabel(self))
+        m:'BaseModules.Module' = self.module()
+        self.Label.setText(f"{m.Name}"
+                            f"\n\tMass: {round(m.Mass,3)}"
+                            f"\n\tValue: {round(m.Value,3)}"
+                            f"\n\tThreat: {round(m.Threat,3)}"
+                            )
+
+class HullWidget(ModuleWidget):
     module: 'weakref.ref[BaseModules.Hull]' = None
     def __init__(self, module:typing.Optional['BaseModules.Hull'] = None) -> None:
         super().__init__(parent=None, module=module)
+    
+    def updateFullInterface(self):
+        if not hasattr(self,"Label"):
+            self.Label = self.addWidget(QtWidgets.QLabel(self))
+        m = self.module()
+        self.Label.setText( f"{m.Name}"
+                            f"\n\tMass: {round(m.Mass,3)}"
+                            f"\n\tValue: {round(m.Value,3)}"
+                            f"\n\tThreat: {round(m.Threat,3)}"
+                            f"\n\tHull HP: {round(m.HP_Hull,3)}/{round(m.HP_Hull_max,3)}"
+                            f"\n\tRegeneration: {round(m.HP_Hull_Regeneration,3)} per turn"
+                            )
 
-class HullPlatingWidget(WidgetsBase.ModuleWidget):
+class HullPlatingWidget(ModuleWidget):
     module: 'weakref.ref[BaseModules.HullPlating]' = None
     def __init__(self, module:typing.Optional['BaseModules.HullPlating'] = None) -> None:
         super().__init__(parent=None, module=module)
 
-class EngineWidget(WidgetsBase.ModuleWidget):
+class EngineWidget(ModuleWidget):
     module: 'weakref.ref[BaseModules.Engine]' = None
     def __init__(self, module:typing.Optional['BaseModules.Engine'] = None) -> None:
         super().__init__(parent=None, module=module)
         self.Label = self.addWidget(QtWidgets.QLabel(self))
     
+    def updateFullInterface(self):
+        self.updateInterface()
+    
     def updateInterface(self):
         c,m = self.module().ship().Stats.Movement_FTL
         c,m = round(c,3),round(m,3)
-        self.Label.setText(f"{self.module().Name} (FLT Engine):\n\tMovement: {c}/{m}\n\tThrust: {round(self.module().RemainingThrust,3)}/{round(self.module().Thrust,3)}\n\tShip Mass: {round(self.module().ship().Stats.Mass,3)}")
+        self.Label.setText( f"{self.module().Name} (FLT Engine):"
+                            f"\n\tMovement: {c}/{m}"
+                            f"\n\tThrust: {round(self.module().RemainingThrust,3)}/{round(self.module().Thrust,3)}"
+                            f"\n\tShip Mass: {round(self.module().ship().Stats.Mass,3)}"
+                            )
 
-class ThrusterWidget(WidgetsBase.ModuleWidget):
+class ThrusterWidget(ModuleWidget):
     module: 'weakref.ref[BaseModules.Thruster]' = None
     def __init__(self, module:typing.Optional['BaseModules.Thruster'] = None) -> None:
         super().__init__(parent=None, module=module)
         self.Label = self.addWidget(QtWidgets.QLabel(self))
     
+    def updateFullInterface(self):
+        self.updateInterface()
+    
     def updateInterface(self):
         c,m = self.module().ship().Stats.Movement_Sublight
         c,m = round(c,3),round(m,3)
-        self.Label.setText(f"{self.module().Name} (Sublight Thruster):\n\tMovement: {c}/{m}\n\tThrust: {round(self.module().RemainingThrust,3)}/{round(self.module().Thrust,3)}\n\tShip Mass: {round(self.module().ship().Stats.Mass,3)}")
+        self.Label.setText( f"{self.module().Name} (Sublight Thruster):"
+                            f"\n\tMovement: {c}/{m}"
+                            f"\n\tThrust: {round(self.module().RemainingThrust,3)}/{round(self.module().Thrust,3)}"
+                            f"\n\tShip Mass: {round(self.module().ship().Stats.Mass,3)}"
+                            )
 
-class ShieldWidget(WidgetsBase.ModuleWidget):
+class ShieldWidget(ModuleWidget):
     module: 'weakref.ref[BaseModules.Shield]' = None
     def __init__(self, module:typing.Optional['BaseModules.Shield'] = None) -> None:
         super().__init__(parent=None, module=module)
         self.Label = self.addWidget(QtWidgets.QLabel(self))
     
+    def updateFullInterface(self):
+        self.updateInterface()
+    
     def updateInterface(self):
-        self.Label.setText(f"{self.module().Name} (Shield):\n\tHP: {round(self.module().HP_Shields,3)}/{round(self.module().HP_Shields_max,3)}\n\tRegeneration per turn: {round(self.module().HP_Shields_Regeneration,3)} (Halved if damaged last turn)\n\t(It takes one turn to reactivate the shields if their HP reaches 0)")
+        self.Label.setText( f"{self.module().Name} (Shield):"
+                            f"\n\tHP: {round(self.module().HP_Shields,3)}/{round(self.module().HP_Shields_max,3)}"
+                            f"\n\tRegeneration per turn: {round(self.module().HP_Shields_Regeneration,3)} (Halved if damaged last turn)\n\t(It takes one turn to reactivate the shields if their HP reaches 0)"
+                            )
 
-class QuartersWidget(WidgetsBase.ModuleWidget):
+class QuartersWidget(ModuleWidget):
     module: 'weakref.ref[BaseModules.Quarters]' = None
     def __init__(self, module:typing.Optional['BaseModules.Quarters'] = None) -> None:
         super().__init__(parent=None, module=module)
 
-class CargoWidget(WidgetsBase.ModuleWidget):
+class CargoWidget(ModuleWidget):
     module: 'weakref.ref[BaseModules.Cargo]' = None
     def __init__(self, module:typing.Optional['BaseModules.Cargo'] = None) -> None:
         super().__init__(parent=None, module=module)
 
-class HangarWidget(WidgetsBase.ModuleWidget):
+class HangarWidget(ModuleWidget):
     module: 'weakref.ref[BaseModules.Hangar]' = None
     def __init__(self, module:typing.Optional['BaseModules.Hangar'] = None) -> None:
         super().__init__(parent=None, module=module)
 
-class ConstructionModuleWidget(WidgetsBase.ModuleWidget):
+class ConstructionModuleWidget(ModuleWidget):
     module: 'weakref.ref[BaseModules.ConstructionModule]' = None
     def __init__(self, module:typing.Optional['BaseModules.ConstructionModule'] = None) -> None:
         super().__init__(parent=None, module=module)
@@ -150,8 +201,14 @@ class ConstructionModuleWidget(WidgetsBase.ModuleWidget):
         self.module().ConstructionResourcesStored += 100
         self.updateInterface()
     
+    def updateFullInterface(self):
+        self.updateInterface()
+    
     def updateInterface(self):
-        self.Label.setText(f"{self.module().Name} (Construction Module):\n\tConstruction resources stored: {self.module().ConstructionResourcesStored}\n\tConstruction resources generated per turn: {self.module().ConstructionResourcesGeneratedPerTurn}")
+        self.Label.setText( f"{self.module().Name} (Construction Module):"
+                            f"\n\tConstruction resources stored: {self.module().ConstructionResourcesStored}"
+                            f"\n\tConstruction resources generated per turn: {self.module().ConstructionResourcesGeneratedPerTurn}"
+                            )
     
     def populateBuildList(self):
         l = []
@@ -196,27 +253,27 @@ class ConstructionModuleWidget(WidgetsBase.ModuleWidget):
         get.engine().constructionWindow.activateWindow()
         #NC(2,"The construction window is very much a work in progress.\nThere are barely any checks to prevent that something goes wrong!\nYou have been warned!",DplStr="Attention! WIP!",unique=True)
 
-class SensorWidget(WidgetsBase.ModuleWidget):
+class SensorWidget(ModuleWidget):
     module: 'weakref.ref[BaseModules.Sensor]' = None
     def __init__(self, module:typing.Optional['BaseModules.Sensor'] = None) -> None:
         super().__init__(parent=None, module=module)
 
-class EconomicWidget(WidgetsBase.ModuleWidget):
+class EconomicWidget(ModuleWidget):
     module: 'weakref.ref[BaseModules.Economic]' = None
     def __init__(self, module:typing.Optional['BaseModules.Economic'] = None) -> None:
         super().__init__(parent=None, module=module)
 
-class AugmentWidget(WidgetsBase.ModuleWidget):
+class AugmentWidget(ModuleWidget):
     module: 'weakref.ref[BaseModules.Augment]' = None
     def __init__(self, module:typing.Optional['BaseModules.Augment'] = None) -> None:
         super().__init__(parent=None, module=module)
 
-class SupportWidget(WidgetsBase.ModuleWidget):
+class SupportWidget(ModuleWidget):
     module: 'weakref.ref[BaseModules.Support]' = None
     def __init__(self, module:typing.Optional['BaseModules.Support'] = None) -> None:
         super().__init__(parent=None, module=module)
 
-class SpecialWidget(WidgetsBase.ModuleWidget):
+class SpecialWidget(ModuleWidget):
     module: 'weakref.ref[BaseModules.Special]' = None
     def __init__(self, module:typing.Optional['BaseModules.Special'] = None) -> None:
         super().__init__(parent=None, module=module)
@@ -228,6 +285,9 @@ class MicroJumpDriveWidget(SpecialWidget):
         self.Label = self.addWidget(QtWidgets.QLabel(self))
         if self.module().isPlayer(): self.Button = self.addWidget(AGeWidgets.Button(self,"Jump",lambda: self.jump()))
     
+    def updateFullInterface(self):
+        self.updateInterface()
+    
     def updateInterface(self):
         self.Label.setText( f"{self.module().Name} is {'Ready' if self.module().Charge >= 1 else 'Charging'}"
                             f"\n\tCharge: {round(self.module().Charge,3)}/{round(self.module().MaxCharges,3)} (+{1/round(self.module().Cooldown,3)} per Turn)"
@@ -236,15 +296,21 @@ class MicroJumpDriveWidget(SpecialWidget):
     
     def jump(self):
         if self.module().Charge >= 1:
-            self.module().jump()
+            try:
+                self.module().jump()
+            except:
+                NC(2,"Can not Jump!", exc=True)
         else:
             self.Button.setText("Not enough charge!")
 
-class WeaponWidget(WidgetsBase.ModuleWidget):
+class WeaponWidget(ModuleWidget):
     module: 'weakref.ref[BaseModules.Weapon]' = None
     def __init__(self, module:typing.Optional['BaseModules.Weapon'] = None) -> None:
         super().__init__(parent=None, module=module)
         self.Label = self.addWidget(QtWidgets.QLabel(self))
+    
+    def updateFullInterface(self):
+        self.updateInterface()
     
     def updateInterface(self):
         self.Label.setText( f"{self.module().Name} is {'Ready' if self.module().Ready else 'Used'}"

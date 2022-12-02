@@ -82,6 +82,7 @@ class Module():
     def __init__(self) -> None:
         self.ship:'weakref.ref[ShipBase.ShipBase]' = None
         self.moduleModel:'typing.Union[weakref.ref[ProceduralShips.ShipModule],None]' = None
+        self.FullWidget:'ModuleWidgets.ModuleWidget' = None
         self.automaticallyDetermineValues()
     
     def automaticallyDetermineValues(self):
@@ -125,6 +126,10 @@ class Module():
         This method should also reset everything regarding combat to ensure that the ship is ready for the next combat (i.e. restore shields, sublight movement-points, and weapons)
         """
         pass
+    
+    def getFullInterface(self):
+        self.FullWidget = ModuleWidgets.ModuleWidget(self)
+        return self.FullWidget
     
     def tocode_AGeLib(self, name="", indent=0, indentstr="    ", ignoreNotImplemented = False) -> typing.Tuple[str,dict]:
         ret, imp = "", {}
@@ -239,6 +244,10 @@ class Hull(Module):
         regenFactor = 1 if not self.ship().WasHitLastTurn else 0.5
         self.HP_Hull = min(self.HP_Hull + self.HP_Hull_Regeneration*regenFactor , self.HP_Hull_max)
     
+    def getFullInterface(self):
+        self.FullWidget = ModuleWidgets.HullWidget(self)
+        return self.FullWidget
+    
     def save(self) -> dict:
         """
         Returns a dictionary with all values (and their names) that need to be saved to fully recreate this module.\n
@@ -267,7 +276,10 @@ class Asteroid_Hull(Hull):
 class HullPlating(Module):
     Name = "Unnamed HullPlating Module"
     Buildable = True
-    pass
+    
+    def getFullInterface(self):
+        self.FullWidget = ModuleWidgets.HullPlatingWidget(self)
+        return self.FullWidget
 
 #class PowerGenerator(Module): #MAYBE: I don't see how a power system would help
 #    Buildable = True
@@ -303,6 +315,15 @@ class Engine(Module): # FTL Engine
                 self.Widget.updateInterface()
             except RuntimeError:
                 self.Widget = None # This usually means that the widget is destroyed but I don't know of a better way to test for it...
+        if self.FullWidget:
+            try:
+                self.FullWidget.updateFullInterface()
+            except RuntimeError:
+                self.FullWidget = None # This usually means that the widget is destroyed but I don't know of a better way to test for it...
+    
+    def getFullInterface(self):
+        self.FullWidget = ModuleWidgets.EngineWidget(self)
+        return self.FullWidget
     
     def save(self) -> dict:
         """
@@ -353,6 +374,15 @@ class Thruster(Module): # Sublight Thruster
                 self.Widget.updateInterface()
             except RuntimeError:
                 self.Widget = None # This usually means that the widget is destroyed but I don't know of a better way to test for it...
+        if self.FullWidget:
+            try:
+                self.FullWidget.updateFullInterface()
+            except RuntimeError:
+                self.FullWidget = None # This usually means that the widget is destroyed but I don't know of a better way to test for it...
+    
+    def getFullInterface(self):
+        self.FullWidget = ModuleWidgets.ThrusterWidget(self)
+        return self.FullWidget
     
     def save(self) -> dict:
         """
@@ -410,6 +440,15 @@ class Shield(Module):
                 self.Widget.updateInterface()
             except RuntimeError:
                 self.Widget = None # This usually means that the widget is destroyed but I don't know of a better way to test for it...
+        if self.FullWidget:
+            try:
+                self.FullWidget.updateFullInterface()
+            except RuntimeError:
+                self.FullWidget = None # This usually means that the widget is destroyed but I don't know of a better way to test for it...
+    
+    def getFullInterface(self):
+        self.FullWidget = ModuleWidgets.ShieldWidget(self)
+        return self.FullWidget
     
     def save(self) -> dict:
         """
@@ -438,18 +477,27 @@ class Quarters(Module):
     #       Therefore a distinction is (at least until version 1.0 of the game) not useful
     Name = "Unnamed Quarters Module"
     Buildable = False
-    pass
+    
+    def getFullInterface(self):
+        self.FullWidget = ModuleWidgets.QuartersWidget(self)
+        return self.FullWidget
 
 class Cargo(Module):
     # Used to store resources
     Name = "Unnamed Cargo Module"
     Buildable = False
-    pass
+    
+    def getFullInterface(self):
+        self.FullWidget = ModuleWidgets.CargoWidget(self)
+        return self.FullWidget
 
 class Hangar(Module):
     Name = "Unnamed Hangar Module"
     Buildable = False
-    pass
+    
+    def getFullInterface(self):
+        self.FullWidget = ModuleWidgets.HangarWidget(self)
+        return self.FullWidget
 
 class ConstructionModule(Module):
     # Modules to construct new ships.
@@ -480,6 +528,15 @@ class ConstructionModule(Module):
                 self.Widget.updateInterface()
             except RuntimeError:
                 self.Widget = None # This usually means that the widget is destroyed but I don't know of a better way to test for it...
+        if self.FullWidget:
+            try:
+                self.FullWidget.updateFullInterface()
+            except RuntimeError:
+                self.FullWidget = None # This usually means that the widget is destroyed but I don't know of a better way to test for it...
+    
+    def getFullInterface(self):
+        self.FullWidget = ModuleWidgets.ConstructionModuleWidget(self)
+        return self.FullWidget
     
     def buildShip(self, ship:'ShipBase.Ship', model:'typing.Union[type[ModelBase.ShipModel],None]') -> bool:
         if get.engine().CurrentlyInBattle:
@@ -524,6 +581,10 @@ class Sensor(Module):
     HighRange = 4
     PerfectRange = 1
     
+    def getFullInterface(self):
+        self.FullWidget = ModuleWidgets.SensorWidget(self)
+        return self.FullWidget
+    
     def save(self) -> dict:
         """
         Returns a dictionary with all values (and their names) that need to be saved to fully recreate this module.\n
@@ -542,26 +603,38 @@ class Economic(Module):
     # Modules for economic purposes like educating and entertaining people (civilians and crew), harvesting or processing resources, growing food, and researching stuff.
     #MAYBE: Researching could be tied to other modules like sensors to scan stuff or special experimental weapons to test stuff or experimental shields to test stuff or... you get the idea
     Name = "Unnamed Economic Module"
-    pass
+    
+    def getFullInterface(self):
+        self.FullWidget = ModuleWidgets.EconomicWidget(self)
+        return self.FullWidget
 
 class Augment(Module):
     # All augmentations that enhance/modify the statistics of other modules like +dmg% , +movementpoints , or +shieldRegeneration
     Name = "Unnamed Augment Module"
     Buildable = False
-    pass
+    
+    def getFullInterface(self):
+        self.FullWidget = ModuleWidgets.AugmentWidget(self)
+        return self.FullWidget
 
 class Support(Module): #MAYBE: inherit from Augment
     # like Augment but with an area of effect to buff allies or debuff enemies
     Name = "Unnamed Support Module"
     Buildable = False
-    pass
+    
+    def getFullInterface(self):
+        self.FullWidget = ModuleWidgets.SupportWidget(self)
+        return self.FullWidget
 
 class Special(Module):
     # Modules that add new special functions to ships that can be used via buttons in the gui like:
     #   hacking the enemy, cloaking, extending shields around allies, repairing allies, sensor pings, boarding
     Name = "Unnamed Special Module"
     Buildable = False
-    pass
+    
+    def getFullInterface(self):
+        self.FullWidget = ModuleWidgets.SpecialWidget(self)
+        return self.FullWidget
 
 class MicroJumpDrive(Special):
     Name = "Unnamed Micro Jump Drive"
@@ -613,8 +686,18 @@ class MicroJumpDrive(Special):
                 self.Widget.updateInterface()
             except RuntimeError:
                 self.Widget = None # This usually means that the widget is destroyed but I don't know of a better way to test for it...
+        if self.FullWidget:
+            try:
+                self.FullWidget.updateFullInterface()
+            except RuntimeError:
+                self.FullWidget = None # This usually means that the widget is destroyed but I don't know of a better way to test for it...
+    
+    def getFullInterface(self):
+        self.FullWidget = ModuleWidgets.MicroJumpDriveWidget(self)
+        return self.FullWidget
     
     def jump(self):
+        if not get.engine().CurrentlyInBattle: raise Exception("The Micro Jump Drive can only be used in battle!")
         if self.Charge < 1: raise Exception("Not enough charge to jump!")
         #TODO: onHover should give a tooltip that informs the user about the interaction
         #TODO: The select button should be marked to signal that the jump action is selected, clicking the button again should cancel the selection,
@@ -628,6 +711,7 @@ class MicroJumpDrive(Special):
             get.hexGrid().highlightHexes(self.ship().fleet().hex().getDisk(self.Range), HexBase._Hex.COLOUR_REACHABLE, HexBase._Hex.COLOUR_REACHABLE, False, clearFirst=True)
     
     def jumpTo(self, hex:'HexBase._Hex') -> 'tuple[bool,bool]':
+        if not get.engine().CurrentlyInBattle: raise Exception("The Micro Jump Drive can only be used in battle!")
         if ( self.Charge < 1
             or hex.distance(self.ship().fleet().hex()) > self.Range
             or not self.isActiveTurn()
@@ -741,6 +825,15 @@ class Weapon(Module):
                 self.Widget.updateInterface()
             except RuntimeError:
                 self.Widget = None # This usually means that the widget is destroyed but I don't know of a better way to test for it...
+        if self.FullWidget:
+            try:
+                self.FullWidget.updateFullInterface()
+            except RuntimeError:
+                self.FullWidget = None # This usually means that the widget is destroyed but I don't know of a better way to test for it...
+    
+    def getFullInterface(self):
+        self.FullWidget = ModuleWidgets.WeaponWidget(self)
+        return self.FullWidget
     
     def attack(self, target:'HexBase._Hex'):
         if not target.fleet or target.fleet().isDestroyed():

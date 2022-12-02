@@ -53,7 +53,7 @@ if TYPE_CHECKING:
 from BaseClasses import ListLoader
 from BaseClasses import HexBase
 from BaseClasses import ModelBase
-from GUI import WidgetsBase
+from GUI import BaseInfoWidgets
 
 
 IMP_SHIPBASE = [("PSN get","from BaseClasses import get"),("PSN ShipBase","from BaseClasses import ShipBase"),("PSN ShipBaseConstructor","""
@@ -256,7 +256,7 @@ class ShipBase():
     battleFleet:typing.Union['weakref.ref[FleetBase.Flotilla]',None] = None
   #region init and destroy
     def __init__(self) -> None:
-        self.Interface = WidgetsBase.ShipInterface(self)
+        self.Interface = BaseInfoWidgets.ShipInterface(self)
         self.Stats = ShipsStats(self)
         self.fleet = None # type: 'weakref.ref[FleetBase.FleetBase]'
         self.hull: 'weakref.ref[BaseModules.Hull]' = None
@@ -286,6 +286,40 @@ class ShipBase():
         # self.HP_Shields_Regeneration = self.HP_Shields_max / 8
         self.WasHitLastTurn = False
         self.ShieldsWereOffline = False
+    
+    def destroy(self, task=None):
+        self.Destroyed = True
+        try:
+            self.Interface.destroy()
+        except:
+            ExceptionOutput()
+        #try:
+        #    get.unitManager().Teams[self.fleet().Team].remove(self)
+        #except:
+        #    if self in get.unitManager().Teams[self.fleet().Team]:
+        #        raise
+        if self.fleet:
+            self.fleet().removeShip(self)
+        self.__del__()
+        #if task:
+        #    return Task.cont
+    
+    def __del__(self):
+        self.Destroyed = True
+        if self.ExplosionEffect:
+            self.ExplosionEffect.removeNode()
+        if self.ExplosionEffect2:
+            self.ExplosionEffect2.removeNode()
+        #if self.fleet().isSelected():
+        #    get.unitManager().selectUnit(None)
+        #if self.hex:
+        #    if self.hex().unit:
+        #        if self.hex().unit() is self:
+        #            self.hex().unit = None
+        #CRITICAL: Ensure that all Nodes get cleaned up!
+        if self.Model:
+            self.Model.Model.removeNode()
+        self.Node.removeNode()
   #endregion init and destroy
   #region Management
     def handleNewCombatTurn(self):
@@ -363,6 +397,7 @@ class ShipBase():
     
     def removeAllModules(self):
         print("RM ======= START")
+        print("Removing all modules of ship", self.Name)
         modules = self.Modules.copy()
         for module in modules:
             print("removing", module.Name)
@@ -435,6 +470,11 @@ class ShipBase():
             self.Interface.updateInterface()
         else:
             self.Interface.updateCombatInterface()
+        self.Interface.updateInfoWindow()
+    
+    def openInfoWindow(self):
+        self.Interface.openInfoWindow()
+    
   #endregion Interface
   #region Interaction
     def interactWith(self, hex:'HexBase._Hex', mustBePlayer:bool=True):
@@ -628,36 +668,6 @@ class ShipBase():
         self.updateInterface()
         if destroyed and not self.Destroyed: self.explode()
         return hit, destroyed, finalDamage
-    
-    def destroy(self, task=None):
-        self.Destroyed = True
-        #try:
-        #    get.unitManager().Teams[self.fleet().Team].remove(self)
-        #except:
-        #    if self in get.unitManager().Teams[self.fleet().Team]:
-        #        raise
-        if self.fleet:
-            self.fleet().removeShip(self)
-        self.__del__()
-        #if task:
-        #    return Task.cont
-    
-    def __del__(self):
-        self.Destroyed = True
-        if self.ExplosionEffect:
-            self.ExplosionEffect.removeNode()
-        if self.ExplosionEffect2:
-            self.ExplosionEffect2.removeNode()
-        #if self.fleet().isSelected():
-        #    get.unitManager().selectUnit(None)
-        #if self.hex:
-        #    if self.hex().unit:
-        #        if self.hex().unit() is self:
-        #            self.hex().unit = None
-        #CRITICAL: Ensure that all Nodes get cleaned up!
-        if self.Model:
-            self.Model.Model.removeNode()
-        self.Node.removeNode()
     
   #endregion Combat Defensive
   #region ...

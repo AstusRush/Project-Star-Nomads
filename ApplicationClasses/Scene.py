@@ -47,7 +47,7 @@ else:
 
 from ApplicationClasses import Camera
 from BaseClasses import HexBase, FleetBase, ShipBase, ModelBase, UnitManagerBase, get
-from GUI import Windows, WidgetsBase
+from GUI import BaseInfoWidgets, Windows
 
 def getSkyboxPathList(sector=True, sun=True):
     l = []

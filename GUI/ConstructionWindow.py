@@ -48,6 +48,7 @@ else:
 #from ApplicationClasses import Scene, StarNomadsColourPalette
 #from GUI import Windows, WidgetsBase
 from BaseClasses import HexBase, FleetBase, ShipBase, ModelBase, BaseModules, UnitManagerBase, get
+from GUI import BaseInfoWidgets
 
 #TODO: The construction Window should be opened from a construction module
 #       The window should stay open and not block anything
@@ -106,8 +107,8 @@ class ConstructionWidget(QtWidgets.QSplitter):
         self.ShipStats.getInterface()
     
     def buildShip(self):
-        self.Ship.Name = self.ShipStats.NameInput()
-        self.Ship.ClassName = self.ShipStats.ClassInput()
+        #self.Ship.Name = self.ShipStats.NameInput()
+        #self.Ship.ClassName = self.ShipStats.ClassInput()
         if not self.Ship.hull:
             NC(2, "Could not build ship as critical component is missing: hull")
             return
@@ -141,16 +142,19 @@ class ConstructionWidget(QtWidgets.QSplitter):
 
 class ShipStats(AGeWidgets.TightGridFrame):
     def __init__(self, parent:'ConstructionWidget') -> None:
-        super().__init__(parent)
+        super().__init__(parent,makeCompact=False)
         self.ShipStats = None
         self.ModelSelectBox = self.addWidget(QtWidgets.QComboBox(self))
-        self.NameInput = self.addWidget(AGeInput.Str(None,"Name",self.ship().Name))
-        self.ClassInput = self.addWidget(AGeInput.Str(None,"Class",self.ship().ClassName))
+        #self.NameInput = self.addWidget(AGeInput.Str(None,"Name",self.ship().Name)) # Handled by the BaseInfoWidgets.FullInfoWidget and should not be interfered with
+        #self.ClassInput = self.addWidget(AGeInput.Str(None,"Class",self.ship().ClassName)) # Handled by the BaseInfoWidgets.FullInfoWidget and should not be interfered with
         self.Label = self.addWidget(QtWidgets.QLabel("Ship Stats\nAll of the Ship Stats", self))
         self.BuildButton = self.addWidget(AGeWidgets.Button(self,"Build Ship",lambda: self.parent().buildShip()))
         self.InterfaceButton = self.addWidget(AGeWidgets.Button(self,"Get Stats",lambda: self.getInterface()))
         #TODO: It would be neat to select a construction module out of a list of all construction modules.
         #TODO: Display the resources the construction module has access to.
+        
+        #MAYBE: Use BaseInfoWidgets.FullInfoWidget instead
+        
         self.populateAddModuleSelectBox()
     
     def parent(self) -> 'ConstructionWidget':
@@ -190,7 +194,7 @@ class ShipStats(AGeWidgets.TightGridFrame):
 
 class ModuleListWidget(AGeWidgets.TightGridFrame):
     def __init__(self, parent:'ConstructionWidget') -> None:
-        super().__init__(parent)
+        super().__init__(parent,makeCompact=False)
         self.AddModuleSelectBox = self.addWidget(QtWidgets.QComboBox(self))
         self.AddModuleButton = self.addWidget(AGeWidgets.Button(self,"Add Module",lambda: self.addModule()))
         self.ModuleList = self.addWidget(ModuleList(self))
@@ -274,11 +278,11 @@ class ModuleItem(QtWidgets.QListWidgetItem):
 
 class ModuleEditor(AGeWidgets.TightGridFrame):
     def __init__(self, parent:'ConstructionWidget') -> None:
-        super().__init__(parent)
+        super().__init__(parent,makeCompact=False)
         self.NameLabel = self.addWidget(QtWidgets.QLabel("Module Editor", self))
         self.ValueLabel = self.addWidget(QtWidgets.QLabel("", self))
         self.Apply = self.addWidget(AGeWidgets.Button(self, "Apply", lambda: self.applyStats()))
-        self.ModuleStatContainer = self.addWidget(AGeWidgets.TightGridFrame(self))
+        self.ModuleStatContainer = self.addWidget(AGeWidgets.TightGridFrame(self,makeCompact=False))
         self.StatDict:'dict[str,typing.Callable[[],typing.Any]]' = {}
     
     def parent(self) -> 'ConstructionWidget':
@@ -311,7 +315,7 @@ class ModuleEditor(AGeWidgets.TightGridFrame):
         if self.ModuleStatContainer:
             self.layout().removeWidget(self.ModuleStatContainer)
             self.ModuleStatContainer = None
-        self.ModuleStatContainer = self.addWidget(AGeWidgets.TightGridFrame(self))
+        self.ModuleStatContainer = self.addWidget(AGeWidgets.TightGridFrame(self,makeCompact=False))
         self.StatDict = {statName:self.ModuleStatContainer.addWidget(widget()) for statName, widget in self.ActiveModule.getCustomisableStats().items()}
     
     def applyStats(self):

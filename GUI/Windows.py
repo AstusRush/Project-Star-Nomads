@@ -46,7 +46,8 @@ else:
 # Game Imports
 from BaseClasses import HexBase as Hex
 from BaseClasses import get
-from GUI import WidgetsBase
+from GUI import BaseInfoWidgets
+from GUI import Menu
 
 class MainWindowClass(ape.APELabWindow):#APEWindow):
     def setupUI(self):
@@ -79,10 +80,10 @@ class MainWindowClass(ape.APELabWindow):#APEWindow):
         
         self.Console2.setText("engine().endBattleScene()\n")
         
-        self.UnitStatDisplay = WidgetsBase.FleetStats(self)
+        self.UnitStatDisplay = BaseInfoWidgets.FleetStats(self)
         self.TabWidget.addTab(self.UnitStatDisplay, "Unit Stats")
         
-        self.Menu = WidgetsBase.Menu(self)
+        self.Menu = Menu.Menu(self)
         self.TabWidget.addTab(self.Menu, "Menu")
     
     def getHex(self, i:typing.Tuple[int,int]) -> 'Hex._Hex':

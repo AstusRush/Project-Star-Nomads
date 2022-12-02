@@ -650,7 +650,7 @@ class Fleet(FleetBase):
     def spendMovePoints(self, value:float):
         for i in self.Ships:
             i.Stats.spendMovePoints_FTL(value)
-            i.updateInterface()
+        self.updateInterface()
     
     @property
     def MovePoints_max(self) -> float:
@@ -719,21 +719,7 @@ class Fleet(FleetBase):
         if display and not self.Hidden:
             if forceRebuild or not self.Widget:
                 get.window().UnitStatDisplay.addWidget(self.getInterface())
-            else:
-                for i in self.Ships:
-                    i.updateInterface()
-            text = textwrap.dedent(f"""
-            Name: {self.Name}
-            Team: {self.Team}
-            Positions: {self.hex().Coordinates}
-            Movement Points: {round(self.MovePoints,3)}/{round(self.MovePoints_max,3)}
-            """)
-            # Hull HP: {[f"{i.Stats.HP_Hull}/{i.Stats.HP_Hull_max}" for i in self.Ships]}
-            # Shield HP: {[f"{i.Stats.HP_Shields}/{i.Stats.HP_Shields_max}" for i in self.Ships]}
-            #Hull: {self.HP_Hull}/{self.HP_Hull_max} (+{self.HP_Hull_Regeneration} per turn (halved if the ship took a single hit that dealt at least {self.NoticeableDamage} damage last turn))
-            #Shields: {self.HP_Shields}/{self.HP_Shields_max} (+{self.HP_Shields_Regeneration} per turn (halved if the ship took a single hit that dealt at least {self.NoticeableDamage} damage last turn))
-            #get.window().UnitStatDisplay.Text.setText(text)
-            self.Label.setText(text)
+            self.updateInterface()
         else:
             #get.window().UnitStatDisplay.Text.setText("No unit selected")
             get.window().UnitStatDisplay.removeWidget(self.Widget)
@@ -741,11 +727,30 @@ class Fleet(FleetBase):
     
     def getInterface(self): #TODO: Overhaul this! The displayed information should not be the combat interface but the campaign interface!
         self.Widget = AGeWidgets.TightGridFrame()
+        self.NameInput = self.Widget.addWidget(AGeInput.Name(self.Widget,"Name",self,"Name"))
         self.Label = self.Widget.addWidget(QtWidgets.QLabel(self.Widget))
         for i in self.Ships:
             self.Widget.addWidget(i.getQuickView())
         return self.Widget
     
+    def updateInterface(self):
+        for i in self.Ships:
+            i.updateInterface()
+        if self.Widget:
+            try:
+                text = textwrap.dedent(f"""
+                Team: {self.Team}
+                Positions: {self.hex().Coordinates}
+                Movement Points: {round(self.MovePoints,3)}/{round(self.MovePoints_max,3)}
+                """).strip()
+                # Hull HP: {[f"{i.Stats.HP_Hull}/{i.Stats.HP_Hull_max}" for i in self.Ships]}
+                # Shield HP: {[f"{i.Stats.HP_Shields}/{i.Stats.HP_Shields_max}" for i in self.Ships]}
+                #Hull: {self.HP_Hull}/{self.HP_Hull_max} (+{self.HP_Hull_Regeneration} per turn (halved if the ship took a single hit that dealt at least {self.NoticeableDamage} damage last turn))
+                #Shields: {self.HP_Shields}/{self.HP_Shields_max} (+{self.HP_Shields_Regeneration} per turn (halved if the ship took a single hit that dealt at least {self.NoticeableDamage} damage last turn))
+                #get.window().UnitStatDisplay.Text.setText(text)
+                self.Label.setText(text)
+            except RuntimeError:
+                self.Widget = None # This usually means that the widget is destroyed but I don't know of a better way to test for it...
   #endregion Display Information
   #region Save/Load
     def tocode_AGeLib(self, name="", indent=0, indentstr="    ", ignoreNotImplemented = False) -> typing.Tuple[str,dict]:
@@ -792,7 +797,7 @@ class Flotilla(FleetBase):
     def spendMovePoints(self, value:float):
         for i in self.Ships:
             i.Stats.spendMovePoints_Sublight(value)
-            i.updateInterface()
+        self.updateInterface()
     
     @property
     def MovePoints_max(self) -> float:
@@ -857,21 +862,7 @@ class Flotilla(FleetBase):
         if display and not self.Hidden:
             if forceRebuild or not self.Widget:
                 get.window().UnitStatDisplay.addWidget(self.getInterface())
-            else:
-                for i in self.Ships:
-                    i.updateInterface()
-            text = textwrap.dedent(f"""
-            Name: {self.Name}
-            Team: {self.Team}
-            Positions: {self.hex().Coordinates}
-            Movement Points: {round(self.MovePoints,3)}/{round(self.MovePoints_max,3)}
-            """)
-            # Hull HP: {[f"{i.Stats.HP_Hull}/{i.Stats.HP_Hull_max}" for i in self.Ships]}
-            # Shield HP: {[f"{i.Stats.HP_Shields}/{i.Stats.HP_Shields_max}" for i in self.Ships]}
-            #Hull: {self.HP_Hull}/{self.HP_Hull_max} (+{self.HP_Hull_Regeneration} per turn (halved if the ship took a single hit that dealt at least {self.NoticeableDamage} damage last turn))
-            #Shields: {self.HP_Shields}/{self.HP_Shields_max} (+{self.HP_Shields_Regeneration} per turn (halved if the ship took a single hit that dealt at least {self.NoticeableDamage} damage last turn))
-            #get.window().UnitStatDisplay.Text.setText(text)
-            self.Label.setText(text)
+            self.updateInterface()
         else:
             #get.window().UnitStatDisplay.Text.setText("No unit selected")
             get.window().UnitStatDisplay.removeWidget(self.Widget)
@@ -879,10 +870,30 @@ class Flotilla(FleetBase):
     
     def getInterface(self):
         self.Widget = AGeWidgets.TightGridFrame()
+        self.NameInput = self.Widget.addWidget(AGeInput.Name(self.Widget,"Name",self,"Name"))
         self.Label = self.Widget.addWidget(QtWidgets.QLabel(self.Widget))
         for i in self.Ships:
             self.Widget.addWidget(i.getQuickView())
         return self.Widget
+    
+    def updateInterface(self):
+        for i in self.Ships:
+            i.updateInterface()
+        if self.Widget:
+            try:
+                text = textwrap.dedent(f"""
+                Team: {self.Team}
+                Positions: {self.hex().Coordinates}
+                Movement Points: {round(self.MovePoints,3)}/{round(self.MovePoints_max,3)}
+                """).strip()
+                # Hull HP: {[f"{i.Stats.HP_Hull}/{i.Stats.HP_Hull_max}" for i in self.Ships]}
+                # Shield HP: {[f"{i.Stats.HP_Shields}/{i.Stats.HP_Shields_max}" for i in self.Ships]}
+                #Hull: {self.HP_Hull}/{self.HP_Hull_max} (+{self.HP_Hull_Regeneration} per turn (halved if the ship took a single hit that dealt at least {self.NoticeableDamage} damage last turn))
+                #Shields: {self.HP_Shields}/{self.HP_Shields_max} (+{self.HP_Shields_Regeneration} per turn (halved if the ship took a single hit that dealt at least {self.NoticeableDamage} damage last turn))
+                #get.window().UnitStatDisplay.Text.setText(text)
+                self.Label.setText(text)
+            except RuntimeError:
+                self.Widget = None # This usually means that the widget is destroyed but I don't know of a better way to test for it...
     
   #endregion Display Information
   #region Highlighting
