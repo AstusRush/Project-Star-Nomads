@@ -105,8 +105,8 @@ class StrategyCamera(DirectObject):
         self.acceptAllCombinations("e", self.setKey, ["cam-rot-right",1])
         self.acceptAllCombinations("q-up", self.setKey, ["cam-rot-left",0])
         self.acceptAllCombinations("e-up", self.setKey, ["cam-rot-right",0])
-        self.accept("home", lambda: self.resetCameraOrientation())
-        self.accept("control-home", lambda: self.resetCameraPosition())
+        self.accept("end", lambda: self.resetCameraOrientation())
+        self.accept("home", lambda: self.resetCameraPosition())
         
         self._MoveCameraTask = base().taskMgr.add(lambda task: self.moveCamera(task), "moveCameraTask")
         self.acceptAllCombinations("wheel_up",   lambda: self.zoomCamera(-1))

@@ -71,7 +71,7 @@ class ConstructionWindow(AWWF):
     def __init__(self, parent=None, IncludeTopBar=True, initTopBar=True, IncludeStatusBar=True, IncludeErrorButton=True, FullscreenHidesBars=False):
         super().__init__(parent, IncludeTopBar, initTopBar, IncludeStatusBar, IncludeErrorButton, FullscreenHidesBars)
         # Maybe a triple splitter for ( Ship Stats | Module List | Module Editor )
-        self.StandardSize = (900,500)
+        self.StandardSize = (1200,650)
         self.ConstructionWidget = self.CW = ConstructionWidget(self)
         self.setCentralWidget(self.ConstructionWidget)
     
@@ -100,10 +100,10 @@ class ConstructionWidget(QtWidgets.QSplitter):
     
     def _initFirstShip(self):
         self.__Initialized = True
-        self.ModuleList.ModuleList.addModule(BaseModules.Hull)
-        self.ModuleList.ModuleList.addModule(BaseModules.Thruster)
-        self.ModuleList.ModuleList.addModule(BaseModules.Engine)
-        self.ModuleList.ModuleList.addModule(BaseModules.Sensor)
+        self.addModule(BaseModules.Hull)
+        self.addModule(BaseModules.Thruster)
+        self.addModule(BaseModules.Engine)
+        self.addModule(BaseModules.Sensor)
         self.ShipStats.getInterface()
     
     def buildShip(self):
@@ -131,10 +131,13 @@ class ConstructionWidget(QtWidgets.QSplitter):
     def canModuleBeAdded(self, module:'typing.Union[BaseModules.Module,type[BaseModules.Module]]'):
         return self.Ship.canModuleBeAdded(module)
     
-    def addModule(self, module:'BaseModules.Module'):
+    def _addModuleToShip(self, module:'BaseModules.Module'):
         #TODO: There are some modules that can only exist once on a ship. We should either clean up removed modules from the interface or simply not allow a module to be added in those cases...
         self.Ship.addModule(module)
         self.ShipStats.updateShipInterface()
+    
+    def addModule(self, module:'typing.Union[BaseModules.Module,type[BaseModules.Module]]'):
+        self.ModuleList.addModule(module)
     
     def removeModule(self, module:'BaseModules.Module'):
         self.Ship.removeModule(module)
@@ -195,33 +198,85 @@ class ShipStats(AGeWidgets.TightGridFrame):
 class ModuleListWidget(AGeWidgets.TightGridFrame):
     def __init__(self, parent:'ConstructionWidget') -> None:
         super().__init__(parent,makeCompact=False)
-        self.AddModuleSelectBox = self.addWidget(QtWidgets.QComboBox(self))
-        self.AddModuleButton = self.addWidget(AGeWidgets.Button(self,"Add Module",lambda: self.addModule()))
-        self.ModuleList = self.addWidget(ModuleList(self))
-        self.populateAddModuleSelectBox()
+        self.ModuleTypeSelectionWidget = self.addWidget(ModuleTypeSelectionWidget(self),0,0)
+        self.ModuleList = self.addWidget(InstalledModuleListWidget(self),0,1)
+        self.ModuleTypeSelectionWidget.populate()
     
     def parent(self) -> 'ConstructionWidget':
         return super().parent()
     
-    def populateAddModuleSelectBox(self):
-        for k,v in get.modules().items():
-            if v.Buildable:
-                self.AddModuleSelectBox.addItem(k)
-    
-    def addModule(self):
-        self.ModuleList.addModule(get.modules()[self.AddModuleSelectBox.currentText()])
+    def addModule(self, module:'typing.Union[BaseModules.Module,type[BaseModules.Module]]'):
+        self.ModuleList.addModule(module)
 
-class ModuleList(QtWidgets.QListWidget):
+class ModuleTypeSelectionWidget(AGeWidgets.TightGridWidget):
     def __init__(self, parent:'ModuleListWidget') -> None:
-        super().__init__(parent)
-        self.itemDoubleClicked.connect(lambda item: self.selectModuleForEditor(item))
-        self.installEventFilter(self)
+        super().__init__(parent, makeCompact=False)
+        self.Label = self.addWidget(QtWidgets.QLabel("Module Types",self))
+        self.OnlyCoreCB = self.addWidget(QtWidgets.QCheckBox("Show only base modules",self))
+        self.OnlyCoreCB.stateChanged.connect(lambda: self.populate())
+        self.ModuleTypeList = self.addWidget(ModuleTypeList(self))
     
     def parent(self) -> 'ModuleListWidget':
         return super().parent()
     
     def addModule(self, module:'typing.Union[BaseModules.Module,type[BaseModules.Module]]'):
-        if not self.parent().parent().canModuleBeAdded(module):
+        self.parent().addModule(module)
+    
+    def populate(self, startsWith:'typing.Union[str,tuple[str],None]'=None, type_:'typing.Union[type[BaseModules.Module],tuple[type[BaseModules.Module]],None]'=None):
+        if startsWith is None and self.OnlyCoreCB.isChecked():
+            startsWith = "BaseModules"
+        self.ModuleTypeList.populate(startsWith=startsWith, type_=type_)
+
+class ModuleTypeList(QtWidgets.QListWidget):
+    def __init__(self, parent:'ModuleListWidget') -> None:
+        super().__init__(parent)
+        self.itemDoubleClicked.connect(lambda item: self.addModule(item))
+        self.installEventFilter(self)
+    
+    def parent(self) -> 'ModuleTypeSelectionWidget':
+        return super().parent()
+    
+    def populate(self, startsWith:'typing.Union[str,tuple[str],None]'=None, type_:'typing.Union[type[BaseModules.Module],tuple[type[BaseModules.Module]],None]'=None):
+        self.clear()
+        for moduleName,moduleType in get.modules().items():
+            if (moduleType.Buildable
+                and (startsWith is None or moduleName.startswith(startsWith))
+                and (type_ is None or issubclass(moduleType,type_))
+                ):
+                item = ModuleTypeItem()
+                item.setText(moduleName)
+                item.setData(100, moduleType)
+                self.addItem(item)
+    
+    def addModule(self, item:'ModuleTypeItem'):
+        self.parent().addModule(item.data(100)) # get.modules()[self.AddModuleSelectBox.currentText()])
+
+class InstalledModuleListWidget(AGeWidgets.TightGridWidget):
+    def __init__(self, parent:'ModuleListWidget') -> None:
+        super().__init__(parent, makeCompact=False)
+        self.Label = self.addWidget(QtWidgets.QLabel("Installed Modules",self))
+        self.ModuleList = self.addWidget(ModuleList(self))
+    
+    def parent(self) -> 'ModuleListWidget':
+        return super().parent()
+    
+    def addModule(self, module:'typing.Union[BaseModules.Module,type[BaseModules.Module]]'):
+        self.ModuleList.addModule(module)
+
+class ModuleList(QtWidgets.QListWidget):
+    def __init__(self, parent:'InstalledModuleListWidget') -> None:
+        super().__init__(parent)
+        self.itemDoubleClicked.connect(lambda item: self.selectModuleForEditor(item))
+        self.installEventFilter(self)
+    
+    def parent(self) -> 'InstalledModuleListWidget':
+        return super().parent()
+    
+    def constructionWidget(self) -> 'ConstructionWidget':
+        return self.parent().parent().parent()
+    
+    def addModule(self, module:'typing.Union[BaseModules.Module,type[BaseModules.Module]]'):
+        if not self.constructionWidget().canModuleBeAdded(module):
             NC(2,"Module can not be added.")
         else:
             if isinstance(module,type):
@@ -230,15 +285,15 @@ class ModuleList(QtWidgets.QListWidget):
             item.setText(module.Name)
             item.setData(100, module)
             self.addItem(item)
-            self.parent().parent().addModule(item.data(100))
-            self.parent().parent().ModuleEditor.setModule(item)
+            self.constructionWidget()._addModuleToShip(item.data(100))
+            self.constructionWidget().ModuleEditor.setModule(item)
     
     def selectModuleForEditor(self, item: QtWidgets.QListWidgetItem) -> None:
-        self.parent().parent().ModuleEditor.setModule(item)
+        self.constructionWidget().ModuleEditor.setModule(item)
     
     def removeModule(self, item:"ModuleItem"):
-        self.parent().parent().ModuleEditor.unsetModule(item)
-        self.parent().parent().removeModule(item.data(100))
+        self.constructionWidget().ModuleEditor.unsetModule(item)
+        self.constructionWidget().removeModule(item.data(100))
         self.takeItem(self.row(item))
     
     def duplicateModule(self, item:"ModuleItem"):
@@ -274,6 +329,9 @@ class ModuleList(QtWidgets.QListWidget):
             return super().eventFilter(source, event)
 
 class ModuleItem(QtWidgets.QListWidgetItem):
+    pass
+
+class ModuleTypeItem(QtWidgets.QListWidgetItem):
     pass
 
 class ModuleEditor(AGeWidgets.TightGridFrame):

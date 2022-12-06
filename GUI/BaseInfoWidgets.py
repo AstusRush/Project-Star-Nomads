@@ -265,6 +265,8 @@ class InfoWindow(AWWF):
         self.FullInfoWidget = FullInfoWidget(self, ship)
         self.setCentralWidget(self.FullInfoWidget)
         self.setWindowTitle(f"Ship Info: {self.ship().Name}")
+        self.StandardSize = (500, 700)
+        self.positionReset()
     
     def updateInfo(self):
         self.FullInfoWidget.updateInfo()

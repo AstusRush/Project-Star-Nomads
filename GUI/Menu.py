@@ -69,10 +69,11 @@ class Menu(QtWidgets.QScrollArea):
 class SaveLoadWidget(AGeWidgets.TightGridFrame):
     def __init__(self, parent: typing.Optional['QtWidgets.QWidget'] = None) -> None:
         super().__init__(parent)
-        self.Label = self.addWidget(QtWidgets.QLabel("Save/Load",self))
+        self.Label = self.addWidget(QtWidgets.QLabel("Save/Load/New",self))
         self.HeadlineLine = self.addWidget(QtWidgets.QFrame(self))
         self.HeadlineLine.setFrameShape(QtWidgets.QFrame.HLine)
         self.HeadlineLine.setFrameShadow(QtWidgets.QFrame.Sunken)
+        self.NewButton  = self.addWidget(AGeWidgets.Button(self,"New" ,lambda: get.engine().newGame()))
         self.SaveButton = self.addWidget(AGeWidgets.Button(self,"Save",lambda: get.engine().save()))
         self.LoadButton = self.addWidget(AGeWidgets.Button(self,"Load",lambda: get.engine().load()))
 

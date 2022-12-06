@@ -85,6 +85,11 @@ class MainWindowClass(ape.APELabWindow):#APEWindow):
         
         self.Menu = Menu.Menu(self)
         self.TabWidget.addTab(self.Menu, "Menu")
+        
+        self.TabWidget.setCurrentWidget(self.Menu) # Overwritten by the engine starting a new game but sensible nonetheless
+        
+        self.BalanceSizes = False
+        self.CentralSplitter.setSizes([510,App().screenAt(QtGui.QCursor().pos()).size().width()-510])
     
     def getHex(self, i:typing.Tuple[int,int]) -> 'Hex._Hex':
         return get.engine().getHex(i)
@@ -95,6 +100,7 @@ self.Pawn = Unit((25,24),name="USS Enterprise",model="/Users/Robin/Desktop/Proje
 self.Pawn2 = Unit((25,26),name="USS Galaxy",model="/Users/Robin/Desktop/Projects/AstusGameEngine_dev/3DModels/NCC-1701-D.gltf")
 """
 TEMP_CODE = """
+get.engine().clearAll()
 self.P1_Fleet1 = FleetBase.Fleet(1)
 self.P1_Fleet1.Name = "Fleet 1"
 if True:
@@ -110,7 +116,7 @@ if False:
 
 self.P1_Fleet1.moveToHex(self.getHex((25,25)))
 
-if False:
+if True:
     #ship = Ships.TestShips.SpaceDock()
     #ship.Name = f"Home One"
     #self.P1_Fleet1.addShip(ship)

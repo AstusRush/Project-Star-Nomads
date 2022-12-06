@@ -112,6 +112,7 @@ class HullWidget(ModuleWidget):
                             f"\n\tThreat: {round(m.Threat,3)}"
                             f"\n\tHull HP: {round(m.HP_Hull,3)}/{round(m.HP_Hull_max,3)}"
                             f"\n\tRegeneration: {round(m.HP_Hull_Regeneration,3)} per turn"
+                            f"\n\tEvasion: {round(m.Evasion,3)}"
                             )
 
 class HullPlatingWidget(ModuleWidget):
@@ -257,6 +258,18 @@ class SensorWidget(ModuleWidget):
     module: 'weakref.ref[BaseModules.Sensor]' = None
     def __init__(self, module:typing.Optional['BaseModules.Sensor'] = None) -> None:
         super().__init__(parent=None, module=module)
+        self.Label = self.addWidget(QtWidgets.QLabel(self))
+    
+    def updateFullInterface(self):
+        self.updateInterface()
+    
+    def updateInterface(self):
+        self.Label.setText( f"{self.module().Name} (Sensors):"
+                            f"\n\tLow Resolution: {round(self.module().LowRange,3)}"
+                            f"\n\tMedium Resolution: {round(self.module().MediumRange,3)}"
+                            f"\n\tHigh Resolution: {round(self.module().HighRange,3)}"
+                            f"\n\tPerfect Resolution: {round(self.module().PerfectRange,3)}"
+                            )
 
 class EconomicWidget(ModuleWidget):
     module: 'weakref.ref[BaseModules.Economic]' = None

@@ -62,6 +62,8 @@ class EngineClass(ape.APE):
         self.base.start()
         self.startCampaignScene()
         self.CurrentlyInBattle = False
+        
+        self.newGame()
     
     def startCampaignScene(self):
         self.UnitManager = UnitManagerBase.CampaignUnitManager()
@@ -281,14 +283,16 @@ class EngineClass(ape.APE):
         NC(3,f"Save successful! Saved at {os.path.join(saveFolder,name)}", DplStr="Game Saved!")
     
     def load(self):
-        #TODO: See _save
-        #TODO: It would be neat to not have to restart the game every time one wants to load
-        #TODO: Select a save file
-        if self.CurrentlyInBattle:
-            NC(2,"Currently, loading is only possible on the campaign map")
-            return
-        self.clearAll()
-        from SavedGames import LastSave
+        if self._confirmNewOrLoad("loading"):
+            #TODO: See _save
+            #TODO: It would be neat to not have to restart the game every time one wants to load
+            #TODO: Select a save file
+            #TODO: It would be nice if the camera would zoom to an owned fleet or would even remember its position when the save was made
+            if self.CurrentlyInBattle:
+                NC(2,"Currently, loading is only possible on the campaign map")
+                return
+            self.clearAll()
+            from SavedGames import LastSave
     
     def clearAll(self): #TODO: also clear any battle that is currently active and return to the campaign map
         fleetList:UnitManagerBase.UnitList = []
@@ -296,13 +300,36 @@ class EngineClass(ape.APE):
             fleetList += team
         for i in fleetList:
             i.completelyDestroy()
+    
+    def newGame(self):
+        if self._confirmNewOrLoad("starting a new game"):
+            self.clearAll()
+            import Ships
+            Fleet1 = FleetBase.Fleet(1)
+            Fleet1.Name = "Nomad Fleet"
+            ship = Ships.TestShips.NomadOne()
+            Fleet1.addShip(ship)
+            Fleet1.moveToHex(self.getHex((24,25)))
+            get.window().TabWidget.setCurrentWidget(get.window().UnitStatDisplay)
+    
+    def _confirmNewOrLoad(self, verb:str=""):
+        confirm = True
+        if self.UnitManager.Teams[1]:
+            msgBox = QtWidgets.QMessageBox(get.window())
+            msgBox.setText(f"Are you sure?")
+            msgBox.setInformativeText(f"It seems like you are already in a game. Are you sure you want to proceed {verb}?")
+            msgBox.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.Cancel)
+            msgBox.setDefaultButton(QtWidgets.QMessageBox.Cancel)
+            confirm = msgBox.exec()
+        return confirm
 
 class AppClass(ape.APEApp):
     def __init__(self, args, useExcepthook=True):
         super().__init__(args, useExcepthook)
         #StarNomadsColourPalette.SNDark.update(self.Themes["Dark"])
-        self.addTheme("[Star Nomads] Dark", StarNomadsColourPalette.SNDark)
-        self.setTheme("[Star Nomads] Dark")
+        StarNomadsDark = "[Star Nomads] Dark"
+        self.addTheme(StarNomadsDark, StarNomadsColourPalette.SNDark)
+        self.setTheme(StarNomadsDark)
         self.optionWindow.Input_Field.LoadCurrentPalette() #TODO: Doing this should be the task of AGeLib! It's Stupid that I need to do this manually here!
     
     #def r_setTheme(self):

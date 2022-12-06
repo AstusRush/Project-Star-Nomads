@@ -58,6 +58,13 @@ if typing.TYPE_CHECKING:
     from BaseClasses import ModelBase
     from ApplicationClasses import MainAppClass
 
+def addStatCustomizer(d:'dict', module:'BaseModules.Module', statName:str, type:'type[AGeInput._TypeWidget]', dplName:str=None):
+    if dplName is None: dplName = statName
+    if issubclass(type,(AGeInput.Int, AGeInput.Float,)):
+        if statCustomisationUnlocked(module, statName): d[statName] = lambda: type(None,dplName,getattr(module,statName),moduleStatMin(module,statName),moduleStatMax(module,statName))
+    elif issubclass(type,(AGeInput.Bool,AGeInput.Str)):
+        if statCustomisationUnlocked(module, statName): d[statName] = lambda: type(None,dplName,getattr(module,statName))
+
 def statCustomisationUnlocked(moduleClass:'type[BaseModules.Module]', statName:str) -> bool:
     #TODO: This should query the research tree and get whether the stat is customisable.
     #       If the module class does not support this request query up through the inheritance line

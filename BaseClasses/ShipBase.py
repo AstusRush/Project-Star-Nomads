@@ -244,7 +244,7 @@ class ShipsStats():
     
     @property
     def Defensiveness(self) -> float:
-        return ((self.HP_Shields+self.HP_Shields_max)/2 + (self.HP_Hull+self.HP_Hull_max)/2)*(1/self.Evasion)
+        return ((self.HP_Shields+self.HP_Shields_max)/2 /400 + (self.HP_Hull+self.HP_Hull_max)/2 /400)*(1+self.Evasion)
 
 class ShipBase():
     Name = "Unnamed Entity (ShipBase)"
