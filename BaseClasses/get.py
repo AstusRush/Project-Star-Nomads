@@ -56,6 +56,7 @@ if typing.TYPE_CHECKING:
     from BaseClasses import ShipBase
     from BaseClasses import ModelBase
     from ApplicationClasses import Scene
+    from ApplicationClasses import Camera
     from ApplicationClasses import MainAppClass
     from GUI import Windows
     from GUI import BaseInfoWidgets
@@ -78,6 +79,9 @@ def hexGrid(campaign = None) -> 'HexBase.HexGrid':
 
 def scene(campaign = None) -> 'Scene.BaseScene':
     return engine().getScene(campaign)
+
+def camera(campaign = None) -> 'Camera.StrategyCamera':
+    return engine().getScene(campaign).Camera
 
 def shipClasses() -> 'typing.Dict[str, type[ShipBase.ShipBase]]':
     import Ships

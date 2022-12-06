@@ -82,6 +82,7 @@ class Module():
     def __init__(self) -> None:
         self.ship:'weakref.ref[ShipBase.ShipBase]' = None
         self.moduleModel:'typing.Union[weakref.ref[ProceduralShips.ShipModule],None]' = None
+        self.Widget:'ModuleWidgets.ModuleWidget' = None
         self.FullWidget:'ModuleWidgets.ModuleWidget' = None
         self.automaticallyDetermineValues()
     
@@ -226,6 +227,11 @@ class Hull(Module):
     HP_Hull_Regeneration = HP_Hull_max / 20
     NoticeableDamage = HP_Hull_max / 10
     
+    def __init__(self) -> None:
+        super().__init__()
+        self.Widget:'ModuleWidgets.HullWidget' = None
+        self.FullWidget:'ModuleWidgets.HullWidget' = None
+    
     def calculateValue(self): #TODO: Come up with a better formula for this that takes evasion, mass, etc. into account
         return self.HP_Hull_max / 100 * (1+self.Evasion)**7 * (1+(self.HP_Hull_Regeneration - self.HP_Hull_max / 20)/200)**(1.4) / self.Mass
     
@@ -285,6 +291,11 @@ class HullPlating(Module):
     Name = "Hull Plating"
     Buildable = True
     
+    def __init__(self) -> None:
+        super().__init__()
+        self.Widget:'ModuleWidgets.HullPlatingWidget' = None
+        self.FullWidget:'ModuleWidgets.HullPlatingWidget' = None
+    
     def getFullInterface(self):
         self.FullWidget = ModuleWidgets.HullPlatingWidget(self)
         return self.FullWidget
@@ -302,6 +313,7 @@ class Engine(Module): # FTL Engine
     def __init__(self) -> None:
         super().__init__()
         self.Widget:ModuleWidgets.EngineWidget = None
+        self.FullWidget:ModuleWidgets.EngineWidget = None
     
     def calculateValue(self): #TODO: Come up with a better formula for this
         return self.Thrust / 10
@@ -358,6 +370,7 @@ class Thruster(Module): # Sublight Thruster
     def __init__(self) -> None:
         super().__init__()
         self.Widget:ModuleWidgets.ThrusterWidget = None
+        self.FullWidget:ModuleWidgets.ThrusterWidget = None
     
     def calculateValue(self): #TODO: Come up with a better formula for this
         return self.Thrust / 10
@@ -418,6 +431,7 @@ class Shield(Module):
     def __init__(self) -> None:
         super().__init__()
         self.Widget:ModuleWidgets.ShieldWidget = None
+        self.FullWidget:ModuleWidgets.ShieldWidget = None
     
     def calculateValue(self): #TODO: Come up with a better formula for this that takes HP_Shields_Regeneration into account
         return self.HP_Shields_max / 400 + self.HP_Shields_Regeneration / 400
@@ -486,6 +500,11 @@ class Quarters(Module):
     Name = "Quarters Module"
     Buildable = False
     
+    def __init__(self) -> None:
+        super().__init__()
+        self.Widget:'ModuleWidgets.QuartersWidget' = None
+        self.FullWidget:'ModuleWidgets.QuartersWidget' = None
+    
     def getFullInterface(self):
         self.FullWidget = ModuleWidgets.QuartersWidget(self)
         return self.FullWidget
@@ -495,6 +514,11 @@ class Cargo(Module):
     Name = "Cargo Module"
     Buildable = False
     
+    def __init__(self) -> None:
+        super().__init__()
+        self.Widget:'ModuleWidgets.CargoWidget' = None
+        self.FullWidget:'ModuleWidgets.CargoWidget' = None
+    
     def getFullInterface(self):
         self.FullWidget = ModuleWidgets.CargoWidget(self)
         return self.FullWidget
@@ -502,6 +526,11 @@ class Cargo(Module):
 class Hangar(Module):
     Name = "Hangar"
     Buildable = False
+    
+    def __init__(self) -> None:
+        super().__init__()
+        self.Widget:'ModuleWidgets.HangarWidget' = None
+        self.FullWidget:'ModuleWidgets.HangarWidget' = None
     
     def getFullInterface(self):
         self.FullWidget = ModuleWidgets.HangarWidget(self)
@@ -518,6 +547,7 @@ class ConstructionModule(Module):
     def __init__(self) -> None:
         super().__init__()
         self.Widget:ModuleWidgets.ConstructionModuleWidget = None
+        self.FullWidget:ModuleWidgets.ConstructionModuleWidget = None
         self.ConstructionResourcesStored = 0 #NOTE: This is only a temporary system
     
     def calculateValue(self):
@@ -589,6 +619,11 @@ class Sensor(Module):
     HighRange = 4
     PerfectRange = 1
     
+    def __init__(self) -> None:
+        super().__init__()
+        self.Widget:'ModuleWidgets.SensorWidget' = None
+        self.FullWidget:'ModuleWidgets.SensorWidget' = None
+    
     def getFullInterface(self):
         self.FullWidget = ModuleWidgets.SensorWidget(self)
         return self.FullWidget
@@ -612,6 +647,11 @@ class Economic(Module):
     #MAYBE: Researching could be tied to other modules like sensors to scan stuff or special experimental weapons to test stuff or experimental shields to test stuff or... you get the idea
     Name = "Economic Module"
     
+    def __init__(self) -> None:
+        super().__init__()
+        self.Widget:'ModuleWidgets.EconomicWidget' = None
+        self.FullWidget:'ModuleWidgets.EconomicWidget' = None
+    
     def getFullInterface(self):
         self.FullWidget = ModuleWidgets.EconomicWidget(self)
         return self.FullWidget
@@ -620,6 +660,11 @@ class Augment(Module):
     # All augmentations that enhance/modify the statistics of other modules like +dmg% , +movementpoints , or +shieldRegeneration
     Name = "Augment Module"
     Buildable = False
+    
+    def __init__(self) -> None:
+        super().__init__()
+        self.Widget:'ModuleWidgets.AugmentWidget' = None
+        self.FullWidget:'ModuleWidgets.AugmentWidget' = None
     
     def getFullInterface(self):
         self.FullWidget = ModuleWidgets.AugmentWidget(self)
@@ -630,6 +675,11 @@ class Support(Module): #MAYBE: inherit from Augment
     Name = "Support Module"
     Buildable = False
     
+    def __init__(self) -> None:
+        super().__init__()
+        self.Widget:'ModuleWidgets.SupportWidget' = None
+        self.FullWidget:'ModuleWidgets.SupportWidget' = None
+    
     def getFullInterface(self):
         self.FullWidget = ModuleWidgets.SupportWidget(self)
         return self.FullWidget
@@ -639,6 +689,11 @@ class Special(Module):
     #   hacking the enemy, cloaking, extending shields around allies, repairing allies, sensor pings, boarding
     Name = "Special Module"
     Buildable = False
+    
+    def __init__(self) -> None:
+        super().__init__()
+        self.Widget:'ModuleWidgets.SpecialWidget' = None
+        self.FullWidget:'ModuleWidgets.SpecialWidget' = None
     
     def getFullInterface(self):
         self.FullWidget = ModuleWidgets.SpecialWidget(self)
@@ -655,6 +710,8 @@ class MicroJumpDrive(Special):
     #MAYBE: Increase the MaxCharges and make longer jumps use up more charges. Something maybe one charge per hex travelled and a recharge rate of one charge per turn and MaxCharges = 10
     def __init__(self) -> None:
         super().__init__()
+        self.Widget:'ModuleWidgets.MicroJumpDriveWidget' = None
+        self.FullWidget:'ModuleWidgets.MicroJumpDriveWidget' = None
         self.Charge = self.MaxCharges
     
     #def calculateThreat(self):
@@ -719,7 +776,13 @@ class MicroJumpDrive(Special):
             get.hexGrid().highlightHexes(self.ship().fleet().hex().getDisk(self.Range), HexBase._Hex.COLOUR_REACHABLE, HexBase._Hex.COLOUR_REACHABLE, False, clearFirst=True)
     
     def jumpTo(self, hex:'HexBase._Hex') -> 'tuple[bool,bool]':
-        if not get.engine().CurrentlyInBattle: raise Exception("The Micro Jump Drive can only be used in battle!")
+        if not get.engine().CurrentlyInBattle:
+            NC(1, "The Micro Jump Drive can only be used in battle!")
+            return False,True
+        if not isinstance(hex, HexBase._Hex):
+            NC(1, f"hex must be an instance of HexBase._Hex, not {type(hex)}", input=hex)
+            return False,True
+        
         if ( self.Charge < 1
             or hex.distance(self.ship().fleet().hex()) > self.Range
             or not self.isActiveTurn()
@@ -791,6 +854,7 @@ class Weapon(Module):
     def __init__(self) -> None:
         super().__init__()
         self.Widget:ModuleWidgets.WeaponWidget = None
+        self.FullWidget:ModuleWidgets.WeaponWidget = None
         self.Ready = True
         self.SFX = base().loader.loadSfx(self.SoundEffectPath)
         self.SFX.setVolume(0.07)

@@ -86,7 +86,8 @@ class EngineClass(ape.APE):
         self.transferFleetsToBattle(fleets, battleType)
         environmentCreator = Environment.EnvironmentCreator()
         environmentCreator.generate(self.BattleScene.HexGrid, combat=True)
-        self.BattleScene.Camera.moveToHex(random.choice(self.BattleUnitManager.Teams[1]).hex())
+        #self.BattleScene.Camera.moveToHex(random.choice(self.BattleUnitManager.Teams[1]).hex())
+        self.BattleScene.Camera.focusRandomFleet(team=1)
     
     def transferFleetsToBattle(self, fleets:'list[FleetBase.Fleet]', battleType):
         for fleet in fleets:
@@ -311,6 +312,8 @@ class EngineClass(ape.APE):
             Fleet1.addShip(ship)
             Fleet1.moveToHex(self.getHex((24,25)))
             get.window().TabWidget.setCurrentWidget(get.window().UnitStatDisplay)
+            get.scene().Camera.resetCameraPosition()
+            get.camera().focusRandomFleet(team=1)
     
     def _confirmNewOrLoad(self, verb:str=""):
         confirm = True

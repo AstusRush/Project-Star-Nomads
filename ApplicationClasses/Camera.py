@@ -45,6 +45,8 @@ else:
     from AstusPandaEngine import engine, base, render, loader
     from AstusPandaEngine import window as _window
 
+from BaseClasses import get
+
 if TYPE_CHECKING:
     from BaseClasses import HexBase
 
@@ -173,6 +175,15 @@ class StrategyCamera(DirectObject):
         self.CameraCenter.setH(0)
         ape.base().camera.setPos(0,-15,0)
         ape.base().camera.lookAt(self.CameraCenter)
+    
+    def focusRandomFleet(self, team:'int'=1):
+        try:
+            if get.unitManager().Teams[team]:
+                self.moveToHex(random.choice(get.unitManager().Teams[team]).hex())
+            else:
+                NC(2,f"There are no fleets in {get.unitManager().Teams[team].name()} for the camera to focus on.")
+        except:
+            NC(1,"Could not focus camera on random fleet.", exc=True, input=f"{team = }")
     
     def moveToHex(self, hex_:'HexBase._Hex'):
         self.CameraCenter.setPos(hex_.Pos)

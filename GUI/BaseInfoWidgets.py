@@ -298,8 +298,10 @@ class FullInfoWidget(QtWidgets.QScrollArea):
                 text = textwrap.dedent(f"""
                 Hull: {round(self.ship().Stats.HP_Hull,3)}/{round(self.ship().Stats.HP_Hull_max,3)}
                 Shields: {round(self.ship().Stats.HP_Shields,3)}/{round(self.ship().Stats.HP_Shields_max,3)}
-                Movement: {round(self.ship().Stats.Movement_Sublight[0],3)}/{round(self.ship().Stats.Movement_Sublight[1],3)}
+                Movement Sublight: {round(self.ship().Stats.Movement_Sublight[0],3)}/{round(self.ship().Stats.Movement_Sublight[1],3)}
+                Movement FTL: {round(self.ship().Stats.Movement_FTL[0],3)}/{round(self.ship().Stats.Movement_FTL[1],3)}
                 Evasion: {round(self.ship().Stats.Evasion,3)}
+                Mass: {round(self.ship().Stats.Mass,3)}
                 Value: {round(self.ship().Stats.Value,3)}
                 Threat: {round(self.ship().Stats.Threat,3)}
                 Defensiveness: {round(self.ship().Stats.Defensiveness,3)}
