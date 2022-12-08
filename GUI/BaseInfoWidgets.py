@@ -73,25 +73,28 @@ class FleetStats(QtWidgets.QSplitter):
         
         self.LastDetailsWidget:QtWidgets.QWidget = None
     
-    def addWidget(self, widget):
+    def addWidget(self, widget:'QtWidgets.QWidget'):
         #TODO: This should instead handle ShipQuickView widgets
         #REMINDER: If only on ShipQuickView is displayed it should directly open the full ShipInterface. This however must be managed at the point where addWidget is called...
         self.FleetOverview.layout().addWidget(widget)
     
-    def removeWidget(self, widget):
+    def removeWidget(self, widget:'QtWidgets.QWidget'):
         self.FleetOverview.layout().removeWidget(widget)
+        widget.deleteLater()
         self.DetailView = AGeWidgets.TightGridWidget(self)
         self.DetailScrollWidget.setWidget(self.DetailView)
         #if self.LastDetailsWidget:
         #    self.DetailView.layout().removeWidget(self.FleetOverview)
-        #    self.LastDetailsWidget.destroy()
+        #    self.FleetOverview.deleteLater()
+        #    self.LastDetailsWidget.deleteLater()
     
-    def showDetails(self, widget): #TODO: if the ship gets destroyed this should get cleared and the clearing mechanism is currently bad in general
+    def showDetails(self, widget:'QtWidgets.QWidget'): #TODO: if the ship gets destroyed this should get cleared and the clearing mechanism is currently bad in general
         self.DetailView = AGeWidgets.TightGridWidget(self)
         self.DetailScrollWidget.setWidget(self.DetailView)
         #if self.LastDetailsWidget:
         #    self.DetailView.layout().removeWidget(self.LastDetailsWidget)
-        #    self.LastDetailsWidget.destroy()
+        #    self.FleetOverview.deleteLater()
+        #    self.LastDetailsWidget.deleteLater()
         self.DetailView.layout().addWidget(widget)
         self.LastDetailsWidget = widget
 

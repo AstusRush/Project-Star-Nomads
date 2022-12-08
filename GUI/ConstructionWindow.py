@@ -48,7 +48,7 @@ else:
 #from ApplicationClasses import Scene, StarNomadsColourPalette
 #from GUI import Windows, WidgetsBase
 from BaseClasses import HexBase, FleetBase, ShipBase, ModelBase, BaseModules, UnitManagerBase, get
-from GUI import BaseInfoWidgets
+from GUI import BaseInfoWidgets, ShipSelectDialogue
 
 #TODO: The construction Window should be opened from a construction module
 #       The window should stay open and not block anything
@@ -84,6 +84,7 @@ class ConstructionWidget(QtWidgets.QSplitter):
         super().__init__(parent)
         #self.Splitter = self.addWidget(QtWidgets.QSplitter(self))
         self.Ship = ShipBase.Ship()
+        self.LifeEdit = False
         
         self.ShipStats = ShipStats(self)
         self.addWidget(self.ShipStats)
@@ -92,14 +93,20 @@ class ConstructionWidget(QtWidgets.QSplitter):
         self.ModuleEditor = ModuleEditor(self)
         self.addWidget(self.ModuleEditor)
         
-        self.__Initialized = False
+        self._ShipInitialized = False
     
     def setConstructionModule(self, module:BaseModules.ConstructionModule):
         self.constructionModule:'weakref.ref[BaseModules.ConstructionModule]' = weakref.ref(module)
-        if not self.__Initialized: self._initFirstShip()
+        if not self._ShipInitialized: self._initFirstShip()
+    
+    def lifeEditing(self) -> bool:
+        return self.LifeEdit
+    
+    def canEdit(self) -> bool:
+        return not (self.LifeEdit and get.engine().CurrentlyInBattle)
     
     def _initFirstShip(self):
-        self.__Initialized = True
+        self._ShipInitialized = True
         self.addModule(BaseModules.Hull)
         self.addModule(BaseModules.Thruster)
         self.addModule(BaseModules.Engine)
@@ -109,6 +116,12 @@ class ConstructionWidget(QtWidgets.QSplitter):
     def buildShip(self):
         #self.Ship.Name = self.ShipStats.NameInput()
         #self.Ship.ClassName = self.ShipStats.ClassInput()
+        if not self.Ship:
+            NC(2, "You are currently not editing a ship, therefore you can not build a ship.")
+            return
+        if self.lifeEditing():
+            NC(2, "You are modifying an already existing ship. It is, therefore, already build.")
+            return
         if not self.Ship.hull:
             NC(2, "Could not build ship as critical component is missing: hull")
             return
@@ -138,21 +151,59 @@ class ConstructionWidget(QtWidgets.QSplitter):
     
     def addModule(self, module:'typing.Union[BaseModules.Module,type[BaseModules.Module]]'):
         self.ModuleList.addModule(module)
+        if self.lifeEditing:
+            pass #TODO: Regenerate ship model since modules have changed
     
     def removeModule(self, module:'BaseModules.Module'):
         self.Ship.removeModule(module)
         self.ShipStats.updateShipInterface()
+        if self.lifeEditing:
+            pass #TODO: Regenerate ship model since modules have changed
+    
+    def _clearCurrentShip(self):
+        self._ShipInitialized = False
+        self.ModuleEditor.clear()
+        self.ModuleList.clear()
+        self.ShipStats.clear()
+        if not self.LifeEdit: self.Ship.destroy()
+        self.Ship = None
+    
+    def setShip(self, ship:'typing.Union[ShipBase.Ship,None]'=None, lifeEdit:bool=False):
+        self._clearCurrentShip()
+        self.LifeEdit = lifeEdit
+        if ship is None:
+            self.Ship = ShipBase.Ship()
+            self._initFirstShip()
+        else:
+            self.Ship = ship
+        self.ShipStats.getInterface()
+        self.ModuleList.populate()
+        #TODO: remove the model if the ship has a model and if it is not already in a fleet
+    
+    def loadShip(self, ship:'ShipBase.Ship'): #TODO: Make a UI to use this
+        self.setShip(ship, lifeEdit=True)
+        #CRITICAL: How do we handle replacement of core modules like the hull. A ship without a hull has infinite HP so we should not allow to simply remove them and should even ensure that they are always present.
+    
+    def copyShip(self, ship:'ShipBase.Ship'): #TODO: Make a UI to use this
+        ship = ship.copy() #CRITICAL: Implement this copy method
+        self.setShip(ship)
 
 class ShipStats(AGeWidgets.TightGridFrame):
     def __init__(self, parent:'ConstructionWidget') -> None:
         super().__init__(parent,makeCompact=False)
         self.ShipStats = None
+        self.EditShipButton = self.addWidget(AGeWidgets.Button(self,"Edit existing ship",lambda: self.editShip()))
+        self.CopyShipButton = self.addWidget(AGeWidgets.Button(self,"Copy existing ship",lambda: self.copyShip()))
+        self.NewShipButton = self.addWidget(AGeWidgets.Button(self,"New ship",lambda: self.newShip()))
+        self.ModelExplanationLabel = self.addWidget(QtWidgets.QLabel("Select the ship model:", self))
+        #TODO: Handle editing an active ship (and also handle loading a ship (or ship copy) into the editor by setting this accordingly)
+        #TODO: When lifeEditing the build button might be used to apply a selected model?
         self.ModelSelectBox = self.addWidget(QtWidgets.QComboBox(self))
         #self.NameInput = self.addWidget(AGeInput.Str(None,"Name",self.ship().Name)) # Handled by the BaseInfoWidgets.FullInfoWidget and should not be interfered with
         #self.ClassInput = self.addWidget(AGeInput.Str(None,"Class",self.ship().ClassName)) # Handled by the BaseInfoWidgets.FullInfoWidget and should not be interfered with
-        self.Label = self.addWidget(QtWidgets.QLabel("Ship Stats\nAll of the Ship Stats", self))
-        self.BuildButton = self.addWidget(AGeWidgets.Button(self,"Build Ship",lambda: self.parent().buildShip()))
-        self.InterfaceButton = self.addWidget(AGeWidgets.Button(self,"Get Stats",lambda: self.getInterface()))
+        self.Label = self.addWidget(QtWidgets.QLabel("Ship stats\nAll of the ship stats", self))
+        self.BuildButton = self.addWidget(AGeWidgets.Button(self,"Build ship",lambda: self.parent().buildShip()))
+        self.InterfaceButton = self.addWidget(AGeWidgets.Button(self,"Get stats",lambda: self.getInterface()))
         #TODO: It would be neat to select a construction module out of a list of all construction modules.
         #TODO: Display the resources the construction module has access to.
         
@@ -162,6 +213,41 @@ class ShipStats(AGeWidgets.TightGridFrame):
     
     def parent(self) -> 'ConstructionWidget':
         return super().parent()
+    
+    def clear(self):
+        self.Label.setText("Ship Stats\nAll of the Ship Stats")
+        if self.ShipStats:
+            self.layout().removeWidget(self.ShipStats)
+            self.ShipStats.deleteLater()
+            self.ShipStats = None
+    
+    def newShip(self):
+        confirm = self.parent().lifeEditing()
+        if not confirm:
+            msgBox = QtWidgets.QMessageBox(self)
+            msgBox.setText(f"Are you sure?")
+            msgBox.setInformativeText(f"Do you really want to remove your current blueprint and start over?")
+            msgBox.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.Cancel)
+            msgBox.setDefaultButton(QtWidgets.QMessageBox.Cancel)
+            confirm = msgBox.exec()
+        if confirm:
+            self.parent().setShip()
+    
+    def editShip(self):
+        shipSelector = ShipSelectDialogue.ShipSelectDialogue(self, queryString="Select a ship to edit", fleet=self.parent().constructionModule().ship().fleet())
+        shipSelector.exec()
+        ship = shipSelector.SelectedShip
+        NC(3,ship)
+        if ship:
+            self.parent().loadShip(ship)
+    
+    def copyShip(self):
+        shipSelector = ShipSelectDialogue.ShipSelectDialogue(self, queryString="Select a ship to use as a template for a new ship")
+        shipSelector.exec()
+        ship = shipSelector.SelectedShip
+        NC(3,ship)
+        if ship:
+            self.parent().loadShip(ship)
     
     def populateAddModuleSelectBox(self):
         for k,v in get.shipModels().items():
@@ -174,6 +260,7 @@ class ShipStats(AGeWidgets.TightGridFrame):
     def getInterface(self): #TODO: We need a better interface
         if self.ShipStats:
             self.layout().removeWidget(self.ShipStats)
+            self.ShipStats.deleteLater()
             self.ShipStats = None
         try:
             self.ShipStats = self.addWidget(self.parent().Ship.getInterface())
@@ -182,18 +269,19 @@ class ShipStats(AGeWidgets.TightGridFrame):
             self.ShipStats = None
     
     def updateShipInterface(self):
-        text = f"Value: {self.ship().Stats.Value}"
-        try:
-            text += f"\nAvailable Resources: {self.parent().constructionModule().ConstructionResourcesStored}"
-        except:
-            text += f"\nAvailable Resources: ???"
-            NC(2, "The construction module for this window might no longer exist...", exc=True)
-        try:
-            self.ship().updateInterface()
-        except:
-            text += f"\nCould not refresh interface"
-            NC(4,"Could not refresh ship interface", exc=True)
-        self.Label.setText(text)
+        if self.ShipStats:
+            text = f"Value: {self.ship().Stats.Value}"
+            try:
+                text += f"\nAvailable Resources: {self.parent().constructionModule().ConstructionResourcesStored}"
+            except:
+                text += f"\nAvailable Resources: ???"
+                NC(2, "The construction module for this window might no longer exist...", exc=True)
+            try:
+                self.ship().updateInterface()
+            except:
+                text += f"\nCould not refresh interface"
+                NC(4,"Could not refresh ship interface", exc=True)
+            self.Label.setText(text)
 
 class ModuleListWidget(AGeWidgets.TightGridFrame):
     def __init__(self, parent:'ConstructionWidget') -> None:
@@ -207,6 +295,14 @@ class ModuleListWidget(AGeWidgets.TightGridFrame):
     
     def addModule(self, module:'typing.Union[BaseModules.Module,type[BaseModules.Module]]'):
         self.ModuleList.addModule(module)
+    
+    def clear(self):
+        self.ModuleList.clear()
+        self.ModuleTypeSelectionWidget.clear()
+    
+    def populate(self):
+        self.ModuleList.populate()
+        self.ModuleTypeSelectionWidget.populate()
 
 class ModuleTypeSelectionWidget(AGeWidgets.TightGridWidget):
     def __init__(self, parent:'ModuleListWidget') -> None:
@@ -214,6 +310,11 @@ class ModuleTypeSelectionWidget(AGeWidgets.TightGridWidget):
         self.Label = self.addWidget(QtWidgets.QLabel("Module Types",self))
         self.OnlyCoreCB = self.addWidget(QtWidgets.QCheckBox("Show only base modules",self))
         self.OnlyCoreCB.stateChanged.connect(lambda: self.populate())
+        #MAYBE: only hide fulfilled unique mandatory modules
+        self.HideUniqueMandatoryCB = self.addWidget(QtWidgets.QCheckBox("Hide mandatory basics",self))
+        self.HideUniqueMandatoryCB.setToolTip("Hide basic modules that are mandatory and can only exist once per ship.\nThese are hull, thrusters, engines, and sensors.")
+        self.HideUniqueMandatoryCB.setChecked(True)
+        self.HideUniqueMandatoryCB.stateChanged.connect(lambda: self.populate())
         self.ModuleTypeList = self.addWidget(ModuleTypeList(self))
     
     def parent(self) -> 'ModuleListWidget':
@@ -225,7 +326,10 @@ class ModuleTypeSelectionWidget(AGeWidgets.TightGridWidget):
     def populate(self, startsWith:'typing.Union[str,tuple[str],None]'=None, type_:'typing.Union[type[BaseModules.Module],tuple[type[BaseModules.Module]],None]'=None):
         if startsWith is None and self.OnlyCoreCB.isChecked():
             startsWith = "BaseModules"
-        self.ModuleTypeList.populate(startsWith=startsWith, type_=type_)
+        self.ModuleTypeList.populate(startsWith=startsWith, type_=type_, hideUniqueMandatory=self.HideUniqueMandatoryCB.isChecked())
+    
+    def clear(self):
+        self.ModuleTypeList.clear()
 
 class ModuleTypeList(QtWidgets.QListWidget):
     def __init__(self, parent:'ModuleListWidget') -> None:
@@ -236,12 +340,15 @@ class ModuleTypeList(QtWidgets.QListWidget):
     def parent(self) -> 'ModuleTypeSelectionWidget':
         return super().parent()
     
-    def populate(self, startsWith:'typing.Union[str,tuple[str],None]'=None, type_:'typing.Union[type[BaseModules.Module],tuple[type[BaseModules.Module]],None]'=None):
+    def populate(self, startsWith:'typing.Union[str,tuple[str],None]'=None, type_:'typing.Union[type[BaseModules.Module],tuple[type[BaseModules.Module]],None]'=None, hideUniqueMandatory:bool=False):
         self.clear()
         for moduleName,moduleType in get.modules().items():
             if (moduleType.Buildable
                 and (startsWith is None or moduleName.startswith(startsWith))
                 and (type_ is None or issubclass(moduleType,type_))
+                and (
+                    not hideUniqueMandatory or not issubclass(moduleType,(BaseModules.Hull, BaseModules.Engine, BaseModules.Thruster, BaseModules.Sensor))
+                    )
                 ):
                 item = ModuleTypeItem()
                 item.setText(moduleName)
@@ -262,6 +369,12 @@ class InstalledModuleListWidget(AGeWidgets.TightGridWidget):
     
     def addModule(self, module:'typing.Union[BaseModules.Module,type[BaseModules.Module]]'):
         self.ModuleList.addModule(module)
+    
+    def clear(self):
+        self.ModuleList.clear()
+    
+    def populate(self):
+        self.ModuleList.populate()
 
 class ModuleList(QtWidgets.QListWidget):
     def __init__(self, parent:'InstalledModuleListWidget') -> None:
@@ -269,29 +382,55 @@ class ModuleList(QtWidgets.QListWidget):
         self.itemDoubleClicked.connect(lambda item: self.selectModuleForEditor(item))
         self.installEventFilter(self)
     
+    def lifeEditing(self):
+        return self.constructionWidget().lifeEditing()
+    
     def parent(self) -> 'InstalledModuleListWidget':
         return super().parent()
     
     def constructionWidget(self) -> 'ConstructionWidget':
         return self.parent().parent().parent()
     
+    def populate(self):
+        self.clear()
+        self.constructionWidget().ModuleEditor.clear()
+        for module in self.constructionWidget().Ship.Modules:
+            self.listModule(module)
+    
     def addModule(self, module:'typing.Union[BaseModules.Module,type[BaseModules.Module]]'):
+        if not self.constructionWidget().canEdit(): return
         if not self.constructionWidget().canModuleBeAdded(module):
             NC(2,"Module can not be added.")
-        else:
-            if isinstance(module,type):
-                module = module()
-            item = ModuleItem()
-            item.setText(module.Name)
-            item.setData(100, module)
-            self.addItem(item)
-            self.constructionWidget()._addModuleToShip(item.data(100))
-            self.constructionWidget().ModuleEditor.setModule(item)
+            return
+        if isinstance(module,type):
+            module = module()
+        if self.lifeEditing():
+            if module.Value > self.constructionWidget().constructionModule().ConstructionResourcesStored:
+                NC(2, f"Not enough resources to add this module (Cost/Stored: {module.Value}/{self.constructionWidget().constructionModule().ConstructionResourcesStored})")
+                return
+            else:
+                self.constructionWidget().constructionModule().ConstructionResourcesStored -= module.Value
+        item = self.listModule(module)
+        self.constructionWidget()._addModuleToShip(item.data(100))
+        self.constructionWidget().ModuleEditor.setModule(item)
+    
+    def listModule(self, module:'BaseModules.Module') -> 'ModuleItem':
+        item = ModuleItem()
+        item.setText(module.Name)
+        item.setData(100, module)
+        self.addItem(item)
+        return item
     
     def selectModuleForEditor(self, item: QtWidgets.QListWidgetItem) -> None:
         self.constructionWidget().ModuleEditor.setModule(item)
     
     def removeModule(self, item:"ModuleItem"):
+        if not self.constructionWidget().canEdit(): return
+        if item.data(100) is self.constructionWidget().constructionModule().ConstructionResourcesStored:
+            NC(2, f"Can not remove active construction module")
+            return
+        else:
+            self.constructionWidget().constructionModule().ConstructionResourcesStored += item.data(100).Value
         self.constructionWidget().ModuleEditor.unsetModule(item)
         self.constructionWidget().removeModule(item.data(100))
         self.takeItem(self.row(item))
@@ -367,28 +506,48 @@ class ModuleEditor(AGeWidgets.TightGridFrame):
         self.ValueLabel.setText("")
         if self.ModuleStatContainer:
             self.layout().removeWidget(self.ModuleStatContainer)
+            self.ModuleStatContainer.deleteLater()
             self.ModuleStatContainer = None
     
     def loadModuleStats(self):
         if self.ModuleStatContainer:
             self.layout().removeWidget(self.ModuleStatContainer)
+            self.ModuleStatContainer.deleteLater()
             self.ModuleStatContainer = None
         self.ModuleStatContainer = self.addWidget(AGeWidgets.TightGridFrame(self,makeCompact=False))
         self.StatDict = {statName:self.ModuleStatContainer.addWidget(widget()) for statName, widget in self.ActiveModule.getCustomisableStats().items()}
     
     def applyStats(self):
         if self.ModuleStatContainer and self.ActiveModule and self.StatDict:
+            if not self.parent().canEdit(): return
+            if self.ActiveModule is self.parent().constructionModule().ConstructionResourcesStored:
+                NC(2, f"Can not edit active construction module")
+                return
+            valueBefore:'float' = self.ActiveModule.Value
+            statsBefore = self.ActiveModule.tocode_AGeLib_GetDict()
             for k,v in self.StatDict.items():
                 setattr(self.ActiveModule,k,v())
-            adjustments = self.ActiveModule.makeValuesValid()
-            if adjustments: NC(2, "Not all values were valid. The following adjustments were made:\n"+adjustments)
-            self.ActiveModule.resetCondition()
-            self.ActiveModule.automaticallyDetermineValues()
-            self.parent().ShipStats.updateShipInterface()
-            self.updateValueLabel()
-            self.ActiveModuleItem.setText(self.ActiveModule.Name)
-            self.loadModuleStats()
-            self.NameLabel.setText(self.ActiveModule.Name)
+            self._applyStats()
+            if self.parent().lifeEditing():
+                if self.ActiveModule.Value - valueBefore > self.parent().constructionModule().ConstructionResourcesStored:
+                    NC(2, f"Not enough resources to modify this module (Cost/Stored: {self.ActiveModule.Value}/{self.parent().constructionModule().ConstructionResourcesStored})")
+                    for k,v in statsBefore.items():
+                        setattr(self.ActiveModule,k,v)
+                    self._applyStats()
+                # Not strictly required if the player could not afford the changes but in case makeValuesValid changes something we want to be fair
+                self.parent().constructionModule().ConstructionResourcesStored += valueBefore - self.ActiveModule.Value
+                #TODO: Regenerate ship model since module stats have changed
+    
+    def _applyStats(self):
+        adjustments = self.ActiveModule.makeValuesValid()
+        if adjustments: NC(2, "Not all values were valid. The following adjustments were made:\n"+adjustments)
+        self.ActiveModule.resetCondition()
+        self.ActiveModule.automaticallyDetermineValues()
+        self.parent().ShipStats.updateShipInterface()
+        self.updateValueLabel()
+        self.ActiveModuleItem.setText(self.ActiveModule.Name)
+        self.loadModuleStats()
+        self.NameLabel.setText(self.ActiveModule.Name)
     
     def updateValueLabel(self):
         self.ValueLabel.setText(f"Value: {self.ActiveModule.Value}\nThreat {self.ActiveModule.Threat}\nMass {self.ActiveModule.Mass}")

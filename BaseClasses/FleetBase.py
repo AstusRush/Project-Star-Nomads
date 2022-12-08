@@ -728,6 +728,7 @@ class Fleet(FleetBase):
         else:
             #get.window().UnitStatDisplay.Text.setText("No unit selected")
             get.window().UnitStatDisplay.removeWidget(self.Widget)
+            self.Widget.deleteLater()
             self.Widget = None
     
     def getInterface(self): #TODO: Overhaul this! The displayed information should not be the combat interface but the campaign interface!
@@ -871,6 +872,7 @@ class Flotilla(FleetBase):
         else:
             #get.window().UnitStatDisplay.Text.setText("No unit selected")
             get.window().UnitStatDisplay.removeWidget(self.Widget)
+            self.Widget.deleteLater()
             self.Widget = None
     
     def getInterface(self):

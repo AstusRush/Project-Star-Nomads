@@ -80,6 +80,7 @@ class EnvironmentCreator(): #TODO: Clusters should scale with map-size
         currentHex = clusterCentre
         entityTotal = random.choice(range(self.ClusterSizeMin, self.ClusterSizeMax+1))
         for entityNum in range(entityTotal):
+            #TODO: Use https://doc.qt.io/qtforpython-5/PySide2/QtWidgets/QProgressDialog.html#PySide2.QtWidgets.PySide2.QtWidgets.QProgressDialog
             get.window().Statusbar.showMessage(f"Generating entity {entityNum}/{entityTotal} for environment cluster {clusterNum}/{clusterTotal}")
             App().processEvents()
             object = objectType()
