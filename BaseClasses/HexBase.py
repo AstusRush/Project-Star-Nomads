@@ -49,7 +49,6 @@ else:
 # Game Imports
 from BaseClasses import get
 if TYPE_CHECKING:
-    from BaseClasses import Unit
     from BaseClasses import FleetBase
 
 #region Exceptions
@@ -487,7 +486,7 @@ class _Hex():
             self.InnerRing.hide()
             
             # We will use this list to store all objects that occupy this hexagon
-            self.content = [] # type: typing.List[Unit.Object]
+            self.content = [] # type: 'list[weakref.ref[FleetBase.FleetBase]]' #TODO: Fleets can not be the content but what will be the content?
             self.fleet = None # type: 'weakref.ref[FleetBase.FleetBase]'
             self.Navigable = True
             
