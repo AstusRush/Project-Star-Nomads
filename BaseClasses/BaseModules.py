@@ -187,12 +187,11 @@ class Module():
     
     def resetCondition(self):
         """
-        This method should restore the condition of this module.\n
+        This method should restore the condition of this module to a state as if it were just constructed.\n
         It should, for example, set normal weapons to ready, set weapons that need to be charged before usage to not ready,
-        restore the hull integrity, set the remaining movement-points to the maximum movement-points,
-        empty all storage, and restore the shields.\n
-        This method is used when a new module is created via the copy method or when it is edited in the ship creator
-        (to ensure that i.e. an increase in the shield capacity is immediately reflected in the current strength of the shield)
+        restore the hull integrity, set the remaining movement-points 0, and empty all storage.\n
+        This method is used when a new module is created via the copy method or when it is edited in the ship creator.\n
+        This also ensures that one can not cheat by constantly editing models to get more movement points or other advantages.
         """
         pass
     
@@ -233,7 +232,7 @@ class Hull(Module):
         self.FullWidget:'ModuleWidgets.HullWidget' = None
     
     def calculateValue(self): #TODO: Come up with a better formula for this that takes evasion, mass, etc. into account
-        return self.HP_Hull_max / 100 * (1+self.Evasion)**7 * (1+(self.HP_Hull_Regeneration - self.HP_Hull_max / 20)/200)**(1.4) / self.Mass
+        return self.HP_Hull_max / 100 * (1+self.Evasion)**7 * (1+(self.HP_Hull_Regeneration - self.HP_Hull_max / 20)/200)**(1.4) / (self.Mass)**(0.6)
     
     def handleNewCampaignTurn(self):
         self.HP_Hull = self.HP_Hull_max
@@ -323,7 +322,7 @@ class Engine(Module): # FTL Engine
     
     def resetCondition(self):
         super().resetCondition()
-        self.RemainingThrust = self.Thrust
+        self.RemainingThrust = 0#self.Thrust
     
     def getInterface(self) -> QtWidgets.QWidget:
         self.Widget = ModuleWidgets.EngineWidget(self)
@@ -383,7 +382,7 @@ class Thruster(Module): # Sublight Thruster
     
     def resetCondition(self):
         super().resetCondition()
-        self.RemainingThrust = self.Thrust
+        self.RemainingThrust = 0#self.Thrust
     
     def getCombatInterface(self) -> QtWidgets.QWidget:
         self.Widget = ModuleWidgets.ThrusterWidget(self)
@@ -444,7 +443,7 @@ class Shield(Module):
     
     def resetCondition(self):
         super().resetCondition()
-        self.HP_Shields = self.HP_Shields_max
+        self.HP_Shields = 0#self.HP_Shields_max
     
     def healAtTurnStart(self):
         #TODO: This should be 2 methods: One that calculates the healing and one that the first one and then actually updates the values. This way the first method can be used to display a prediction to the user
@@ -702,7 +701,7 @@ class Special(Module):
 class MicroJumpDrive(Special):
     Name = "Micro Jump Drive"
     Buildable = True
-    Value = 5
+    #Value = 5
     Threat = 2
     MaxCharges = 1
     Cooldown = 8 #REMINDER: Cooldown = float("inf") means that the ability can only be used once per campaign turn
@@ -717,8 +716,8 @@ class MicroJumpDrive(Special):
     #def calculateThreat(self):
     #    return self.Damage/100 * self.Accuracy * ((20 if self.ShieldPiercing else self.ShieldFactor) + self.HullFactor)/2 * ((1+self.Range-self.MinimalRange/2)/4.5)**2
     
-    #def calculateValue(self):
-    #    return self.calculateThreat()/3
+    def calculateValue(self): #TODO: Tinkers with this formula some more
+        return 3*(self.Range/2)**(1.6)/(self.Cooldown)**(0.7)*(self.MaxCharges*5/9)**(1.2)
     
     #def calculateMass(self):
     #    return max(0.01 , self.calculateThreat()/3 + ((1+self.Range-self.MinimalRange/3)/4.5)**2 - 1)/2 * self.Accuracy
@@ -735,7 +734,7 @@ class MicroJumpDrive(Special):
     
     def resetCondition(self):
         super().resetCondition()
-        self.Charge = self.MaxCharges
+        self.Charge = 0#self.MaxCharges
     
     def handleNewCombatTurn(self):
         self.Charge = min(self.Charge+1/self.Cooldown , self.MaxCharges)
@@ -881,7 +880,7 @@ class Weapon(Module):
     
     def resetCondition(self):
         super().resetCondition()
-        self.Ready = True
+        self.Ready = False#True
     
     def handleNewCombatTurn(self):
         self.Ready = True

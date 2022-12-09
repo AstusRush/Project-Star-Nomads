@@ -120,8 +120,7 @@ class ConstructionWidget(QtWidgets.QSplitter):
             NC(2, "You are currently not editing a ship, therefore you can not build a ship.")
             return
         if self.lifeEditing():
-            NC(2, "You are modifying an already existing ship. It is, therefore, already build.")
-            return
+            return self.applyNewModel()
         if not self.Ship.hull:
             NC(2, "Could not build ship as critical component is missing: hull")
             return
@@ -141,24 +140,46 @@ class ConstructionWidget(QtWidgets.QSplitter):
         else:
             NC(2, f"Could not construct ship: The construction module no longer exists")
     
+    def applyNewModel(self):
+        msgBox = QtWidgets.QMessageBox(self)
+        msgBox.setText(f"Apply Model?")
+        msgBox.setInformativeText(  "You are modifying an already existing ship. It is, therefore, already build.\n"
+                                    "What this button does instead is applying a new model.\n"
+                                    "Do you want to apply the currently selected model to the ship?"
+                                    f"The currently selected model is {self.ShipStats.ModelSelectBox.currentText()}")
+        msgBox.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.Cancel)
+        msgBox.setDefaultButton(QtWidgets.QMessageBox.Cancel)
+        if not self.lifeEditing():
+            NC(2,"The currently active ship is not being life edited but it was requested to change the model. This is an invalid operation. Please report this incident to the developer.",
+                input=f"Ship:\n{self.Ship}\n\nModel:\n{self.Ship.Model}\n\nfleet:\n{self.Ship.fleet}\n\nlifeEditing:\n{self.lifeEditing()}", tb=True)
+        elif msgBox.exec():
+            model = get.shipModels()[self.ShipStats.ModelSelectBox.currentText()]
+            self.Ship.clearModel()
+            if model is None: self.Ship.generateProceduralModel()
+            else: self.Ship.setModel(model())
+            self.Ship.Model.centreModel()
+            if self.Ship.fleet:
+                self.Ship.fleet().arrangeShips()
+            else:
+                NC(2,"The ship has no fleet. How was it possible for this request to even happen?",input=f"Ship:\n{self.Ship}\n\nFleet:\n{self.Ship.fleet}\n\nlifeEditing:\n{self.lifeEditing()}",tb=True)
+    
     def canModuleBeAdded(self, module:'typing.Union[BaseModules.Module,type[BaseModules.Module]]'):
         return self.Ship.canModuleBeAdded(module)
     
     def _addModuleToShip(self, module:'BaseModules.Module'):
-        #TODO: There are some modules that can only exist once on a ship. We should either clean up removed modules from the interface or simply not allow a module to be added in those cases...
         self.Ship.addModule(module)
         self.ShipStats.updateShipInterface()
+        if self.lifeEditing():
+            self.regenerateShipModel()
     
     def addModule(self, module:'typing.Union[BaseModules.Module,type[BaseModules.Module]]'):
         self.ModuleList.addModule(module)
-        if self.lifeEditing:
-            pass #TODO: Regenerate ship model since modules have changed
     
     def removeModule(self, module:'BaseModules.Module'):
         self.Ship.removeModule(module)
         self.ShipStats.updateShipInterface()
-        if self.lifeEditing:
-            pass #TODO: Regenerate ship model since modules have changed
+        if self.lifeEditing():
+            self.regenerateShipModel()
     
     def _clearCurrentShip(self):
         self._ShipInitialized = False
@@ -177,16 +198,41 @@ class ConstructionWidget(QtWidgets.QSplitter):
         else:
             self.Ship = ship
         self.ShipStats.getInterface()
+        self.ShipStats.updateShipInterface()
         self.ModuleList.populate()
-        #TODO: remove the model if the ship has a model and if it is not already in a fleet
+        if self.Ship.Model and not self.Ship.fleet:
+            if self.lifeEditing():
+                NC(2,"The currently active ship is being life edited but it seems to not be part of a fleet... Something has apparently gone wrong...\n"
+                    "The reason this was detected is because the model should be removed of ships that are being edited but do not belong to a fleet.\n"
+                    "The model will not be removed now in case the detection of the fleet was faulty but this incident should be reported to the developer.\n",
+                    input=f"Ship:\n{self.Ship}\n\nModel:\n{self.Ship.Model}\n\nfleet:\n{self.Ship.fleet}\n\nlifeEditing:\n{self.lifeEditing()}", tb=True)
+            else:
+                self.Ship.clearModel()
     
-    def loadShip(self, ship:'ShipBase.Ship'): #TODO: Make a UI to use this
+    def loadShip(self, ship:'ShipBase.Ship'):
         self.setShip(ship, lifeEdit=True)
-        #CRITICAL: How do we handle replacement of core modules like the hull. A ship without a hull has infinite HP so we should not allow to simply remove them and should even ensure that they are always present.
+        #TODO: We should ensure that critical modules like a hull are always present on all loaded ships
     
-    def copyShip(self, ship:'ShipBase.Ship'): #TODO: Make a UI to use this
-        ship = ship.copy() #CRITICAL: Implement this copy method
+    def copyShip(self, ship:'ShipBase.Ship'):
+        ship = ship.copy(resetCondition=False, removeModel=False)
         self.setShip(ship)
+    
+    def regenerateShipModel(self):
+        if self.Ship.Model:
+            #TODO: This should be easier...
+            self.Ship.Model._init_model()
+            self.Ship.Model.Node.reparentTo(self.Ship.Node)
+            self.Ship.Model.centreModel()
+            if self.Ship.fleet:
+                self.Ship.fleet().arrangeShips()
+            else:
+                NC(2,"The ship has no fleet. How was it possible for this request to even happen?",input=f"Ship:\n{self.Ship}\n\nFleet:\n{self.Ship.fleet}\n\nlifeEditing:\n{self.lifeEditing()}",tb=True)
+        else:
+            if self.Ship.fleet:
+                fleet = self.Ship.fleet()
+            else:
+                fleet = self.Ship.fleet
+            NC(2,"The ship has no model that could get reloaded. How was it possible for this request to even happen?",input=f"Ship:\n{self.Ship}\n\nFleet:\n{fleet}\n\nlifeEditing:\n{self.lifeEditing()}",tb=True)
 
 class ShipStats(AGeWidgets.TightGridFrame):
     def __init__(self, parent:'ConstructionWidget') -> None:
@@ -229,7 +275,7 @@ class ShipStats(AGeWidgets.TightGridFrame):
             msgBox.setInformativeText(f"Do you really want to remove your current blueprint and start over?")
             msgBox.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.Cancel)
             msgBox.setDefaultButton(QtWidgets.QMessageBox.Cancel)
-            confirm = msgBox.exec()
+            confirm = msgBox.exec() == QtWidgets.QMessageBox.Yes
         if confirm:
             self.parent().setShip()
     
@@ -247,7 +293,7 @@ class ShipStats(AGeWidgets.TightGridFrame):
         ship = shipSelector.SelectedShip
         NC(3,ship)
         if ship:
-            self.parent().loadShip(ship)
+            self.parent().copyShip(ship)
     
     def populateAddModuleSelectBox(self):
         for k,v in get.shipModels().items():
@@ -391,6 +437,19 @@ class ModuleList(QtWidgets.QListWidget):
     def constructionWidget(self) -> 'ConstructionWidget':
         return self.parent().parent().parent()
     
+    def getShipModuleOfType(self, module:'typing.Union[BaseModules.Module,type[BaseModules.Module]]', types:'list[type[BaseModules.Module]]'=None):
+        if isinstance(module,type):
+            t = module
+        else:
+            t = type(module)
+        if types:
+            for i in types:
+                if AGeAux.isInstanceOrSubclass(module,i):
+                    t = i
+                    break
+        print("looking for",t)
+        return self.constructionWidget().Ship.getModuleOfType(t)
+    
     def populate(self):
         self.clear()
         self.constructionWidget().ModuleEditor.clear()
@@ -398,8 +457,22 @@ class ModuleList(QtWidgets.QListWidget):
             self.listModule(module)
     
     def addModule(self, module:'typing.Union[BaseModules.Module,type[BaseModules.Module]]'):
+        moduleToReplace = None
         if not self.constructionWidget().canEdit(): return
-        if not self.constructionWidget().canModuleBeAdded(module):
+        if (AGeAux.isInstanceOrSubclass(module,(BaseModules.Hull, BaseModules.Engine, BaseModules.Thruster, BaseModules.Sensor))
+            and (moduleToReplace:=self.getShipModuleOfType(module, types=(BaseModules.Hull, BaseModules.Engine, BaseModules.Thruster, BaseModules.Sensor)))
+            ):
+            msgBox = QtWidgets.QMessageBox(self)
+            msgBox.setText(f"Are you sure?")
+            msgBox.setInformativeText(f"You already have a module of this type. In order to install the selected module you must replace the existing one. Do you want to replace {moduleToReplace.Name}?")
+            msgBox.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.Cancel)
+            msgBox.setDefaultButton(QtWidgets.QMessageBox.Cancel)
+            confirm = msgBox.exec() == QtWidgets.QMessageBox.Yes
+            if confirm:
+                self.removeModuleByReference(moduleToReplace, force=True)
+            else:
+                return
+        elif not self.constructionWidget().canModuleBeAdded(module):
             NC(2,"Module can not be added.")
             return
         if isinstance(module,type):
@@ -407,9 +480,14 @@ class ModuleList(QtWidgets.QListWidget):
         if self.lifeEditing():
             if module.Value > self.constructionWidget().constructionModule().ConstructionResourcesStored:
                 NC(2, f"Not enough resources to add this module (Cost/Stored: {module.Value}/{self.constructionWidget().constructionModule().ConstructionResourcesStored})")
+                if moduleToReplace:
+                    self.constructionWidget().constructionModule().ConstructionResourcesStored += moduleToReplace.Value*2 # Ensure that there can be no rounding error that could stop readding it
+                    self.addModule(moduleToReplace)
+                    self.constructionWidget().constructionModule().ConstructionResourcesStored -= moduleToReplace.Value*2
                 return
             else:
                 self.constructionWidget().constructionModule().ConstructionResourcesStored -= module.Value
+        module.resetCondition()
         item = self.listModule(module)
         self.constructionWidget()._addModuleToShip(item.data(100))
         self.constructionWidget().ModuleEditor.setModule(item)
@@ -421,19 +499,30 @@ class ModuleList(QtWidgets.QListWidget):
         self.addItem(item)
         return item
     
-    def selectModuleForEditor(self, item: QtWidgets.QListWidgetItem) -> None:
+    def selectModuleForEditor(self, item:'ModuleItem') -> None:
         self.constructionWidget().ModuleEditor.setModule(item)
     
-    def removeModule(self, item:"ModuleItem"):
+    def removeModule(self, item:'ModuleItem', force=False):
         if not self.constructionWidget().canEdit(): return
-        if item.data(100) is self.constructionWidget().constructionModule().ConstructionResourcesStored:
+        if not force and isinstance(item.data(100),(BaseModules.Hull, BaseModules.Engine, BaseModules.Thruster, BaseModules.Sensor)):
+            NC(2, f"You can not remove essential modules. You can, however, replace them.")
+            return
+        if item.data(100) is self.constructionWidget().constructionModule():
             NC(2, f"Can not remove active construction module")
             return
-        else:
+        if self.lifeEditing():
             self.constructionWidget().constructionModule().ConstructionResourcesStored += item.data(100).Value
         self.constructionWidget().ModuleEditor.unsetModule(item)
         self.constructionWidget().removeModule(item.data(100))
         self.takeItem(self.row(item))
+    
+    def removeModuleByReference(self, module:'BaseModules.Module', force=False):
+        for i in range(self.count()):
+            item = self.item(i)
+            if item.data(100) is module:
+                self.removeModule(item=item, force=force)
+                return
+        NC(2,f"Could not find {module} in the list", tb=True)
     
     def duplicateModule(self, item:"ModuleItem"):
         self.addModule(item.data(100).copy())
@@ -530,13 +619,15 @@ class ModuleEditor(AGeWidgets.TightGridFrame):
             self._applyStats()
             if self.parent().lifeEditing():
                 if self.ActiveModule.Value - valueBefore > self.parent().constructionModule().ConstructionResourcesStored:
-                    NC(2, f"Not enough resources to modify this module (Cost/Stored: {self.ActiveModule.Value}/{self.parent().constructionModule().ConstructionResourcesStored})")
+                    NC(2, f"Not enough resources to modify this module (Cost/Stored: {self.ActiveModule.Value}/{self.parent().constructionModule().ConstructionResourcesStored+valueBefore})")
                     for k,v in statsBefore.items():
                         setattr(self.ActiveModule,k,v)
                     self._applyStats()
                 # Not strictly required if the player could not afford the changes but in case makeValuesValid changes something we want to be fair
+                #print(f"{self.parent().constructionModule().ConstructionResourcesStored=} += {valueBefore=} - {self.ActiveModule.Value=}")
                 self.parent().constructionModule().ConstructionResourcesStored += valueBefore - self.ActiveModule.Value
-                #TODO: Regenerate ship model since module stats have changed
+                self.parent().ShipStats.updateShipInterface()
+                self.parent().regenerateShipModel()
     
     def _applyStats(self):
         adjustments = self.ActiveModule.makeValuesValid()

@@ -412,6 +412,27 @@ class ShipBase():
         self.removeAllModules()
         self.addModules(modules)
     
+    def getModuleOfType(self, module:'typing.Union[BaseModules.Module,type[BaseModules.Module]]') -> 'typing.Union[BaseModules.Module,bool]':
+        if isinstance(module,type):
+            t = module
+        else:
+            t = type(module)
+        for i in self.Modules:
+            if AGeAux.isInstanceOrSubclass(i,t):
+                return i
+        return False
+    
+    def getAllModulesOfType(self, module:'typing.Union[BaseModules.Module,type[BaseModules.Module]]') -> 'list[BaseModules.Module]':
+        if isinstance(module,type):
+            t = module
+        else:
+            t = type(module)
+        ret = []
+        for i in self.Modules:
+            if AGeAux.isInstanceOrSubclass(i,t):
+                ret.append(i)
+        return ret
+    
     def isActiveTurn(self):
         if self.fleet:
             return self.fleet().isActiveTurn()
@@ -425,7 +446,7 @@ class ShipBase():
     def isPlayer(self):
         return self.team() == 1
   #endregion Management
-  #region Save/Load
+  #region Save/Load/Copy
     def tocode_AGeLib(self, name="", indent=0, indentstr="    ", ignoreNotImplemented = False) -> typing.Tuple[str,dict]:
         ret, imp = "", {}
         # ret is the ship data that calls a function which is stored as an entry in imp which constructs the ship
@@ -454,6 +475,17 @@ class ShipBase():
         if hasattr(self, "INTERNAL_NAME"):
             d["INTERNAL_NAME"] = self.INTERNAL_NAME
         return d
+    
+    def copy(self, resetCondition=False, removeModel=False) -> 'ShipBase': #VALIDATE: Does this work as intended?
+        l = {}
+        exec(AGeToPy.formatObject(self,"shipCopy"),globals(),l)
+        ship:'ShipBase' = l["shipCopy"]
+        if resetCondition:
+            for module in ship.Modules:
+                module.resetCondition()
+        if removeModel:
+            self.clearModel()
+        return ship
   #endregion Save/Load
   #region Interface
     def getQuickView(self) -> QtWidgets.QWidget:

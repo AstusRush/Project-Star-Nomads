@@ -323,7 +323,7 @@ class EngineClass(ape.APE):
             msgBox.setInformativeText(f"It seems like you are already in a game. Are you sure you want to proceed {verb}?")
             msgBox.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.Cancel)
             msgBox.setDefaultButton(QtWidgets.QMessageBox.Cancel)
-            confirm = msgBox.exec()
+            confirm = msgBox.exec() == QtWidgets.QMessageBox.Yes
         return confirm
 
 class AppClass(ape.APEApp):
