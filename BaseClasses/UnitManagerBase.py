@@ -86,19 +86,19 @@ class UnitManager():
             self.selectedUnit().unselect()
             self.selectedUnit = None
     
-    def selectUnit(self, unit):
-        if isinstance(unit, weakref.ref):
-            unit = unit()
+    def selectUnit(self, fleet):
+        if isinstance(fleet, weakref.ref):
+            fleet = fleet()
         if self.selectedUnit:
-            if self.selectedUnit() is unit:
+            if self.selectedUnit() is fleet:
                 self.selectedUnit().highlightRanges(True)
-            elif not unit and self.selectedUnit().IsMoving:
+            elif not fleet and self.selectedUnit().IsMoving:
                 self.selectedUnit().IsMoving = False
             else:
                 self.selectedUnit().unselect()
                 self.selectedUnit = None
-        elif unit:
-            self.selectedUnit =  weakref.ref(unit)
+        elif fleet:
+            self.selectedUnit =  weakref.ref(fleet)
             self.selectedUnit().select()
     
     def isSelectedUnit(self, unit):

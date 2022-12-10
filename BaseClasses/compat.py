@@ -3,7 +3,7 @@ This module contains compatibility functions. \n
 It may also overwrite builtins to fix bugs from older versions.
 (NOTE: all changes to builtins are ONLY bugfixes
  and do not change the behaviour in ANY way compared to up-to-date versions.) \”
-This means that importing this module has sideeffects
+This means that importing this module has side-effects
 and thus the import should not be removed merely because the module is not used.
 """
 """
@@ -12,7 +12,7 @@ and thus the import should not be removed merely because the module is not used.
 import builtins
 
 import numpy as np
-from packaging.version import parse as versionParser #CRITICAL: Use AgeLib Version Parser to not rely in packaging
+from packaging.version import parse as versionParser #TODO: Use AgeLib Version Parser to not rely in packaging
 
 
 #region round-hack
@@ -25,7 +25,7 @@ if versionParser(np.__version__) < versionParser("1.19"): # numpy version less t
         This is done due to a numpy bug that caused `round(numpy.float64)` returned a `numpy.float64`
         instead of an integer (round is supposed to always return an integer when no precision is given). \n
         (Read more here: https://github.com/numpy/numpy/issues/11810 ). \n
-        This function ensures correct behaviour accross all numpy versions.
+        This function ensures correct behaviour across all numpy versions.
         """
         return builtins._round(float(number),ndigits)
     builtins.round = __round # This overload ensures that round behaves correctly.

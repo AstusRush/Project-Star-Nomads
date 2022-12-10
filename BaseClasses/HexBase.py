@@ -496,7 +496,12 @@ class _Hex():
             self.HighlightedInner = False
             self.HighlightedFace = False
         except:
-            NC(1,f"Error while creating {name}",exc=True)  #CRITICAL: Clean up all nodes by removing them if they were created!!
+            NC(1,f"Error while creating {name}",exc=True) #MAYBE: Since we re-raise the exception after cleanup we might as well remove the notification and turn this into a 'finally'
+            nodes = "InnerRing,Face,Model,Node".split(",")
+            for node in nodes:
+                if hasattr(self,node):
+                    getattr(self,node).removeNode()
+            raise
     
     def __del__(self):
         del self.content
@@ -518,10 +523,13 @@ class _Hex():
             return self.fleet().interactWith(other)
         return False
     
+    def __repr__(self) -> str:
+        if self.fleet: fleet = self.fleet()
+        else: fleet = self.fleet
+        return f"\n### Hex {id(self)}\n\tName: {self.Name}\n\tHex at {self.Coordinates}\n\tID: {id(self)}\n\tParent Grid: {self.grid()}\n\tOccupied by Fleet: {fleet}\n### End Hex {id(self)}\n"
     
   #region Content
-    # These Methods should be overwritten by subclasses
-    def selectContent(self, select:bool = True): #TODO:OVERHAUL
+    def selectFleet(self, select:bool = True):
         if select:
             get.unitManager().selectUnit(self.fleet)
         else:
@@ -679,7 +687,7 @@ class _Hex():
     
     def _select(self, select:bool = True):
         self._select_highlighting(select)
-        self.selectContent(select)
+        self.selectFleet(select)
     
     def _select_highlighting(self, select:bool = True):
         self.Selected = select

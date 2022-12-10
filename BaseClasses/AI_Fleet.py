@@ -61,8 +61,12 @@ class BaseFleetAI(AI_Base.AI_Base):
         super().__init__()
         self.fleet = weakref.ref(fleet)
     
-    def getRandomReachableHex(self) -> HexBase._Hex: #CRITICAL: What happens if we find none?! This currently happens rarely but it is still bad!
-        return random.choice(list(self.fleet().getReachableHexes()))
+    def getRandomReachableHex(self) -> HexBase._Hex: #CRITICAL: What happens if we find none?! This currently happens rarely but it is still bad! Do I handle this case correctly now?
+        if hexes:=list(self.fleet().getReachableHexes()):
+            return random.choice(hexes)
+        else:
+            NC(4,"Could not find a hex to move to!",tb=True,input=f"Fleet:\n{self.fleet()}\n\nHex:\n{self.fleet().hex()}\n\nReachable:\n{self.fleet().getReachableHexes()}\n\nAdjacent:\n{self.fleet().hex().getNeighbour()}")
+            return self.fleet().hex()
 
 class FleetAI(BaseFleetAI):
     fleet:'weakref.ref[FleetBase.Fleet]' = None
