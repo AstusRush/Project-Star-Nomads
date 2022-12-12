@@ -221,8 +221,19 @@ class EngineClass(ape.APE):
                 speed = math.floor(ship.Stats.Movement_Sublight[1])
                 if speed not in flotillasDict: flotillasDict[speed] = [ship]
                 else: flotillasDict[speed].append(ship)
-            ships = list(flotillasDict.values())
-            #TODO: Ensure that flotillas do not have more than 4 ships and separate them is necessary
+            ships_speed_groups = list(flotillasDict.values())
+            
+            # Ensure that flotillas do not have more than 4 ships and separate them is necessary
+            ships = []
+            for group in ships_speed_groups:
+                if len(group) >= 6:
+                    sNum = len(group) // 3
+                    sRem = len(group) % 3
+                    ships = []
+                    for i in range(sNum):
+                        ships.append(group[i::sNum])
+                else:
+                    ships.append(group)
         except:
             NC(2,"Could not split fleet into flotillas in the usual way. Splitting the ships by number instead.", exc=True)
             if fleet.Team != 1 and len(fleet.Ships) >= 6:

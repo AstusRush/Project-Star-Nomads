@@ -555,7 +555,7 @@ class FleetBase():
                 s.Model.setScale((0.8/num)/(s.Model.Model.getBounds().getRadius()))
   #endregion model
     
-  #endregion Detection #TODO: Should we distinguish between campaign and battle sensors? These are different scales but I can't think of a good gameplay reason...
+  #region Detection #TODO: Should we distinguish between campaign and battle sensors? These are different scales but I can't think of a good gameplay reason...
     def getSensorRanges(self) -> typing.Tuple[float,float,float,float,float]: #TODO: The sensors of the ships in the fleet should enhance each other
         """
         Sensor ranges: no resolution, low resolution, medium resolution, high resolution, perfect resolution \n
@@ -621,7 +621,7 @@ class FleetBase():
     def _showAllEnemies(self):
         for i in self.detectEnemies():
             i[1].hex().showContent()
-  #region Detection
+  #endregion Detection
     
   #region overwrite
     async def attack(self, target: 'HexBase._Hex'):
