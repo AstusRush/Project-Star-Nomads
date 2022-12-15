@@ -285,7 +285,7 @@ class ProceduralShip(ProceduralModels._ProceduralModel):
                 constructionBay = self.createAndConnectModule(ModuleTypes.ConstructionBay, module)
             if isinstance(module, BaseModules.Shield):
                 shield = self.createAndConnectModule(ModuleTypes.ShieldGenerator, module)
-            if isinstance(module, (BaseModules.Economic, BaseModules.Augment, BaseModules.Support, BaseModules.Special,)):
+            if isinstance(module, (BaseModules._Economic, BaseModules.Augment, BaseModules.Support, BaseModules.Special,)):
                 other = self.createAndConnectModule(ModuleTypes.MidSection, module)
         
         if self.ship().thruster:

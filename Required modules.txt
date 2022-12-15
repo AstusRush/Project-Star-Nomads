@@ -6,4 +6,4 @@ pip install pyvista
 
 or simply use: pip install numpy scipy matplotlib sympy QScintilla Panda3D pyvista
 
-The AstusPandaEngine repository mus be in the same folder as this repository!! (Otherwise AGeLib and APE can not be imported) (link: https://github.com/AstusRush/AstusPandaEngine )
+The AstusPandaEngine repository must be in the same folder as this repository's folder!! (Otherwise AGeLib and APE can not be imported) (link: https://github.com/AstusRush/AstusPandaEngine )

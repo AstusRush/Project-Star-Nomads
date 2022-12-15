@@ -175,7 +175,7 @@ class Module():
         d = {
             "Name": lambda: AGeInput.Str(None,"Name",self.Name) ,
         }
-        if tech.statCustomisationUnlocked(self,"Mass"): d["Mass"] = lambda: AGeInput.Float(None,"Mass",self.Mass,tech.moduleStatMin(self,"Mass"),tech.moduleStatMax(self,"Mass"))
+        tech.addStatCustomizer(d,self,"Mass",AGeInput.Float)
         return d
     
     def copy(self) -> "Module": #VALIDATE: Does this work as intended?
@@ -357,7 +357,7 @@ class Engine(Module): # FTL Engine
     
     def getCustomisableStats(self) -> 'dict[str,typing.Callable[[],AGeInput._TypeWidget]]':
         d = super().getCustomisableStats()
-        if tech.statCustomisationUnlocked(self,"Thrust"): d["Thrust"] = lambda: AGeInput.Float(None,"Thrust",self.Thrust,tech.moduleStatMin(self,"Thrust"),tech.moduleStatMax(self,"Thrust"))
+        tech.addStatCustomizer(d,self,"Thrust",AGeInput.Float)
         return d
 
 class Thruster(Module): # Sublight Thruster
@@ -417,7 +417,7 @@ class Thruster(Module): # Sublight Thruster
     
     def getCustomisableStats(self) -> 'dict[str,typing.Callable[[],AGeInput._TypeWidget]]':
         d = super().getCustomisableStats()
-        if tech.statCustomisationUnlocked(self,"Thrust"): d["Thrust"] = lambda: AGeInput.Float(None,"Thrust",self.Thrust,tech.moduleStatMin(self,"Thrust"),tech.moduleStatMax(self,"Thrust"))
+        tech.addStatCustomizer(d,self,"Thrust",AGeInput.Float)
         return d
 
 class Shield(Module):
@@ -485,8 +485,8 @@ class Shield(Module):
     
     def getCustomisableStats(self) -> 'dict[str,typing.Callable[[],AGeInput._TypeWidget]]':
         d = super().getCustomisableStats()
-        if tech.statCustomisationUnlocked(self,"HP_Shields_max"): d["HP_Shields_max"] = lambda: AGeInput.Float(None,"Shield Capacity",self.HP_Shields_max,tech.moduleStatMin(self,"HP_Shields_max"),tech.moduleStatMax(self,"HP_Shields_max"))
-        if tech.statCustomisationUnlocked(self,"HP_Shields_Regeneration"): d["HP_Shields_Regeneration"] = lambda: AGeInput.Float(None,"Shield Regeneration",self.HP_Shields_Regeneration,tech.moduleStatMin(self,"HP_Shields_Regeneration"),tech.moduleStatMax(self,"HP_Shields_Regeneration"))
+        tech.addStatCustomizer(d,self,"HP_Shields_max",AGeInput.Float,"Shield Capacity")
+        tech.addStatCustomizer(d,self,"HP_Shields_Regeneration",AGeInput.Float,"Shield Regeneration")
         return d
 
 class Quarters(Module):
@@ -506,20 +506,6 @@ class Quarters(Module):
     
     def getFullInterface(self):
         self.FullWidget = ModuleWidgets.QuartersWidget(self)
-        return self.FullWidget
-
-class Cargo(Module):
-    # Used to store resources
-    Name = "Cargo Module"
-    Buildable = False
-    
-    def __init__(self) -> None:
-        super().__init__()
-        self.Widget:'ModuleWidgets.CargoWidget' = None
-        self.FullWidget:'ModuleWidgets.CargoWidget' = None
-    
-    def getFullInterface(self):
-        self.FullWidget = ModuleWidgets.CargoWidget(self)
         return self.FullWidget
 
 class Hangar(Module):
@@ -640,20 +626,13 @@ class Sensor(Module):
             "PerfectRange" : self.PerfectRange ,
         }
 
-class Economic(Module):
-    Buildable = False
-    # Modules for economic purposes like educating and entertaining people (civilians and crew), harvesting or processing resources, growing food, and researching stuff.
-    #MAYBE: Researching could be tied to other modules like sensors to scan stuff or special experimental weapons to test stuff or experimental shields to test stuff or... you get the idea
-    Name = "Economic Module"
-    
-    def __init__(self) -> None:
-        super().__init__()
-        self.Widget:'ModuleWidgets.EconomicWidget' = None
-        self.FullWidget:'ModuleWidgets.EconomicWidget' = None
-    
-    def getFullInterface(self):
-        self.FullWidget = ModuleWidgets.EconomicWidget(self)
-        return self.FullWidget
+class _Economic(Module):
+    """
+    Implemented in `Economy.BaseEconomicModules.py`\n
+    This class only exists for basic type checking purposes.\n
+    Do not inherit form this class! Inherit from `Economy.BaseEconomicModules.Economic` instead!
+    """
+    pass
 
 class Augment(Module):
     # All augmentations that enhance/modify the statistics of other modules like +dmg% , +movementpoints , or +shieldRegeneration
@@ -833,9 +812,9 @@ class MicroJumpDrive(Special):
     def getCustomisableStats(self) -> 'dict[str,typing.Callable[[],AGeInput._TypeWidget]]':
         d = super().getCustomisableStats()
         #del d["Mass"]
-        if tech.statCustomisationUnlocked(self,"MaxCharges"): d["MaxCharges"] = lambda: AGeInput.Float(None,"MaxCharges",self.MaxCharges,tech.moduleStatMin(self,"MaxCharges"),tech.moduleStatMax(self,"MaxCharges"))
-        if tech.statCustomisationUnlocked(self,"Cooldown"): d["Cooldown"] = lambda: AGeInput.Float(None,"Cooldown",self.Cooldown,tech.moduleStatMin(self,"Cooldown"),tech.moduleStatMax(self,"Cooldown"))
-        if tech.statCustomisationUnlocked(self,"Range"): d["Range"] = lambda: AGeInput.Int(None,"Range",self.Range,tech.moduleStatMin(self,"Range"),tech.moduleStatMax(self,"Range"))
+        tech.addStatCustomizer(d,self,"MaxCharges",AGeInput.Float,"Max Charges")
+        tech.addStatCustomizer(d,self,"Cooldown",AGeInput.Float,"Cooldown")
+        tech.addStatCustomizer(d,self,"Range",AGeInput.Int,"Range")
         return d
 
 class Weapon(Module):
@@ -917,7 +896,7 @@ class Weapon(Module):
                 if not targetShip.Destroyed:
                     self.SFX.setVolume(get.menu().SoundOptionsWidget.WeaponSoundVolume())
                     self.SFX.play() #TODO: do not play a sound effect too many times at the same time
-                    hit , targetDestroyed, damageDealt = targetShip.takeDamage(self.Damage,self.Accuracy,self.ShieldFactor,self.HullFactor,self.ShieldPiercing)
+                    hit, targetDestroyed, damageDealt = targetShip.takeDamage(self.Damage,self.Accuracy,self.ShieldFactor,self.HullFactor,self.ShieldPiercing)
                     self.fireEffectAt(targetShip, hit) #TODO: loading too many effects at the same time is too slow...
                     self.Ready = False
                     #self.updateCombatInterface()
@@ -947,14 +926,13 @@ class Weapon(Module):
     def getCustomisableStats(self) -> 'dict[str,typing.Callable[[],AGeInput._TypeWidget]]':
         d = super().getCustomisableStats()
         del d["Mass"]
-        #CRITICAL: Use tech.addStatCustomizer everywhere
-        if tech.statCustomisationUnlocked(self,"Damage"): d["Damage"] = lambda: AGeInput.Float(None,"Damage",self.Damage,tech.moduleStatMin(self,"Damage"),tech.moduleStatMax(self,"Damage"))
-        if tech.statCustomisationUnlocked(self,"Accuracy"): d["Accuracy"] = lambda: AGeInput.Float(None,"Accuracy",self.Accuracy,tech.moduleStatMin(self,"Accuracy"),tech.moduleStatMax(self,"Accuracy"))
-        if tech.statCustomisationUnlocked(self,"ShieldFactor"): d["ShieldFactor"] = lambda: AGeInput.Float(None,"ShieldFactor",self.ShieldFactor,tech.moduleStatMin(self,"ShieldFactor"),tech.moduleStatMax(self,"ShieldFactor"))
-        if tech.statCustomisationUnlocked(self,"HullFactor"): d["HullFactor"] = lambda: AGeInput.Float(None,"HullFactor",self.HullFactor,tech.moduleStatMin(self,"HullFactor"),tech.moduleStatMax(self,"HullFactor"))
-        if tech.statCustomisationUnlocked(self,"Range"): d["Range"] = lambda: AGeInput.Int(None,"Range",self.Range,tech.moduleStatMin(self,"Range"),tech.moduleStatMax(self,"Range"))
-        if tech.statCustomisationUnlocked(self,"MinimalRange"): d["MinimalRange"] = lambda: AGeInput.Int(None,"MinimalRange",self.MinimalRange,tech.moduleStatMin(self,"MinimalRange"),tech.moduleStatMax(self,"MinimalRange"))
-        if tech.statCustomisationUnlocked(self,"ShieldPiercing"): d["ShieldPiercing"] = lambda: AGeInput.Bool(None,"ShieldPiercing",self.ShieldPiercing)
+        tech.addStatCustomizer(d,self,"Damage",AGeInput.Float)
+        tech.addStatCustomizer(d,self,"Accuracy",AGeInput.Float)
+        tech.addStatCustomizer(d,self,"ShieldFactor",AGeInput.Float,"Shield Damage Factor")
+        tech.addStatCustomizer(d,self,"HullFactor",AGeInput.Float,"Hull Damage Factor")
+        tech.addStatCustomizer(d,self,"Range",AGeInput.Int)
+        tech.addStatCustomizer(d,self,"MinimalRange",AGeInput.Int,"Minimal Range")
+        tech.addStatCustomizer(d,self,"ShieldPiercing",AGeInput.Bool,"Shield Piercing")
         return d
 
 class Weapon_Beam(Weapon):

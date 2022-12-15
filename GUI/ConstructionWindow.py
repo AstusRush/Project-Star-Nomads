@@ -569,7 +569,8 @@ class ModuleEditor(AGeWidgets.TightGridFrame):
         self.ValueLabel = self.addWidget(QtWidgets.QLabel("", self))
         self.Apply = self.addWidget(AGeWidgets.Button(self, "Apply", lambda: self.applyStats()))
         self.ModuleStatContainer = self.addWidget(AGeWidgets.TightGridFrame(self,makeCompact=False))
-        self.StatDict:'dict[str,typing.Callable[[],typing.Any]]' = {}
+        #self.StatDict:'dict[str,typing.Callable[[],typing.Any]]' = {}
+        self.StatDict:'dict[str,AGeInput._TypeWidget]' = {}
     
     def parent(self) -> 'ConstructionWidget':
         return super().parent()
@@ -605,6 +606,8 @@ class ModuleEditor(AGeWidgets.TightGridFrame):
             self.ModuleStatContainer = None
         self.ModuleStatContainer = self.addWidget(AGeWidgets.TightGridFrame(self,makeCompact=False))
         self.StatDict = {statName:self.ModuleStatContainer.addWidget(widget()) for statName, widget in self.ActiveModule.getCustomisableStats().items()}
+        for v in self.StatDict.values():
+            v.S_ValueChanged.connect(lambda: self.previewCost())
     
     def applyStats(self):
         if self.ModuleStatContainer and self.ActiveModule and self.StatDict:
@@ -629,6 +632,21 @@ class ModuleEditor(AGeWidgets.TightGridFrame):
                 self.parent().ShipStats.updateShipInterface()
                 self.parent().regenerateShipModel()
     
+    def predictCost(self):
+        module = self.ActiveModule.copy()
+        for k,v in self.StatDict.items():
+            setattr(module,k,v())
+        module.resetCondition()
+        module.automaticallyDetermineValues()
+        cost = module.Value-self.ActiveModule.Value
+        return cost
+    
+    def previewCost(self):
+        self.updateValueLabel(costToChange=self.predictCost())
+    
+    def checkValidity(self):
+        pass #TODO: Use this to check if applying the stats is valid (check)
+    
     def _applyStats(self):
         adjustments = self.ActiveModule.makeValuesValid()
         if adjustments: NC(2, "Not all values were valid. The following adjustments were made:\n"+adjustments)
@@ -640,5 +658,8 @@ class ModuleEditor(AGeWidgets.TightGridFrame):
         self.loadModuleStats()
         self.NameLabel.setText(self.ActiveModule.Name)
     
-    def updateValueLabel(self):
-        self.ValueLabel.setText(f"Value: {self.ActiveModule.Value}\nThreat {self.ActiveModule.Threat}\nMass {self.ActiveModule.Mass}")
+    def updateValueLabel(self, costToChange:'int'=0):
+        #text = f"Value: {self.ActiveModule.Value}\nThreat {self.ActiveModule.Threat}\nMass {self.ActiveModule.Mass}"
+        #if costToChange: text += f"\nExpected cost to change: {costToChange}"
+        #self.ValueLabel.setText(text)
+        self.ValueLabel.setText(f"Value: {self.ActiveModule.Value}\nThreat {self.ActiveModule.Threat}\nMass {self.ActiveModule.Mass}\n{f'Expected cost to change: {round(costToChange,5)}' if round(costToChange,5) else ''}")

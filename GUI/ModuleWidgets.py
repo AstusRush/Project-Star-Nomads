@@ -47,6 +47,7 @@ else:
 
 if TYPE_CHECKING:
     from BaseClasses import ShipBase, FleetBase, BaseModules, HexBase
+    from Economy import BaseEconomicModules
 
 from BaseClasses import get
 from GUI import BaseInfoWidgets
@@ -176,11 +177,6 @@ class QuartersWidget(ModuleWidget):
     def __init__(self, module:typing.Optional['BaseModules.Quarters'] = None) -> None:
         super().__init__(parent=None, module=module)
 
-class CargoWidget(ModuleWidget):
-    module: 'weakref.ref[BaseModules.Cargo]' = None
-    def __init__(self, module:typing.Optional['BaseModules.Cargo'] = None) -> None:
-        super().__init__(parent=None, module=module)
-
 class HangarWidget(ModuleWidget):
     module: 'weakref.ref[BaseModules.Hangar]' = None
     def __init__(self, module:typing.Optional['BaseModules.Hangar'] = None) -> None:
@@ -272,8 +268,13 @@ class SensorWidget(ModuleWidget):
                             )
 
 class EconomicWidget(ModuleWidget):
-    module: 'weakref.ref[BaseModules.Economic]' = None
-    def __init__(self, module:typing.Optional['BaseModules.Economic'] = None) -> None:
+    module: 'weakref.ref[BaseEconomicModules.Economic]' = None
+    def __init__(self, module:typing.Optional['BaseEconomicModules.Economic'] = None) -> None:
+        super().__init__(parent=None, module=module)
+
+class CargoWidget(ModuleWidget):
+    module: 'weakref.ref[BaseEconomicModules.Cargo]' = None
+    def __init__(self, module:typing.Optional['BaseEconomicModules.Cargo'] = None) -> None:
         super().__init__(parent=None, module=module)
 
 class AugmentWidget(ModuleWidget):
