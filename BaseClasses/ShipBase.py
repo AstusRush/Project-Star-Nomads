@@ -50,10 +50,12 @@ from BaseClasses import get
 if TYPE_CHECKING:
     from BaseClasses import FleetBase
     from BaseClasses import BaseModules
+    from Economy import EconomyManager
 from BaseClasses import ListLoader
 from BaseClasses import HexBase
 from BaseClasses import ModelBase
 from GUI import BaseInfoWidgets
+from Economy import Resources
 
 
 IMP_SHIPBASE = [("PSN get","from BaseClasses import get"),("PSN ShipBase","from BaseClasses import ShipBase"),("PSN ShipBaseConstructor","""
@@ -268,6 +270,10 @@ class ShipBase():
         self.Node = p3dc.NodePath(p3dc.PandaNode(f"Central node of ship {id(self)}"))
         self.Node.reparentTo(render())
         self.Modules:'typing.List[BaseModules.Module]' = []
+        
+        from Economy import EconomyManager
+        self.EconomyManager = EconomyManager.ShipEconomyManager(self)
+        
         self.init_combat()
         self.init_effects()
     
@@ -320,8 +326,18 @@ class ShipBase():
         if self.Model:
             self.Model.Model.removeNode()
         self.Node.removeNode()
+    
+    @property
+    def ResourceManager(self) -> 'EconomyManager.ShipResourceManager':
+        return self.EconomyManager.ResourceManager
   #endregion init and destroy
   #region Management
+    def resourceCost(self) -> 'Resources._ResourceDict':
+        d = Resources._ResourceDict()
+        for module in self.Modules:
+            d += module.resourceCost()
+        return d
+    
     def handleNewCombatTurn(self):
         for i in self.Modules:
             i.handleNewCombatTurn()
@@ -590,7 +606,7 @@ class ShipBase():
         self.Node.setPos(*args)
   #endregion model
   #region Effects
-    def init_effects(self): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
+    def init_effects(self):
         self.ExplosionEffect:p3dc.NodePath = None
         self.ExplosionEffect2:p3dc.NodePath = None
         self.ExplosionSoundEffect = base().loader.loadSfx(self.ExplosionSoundEffectPath)
@@ -603,7 +619,7 @@ class ShipBase():
         #try:
         node.removeNode()
     
-    def explode(self): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
+    def explode(self):
         #CRITICAL: The ship should already count as destroyed at this point (thus before the animation is played)
         #           Otherwise it is still possible to accidentally attack "the explosion" when giving orders hastily
         #           Maybe the destroy method should take a time in seconds. Then all the removal of game logic is handled before the nodes are destroyed.
@@ -639,7 +655,7 @@ class ShipBase():
         
         base().taskMgr.doMethodLater(explosionDuration, self.destroy, str(id(self)))
     
-    def showShield(self, time = 1): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
+    def showShield(self, time = 1):
         
         shieldEffect:p3dc.NodePath = loader().loadModel("Models/Simple Geometry/sphere.ply")
         try:

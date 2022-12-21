@@ -52,6 +52,7 @@ from BaseClasses import ShipBase
 from BaseClasses import ModelBase
 from BaseClasses import BaseModules
 from BaseClasses import FleetBase
+from Economy import BaseEconomicModules
 
 class TestHull_M(BaseModules.Hull):
     Name = "TestHull_M"
@@ -138,8 +139,8 @@ class TestEngine_L(BaseModules.Engine): # FTL Engine
 
 class TestEngine_XL(BaseModules.Engine): # FTL Engine
     Name = "TestEngine_XL"
-    Thrust = 50
-    RemainingThrust = 50
+    Thrust = 60
+    RemainingThrust = 60
 
 class TestThruster_M(BaseModules.Thruster): # Sublight Thruster
     Name = "TestThruster_M"
@@ -153,8 +154,12 @@ class TestThruster_L(BaseModules.Thruster): # Sublight Thruster
 
 class TestThruster_XL(BaseModules.Thruster): # Sublight Thruster
     Name = "TestThruster_XL"
-    Thrust = 50
-    RemainingThrust = 50
+    Thrust = 60
+    RemainingThrust = 60
 
-class TestConstructionModule(BaseModules.ConstructionModule): # ConstructionModule
+class TestConstructionModule(BaseEconomicModules.ConstructionModule): # ConstructionModule
     Name = "TestConstructionModule"
+
+class TestCargoModule(BaseEconomicModules.Cargo): # Cargo
+    Name = "TestCargoModule"
+    _Capacity = 20

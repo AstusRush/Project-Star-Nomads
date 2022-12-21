@@ -51,6 +51,7 @@ if TYPE_CHECKING:
 
 from BaseClasses import get
 from GUI import BaseInfoWidgets
+from Economy import Resources
 
 """ Template for constructor: (replace # with the module name)
 class #Widget(WidgetsBase.ModuleWidget):
@@ -183,52 +184,47 @@ class HangarWidget(ModuleWidget):
         super().__init__(parent=None, module=module)
 
 class ConstructionModuleWidget(ModuleWidget):
-    module: 'weakref.ref[BaseModules.ConstructionModule]' = None
-    def __init__(self, module:typing.Optional['BaseModules.ConstructionModule'] = None) -> None:
+    module: 'weakref.ref[BaseEconomicModules.ConstructionModule]' = None
+    def __init__(self, module:typing.Optional['BaseEconomicModules.ConstructionModule'] = None) -> None:
         super().__init__(parent=None, module=module)
         self.Label = self.addWidget(QtWidgets.QLabel(self))
         if self.module().isPlayer(): self.ConstructionWindowButton = self.addWidget(AGeWidgets.Button(self, "Open construction window", lambda: self.openConstructionWindow()))
-        self.ShipComboBox = self.addWidget(QtWidgets.QComboBox(self))
-        self.populateBuildList()
-        if self.module().isPlayer(): self.BuildButton = self.addWidget(AGeWidgets.Button(self, "Build", lambda: self.build()))
-        if advancedMode(): self.DEBUG_AddResourceButton = self.addWidget(AGeWidgets.Button(self, "DEBUG: Add resources", lambda: self.debug_addResources()))
+        #TODO: implement this build mechanic in the construction window to load all of the ship designs
+        #self.ShipComboBox = self.addWidget(QtWidgets.QComboBox(self))
+        #self.populateBuildList()
+        #if self.module().isPlayer(): self.BuildButton = self.addWidget(AGeWidgets.Button(self, "Build", lambda: self.build()))
         self.MessageLabel = self.addWidget(QtWidgets.QLabel(self))
-    
-    def debug_addResources(self):
-        self.module().ConstructionResourcesStored += 100
-        self.updateInterface()
     
     def updateFullInterface(self):
         self.updateInterface()
     
     def updateInterface(self):
         self.Label.setText( f"{self.module().Name} (Construction Module):"
-                            f"\n\tConstruction resources stored: {self.module().ConstructionResourcesStored}"
-                            f"\n\tConstruction resources generated per turn: {self.module().ConstructionResourcesGeneratedPerTurn}"
+                            #f"\n\tConstruction resources stored: {self.module().ConstructionResourcesStored}"
+                            #f"\n\tConstruction resources generated per turn: {self.module().ConstructionResourcesGeneratedPerTurn}"
                             )
     
-    def populateBuildList(self):
-        l = []
-        for name, ship in get.shipClasses().items():
-            s = ship(False)
-            l.append(f"{s.Stats.Value} - {name}")
-            s.destroy()
-        self.ShipComboBox.addItems(l)
+    #def populateBuildList(self):
+    #    l = []
+    #    for name, ship in get.shipClasses().items():
+    #        s = ship(False)
+    #        l.append(f"{s.Stats.Value} - {name}")
+    #        s.destroy()
+    #    self.ShipComboBox.addItems(l)
     
-    def build(self):
-        if not self.module().isPlayer():
-            self.MessageLabel.setText("You can not build ships for the enemy")
-            return False
-        ship = get.shipClasses()[self.ShipComboBox.currentText().split(" - ",1)[1]]()
-        if ship.Stats.Value > self.module().ConstructionResourcesStored:
-            message = f"Not enough resources to build that ship! The ship costs {ship.Stats.Value} but you only have {self.module().ConstructionResourcesStored}"
-            self.MessageLabel.setText(message)
-            ship.destroy()
-        else:
-            self.module().ConstructionResourcesStored -= ship.Stats.Value
-            self.module().ship().fleet().addShip(ship)
-            self.updateInterface()
-            #TODO: update the fleet Quick View to show the new ship!
+    #def build(self):
+    #    if not self.module().isPlayer():
+    #        self.MessageLabel.setText("You can not build ships for the enemy")
+    #        return False
+    #    ship = get.shipClasses()[self.ShipComboBox.currentText().split(" - ",1)[1]]()
+    #    if ship.Stats.Value > self.module().ConstructionResourcesStored:
+    #        message = f"Not enough resources to build that ship! The ship costs {ship.Stats.Value} but you only have {self.module().ConstructionResourcesStored}"
+    #        self.MessageLabel.setText(message)
+    #        ship.destroy()
+    #    else:
+    #        self.module().ConstructionResourcesStored -= ship.Stats.Value
+    #        self.module().ship().fleet().addShip(ship)
+    #        self.updateInterface()
     
     def openConstructionWindow(self):
         if not self.module().isPlayer(): return False
@@ -276,6 +272,21 @@ class CargoWidget(ModuleWidget):
     module: 'weakref.ref[BaseEconomicModules.Cargo]' = None
     def __init__(self, module:typing.Optional['BaseEconomicModules.Cargo'] = None) -> None:
         super().__init__(parent=None, module=module)
+        self.Label = self.addWidget(QtWidgets.QLabel(self))
+        if advancedMode(): self.DEBUG_AddResourceButton = self.addWidget(AGeWidgets.Button(self, "DEBUG: Fill resources", lambda: self.debug_addResources()))
+    
+    def debug_addResources(self):
+        self.module().StoredResources.set(Resources.Metals(self.module().Capacity/3))
+        self.module().StoredResources.set(Resources.Crystals(self.module().Capacity/3))
+        self.module().StoredResources.set(Resources.RareMetals(self.module().Capacity/6))
+        self.module().StoredResources.set(Resources.AdvancedComponents(self.module().Capacity/6.001))
+        self.updateInterface()
+    
+    def updateFullInterface(self):
+        self.updateInterface()
+    
+    def updateInterface(self):
+        self.Label.setText( self.module().StoredResources.text(f"{self.module().Name} (Capacity {round(self.module().StoredResources.UsedCapacity,5)} / {round(self.module().Capacity,5)})") )
 
 class AugmentWidget(ModuleWidget):
     module: 'weakref.ref[BaseModules.Augment]' = None

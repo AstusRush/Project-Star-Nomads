@@ -49,6 +49,7 @@ else:
 #from GUI import Windows, WidgetsBase
 from BaseClasses import HexBase, FleetBase, ShipBase, ModelBase, BaseModules, UnitManagerBase, get
 from GUI import BaseInfoWidgets, ShipSelectDialogue
+from Economy import BaseEconomicModules, Resources
 
 #TODO: The construction Window should be opened from a construction module
 #       The window should stay open and not block anything
@@ -75,11 +76,11 @@ class ConstructionWindow(AWWF):
         self.ConstructionWidget = self.CW = ConstructionWidget(self)
         self.setCentralWidget(self.ConstructionWidget)
     
-    def setConstructionModule(self, module:BaseModules.ConstructionModule):
+    def setConstructionModule(self, module:BaseEconomicModules.ConstructionModule):
         self.ConstructionWidget.setConstructionModule(module)
 
 class ConstructionWidget(QtWidgets.QSplitter):
-    constructionModule: 'weakref.ref[BaseModules.ConstructionModule]' = None
+    constructionModule: 'weakref.ref[BaseEconomicModules.ConstructionModule]' = None
     def __init__(self, parent: typing.Optional['QtWidgets.QWidget'] = None) -> None:
         super().__init__(parent)
         #self.Splitter = self.addWidget(QtWidgets.QSplitter(self))
@@ -95,8 +96,8 @@ class ConstructionWidget(QtWidgets.QSplitter):
         
         self._ShipInitialized = False
     
-    def setConstructionModule(self, module:BaseModules.ConstructionModule):
-        self.constructionModule:'weakref.ref[BaseModules.ConstructionModule]' = weakref.ref(module)
+    def setConstructionModule(self, module:BaseEconomicModules.ConstructionModule):
+        self.constructionModule:'weakref.ref[BaseEconomicModules.ConstructionModule]' = weakref.ref(module)
         if not self._ShipInitialized: self._initFirstShip()
     
     def lifeEditing(self) -> bool:
@@ -283,7 +284,6 @@ class ShipStats(AGeWidgets.TightGridFrame):
         shipSelector = ShipSelectDialogue.ShipSelectDialogue(self, queryString="Select a ship to edit", fleet=self.parent().constructionModule().ship().fleet())
         shipSelector.exec()
         ship = shipSelector.SelectedShip
-        NC(3,ship)
         if ship:
             self.parent().loadShip(ship)
     
@@ -291,7 +291,6 @@ class ShipStats(AGeWidgets.TightGridFrame):
         shipSelector = ShipSelectDialogue.ShipSelectDialogue(self, queryString="Select a ship to use as a template for a new ship")
         shipSelector.exec()
         ship = shipSelector.SelectedShip
-        NC(3,ship)
         if ship:
             self.parent().copyShip(ship)
     
@@ -314,13 +313,20 @@ class ShipStats(AGeWidgets.TightGridFrame):
             NC(exc=True)
             self.ShipStats = None
     
-    def updateShipInterface(self):
+    def updateShipInterface(self): #TODO: This should be called once the initial ship is set up, whenever the ship changes, and on request in case the fleet has gained resources
         if self.ShipStats:
-            text = f"Value: {self.ship().Stats.Value}"
+            text = f"Value: {self.ship().Stats.Value}\n"
+            if not self.parent().lifeEditing():
+                text += self.ship().resourceCost().text("Cost:") + "\n"
             try:
-                text += f"\nAvailable Resources: {self.parent().constructionModule().ConstructionResourcesStored}"
+                text += self.parent().constructionModule().availableResources().text("Available Resources:")
+                if not self.parent().lifeEditing():
+                    if self.parent().constructionModule().canSpend(self.ship().resourceCost()):
+                        text += "\nCan afford"
+                    else:
+                        text += "\nCan NOT afford"
             except:
-                text += f"\nAvailable Resources: ???"
+                text += f"Available Resources: ???"
                 NC(2, "The construction module for this window might no longer exist...", exc=True)
             try:
                 self.ship().updateInterface()
@@ -477,16 +483,15 @@ class ModuleList(QtWidgets.QListWidget):
             return
         if isinstance(module,type):
             module = module()
+        #CRITICAL: VALIDATE Resource spending: Does this work now?
         if self.lifeEditing():
-            if module.Value > self.constructionWidget().constructionModule().ConstructionResourcesStored:
-                NC(2, f"Not enough resources to add this module (Cost/Stored: {module.Value}/{self.constructionWidget().constructionModule().ConstructionResourcesStored})")
+            if not self.constructionWidget().constructionModule().canSpend(module.resourceCost()):
+                NC(2, f"Not enough resources to add this module\n{module.resourceCost().text('Cost:')}\n\n{self.constructionWidget().constructionModule().availableResources().text('Available:')}")
                 if moduleToReplace:
-                    self.constructionWidget().constructionModule().ConstructionResourcesStored += moduleToReplace.Value*2 # Ensure that there can be no rounding error that could stop readding it
-                    self.addModule(moduleToReplace)
-                    self.constructionWidget().constructionModule().ConstructionResourcesStored -= moduleToReplace.Value*2
+                    self.addModule(moduleToReplace) #TODO: What if this fails?
                 return
             else:
-                self.constructionWidget().constructionModule().ConstructionResourcesStored -= module.Value
+                self.constructionWidget().constructionModule().spend(module.resourceCost())
         module.resetCondition()
         item = self.listModule(module)
         self.constructionWidget()._addModuleToShip(item.data(100))
@@ -507,11 +512,18 @@ class ModuleList(QtWidgets.QListWidget):
         if not force and isinstance(item.data(100),(BaseModules.Hull, BaseModules.Engine, BaseModules.Thruster, BaseModules.Sensor)):
             NC(2, f"You can not remove essential modules. You can, however, replace them.")
             return
+        if self.lifeEditing() and isinstance(item.data(100),(BaseEconomicModules.Cargo)):
+            NC(2, f"You can currently not remove cargo modules o ships as this could lead to a loss of resources.")
+            return #CRITICAL: Removing cargo modules while life editing should be allowed if the cargo can be transferred to other cargo modules in the fleet
         if item.data(100) is self.constructionWidget().constructionModule():
             NC(2, f"Can not remove active construction module")
             return
+        #CRITICAL: VALIDATE Resource spending: Does this work now?
         if self.lifeEditing():
-            self.constructionWidget().constructionModule().ConstructionResourcesStored += item.data(100).Value
+            if not self.constructionWidget().constructionModule().canSpend(-item.data(100).resourceCost()): # minus because we actually want to add something
+                NC(2, f"Can not remove the module since not all resources can be stored!")
+                return
+            self.constructionWidget().constructionModule().spend(-item.data(100).resourceCost())
         self.constructionWidget().ModuleEditor.unsetModule(item)
         self.constructionWidget().removeModule(item.data(100))
         self.takeItem(self.row(item))
@@ -607,42 +619,46 @@ class ModuleEditor(AGeWidgets.TightGridFrame):
         self.ModuleStatContainer = self.addWidget(AGeWidgets.TightGridFrame(self,makeCompact=False))
         self.StatDict = {statName:self.ModuleStatContainer.addWidget(widget()) for statName, widget in self.ActiveModule.getCustomisableStats().items()}
         for v in self.StatDict.values():
-            v.S_ValueChanged.connect(lambda: self.previewCost())
+            v.S_ValueChanged.connect(lambda: self.previewCostAndStats())
     
     def applyStats(self):
         if self.ModuleStatContainer and self.ActiveModule and self.StatDict:
             if not self.parent().canEdit(): return
-            if self.ActiveModule is self.parent().constructionModule().ConstructionResourcesStored:
+            if self.ActiveModule is self.parent().constructionModule():
                 NC(2, f"Can not edit active construction module")
                 return
-            valueBefore:'float' = self.ActiveModule.Value
+            if self.parent().lifeEditing() and isinstance(self.ActiveModule,(BaseEconomicModules.Cargo)):
+                NC(2, f"You can currently not edit cargo modules o ships as this could lead to a loss of resources.")
+                return #CRITICAL: Editing cargo modules while life editing should be allowed if the cargo can be transferred to other cargo modules in the fleet or if the size is simply increased
+            costBefore = self.ActiveModule.resourceCost()
             statsBefore = self.ActiveModule.tocode_AGeLib_GetDict()
             for k,v in self.StatDict.items():
                 setattr(self.ActiveModule,k,v())
             self._applyStats()
             if self.parent().lifeEditing():
-                if self.ActiveModule.Value - valueBefore > self.parent().constructionModule().ConstructionResourcesStored:
-                    NC(2, f"Not enough resources to modify this module (Cost/Stored: {self.ActiveModule.Value}/{self.parent().constructionModule().ConstructionResourcesStored+valueBefore})")
+                #CRITICAL: VALIDATE Resource spending: Does this work now?
+                if self.parent().constructionModule().canSpend(self.ActiveModule.resourceCost() - costBefore):
+                    NC(2, f"Not enough resources to modify this module \n{(self.ActiveModule.resourceCost()-costBefore).text('Cost:')}\n\n{self.parent().constructionModule().availableResources().text('Available:')}")
                     for k,v in statsBefore.items():
                         setattr(self.ActiveModule,k,v)
                     self._applyStats()
                 # Not strictly required if the player could not afford the changes but in case makeValuesValid changes something we want to be fair
-                #print(f"{self.parent().constructionModule().ConstructionResourcesStored=} += {valueBefore=} - {self.ActiveModule.Value=}")
-                self.parent().constructionModule().ConstructionResourcesStored += valueBefore - self.ActiveModule.Value
+                #print(f"{self.parent().constructionModule().ConstructionResourcesStored=} += {costBefore=} - {self.ActiveModule.Value=}")
+                self.parent().constructionModule().spend(self.ActiveModule.resourceCost() - costBefore)
                 self.parent().ShipStats.updateShipInterface()
                 self.parent().regenerateShipModel()
     
-    def predictCost(self):
+    def predictCostAndStats(self) -> 'Resources._ResourceDict':
         module = self.ActiveModule.copy()
         for k,v in self.StatDict.items():
             setattr(module,k,v())
         module.resetCondition()
         module.automaticallyDetermineValues()
-        cost = module.Value-self.ActiveModule.Value
-        return cost
+        cost = module.resourceCost()-self.ActiveModule.resourceCost()
+        return cost, module
     
-    def previewCost(self):
-        self.updateValueLabel(costToChange=self.predictCost())
+    def previewCostAndStats(self):
+        self.updateValueLabel(costAndModule=self.predictCostAndStats())
     
     def checkValidity(self):
         pass #TODO: Use this to check if applying the stats is valid (check)
@@ -658,8 +674,11 @@ class ModuleEditor(AGeWidgets.TightGridFrame):
         self.loadModuleStats()
         self.NameLabel.setText(self.ActiveModule.Name)
     
-    def updateValueLabel(self, costToChange:'int'=0):
-        #text = f"Value: {self.ActiveModule.Value}\nThreat {self.ActiveModule.Threat}\nMass {self.ActiveModule.Mass}"
-        #if costToChange: text += f"\nExpected cost to change: {costToChange}"
-        #self.ValueLabel.setText(text)
-        self.ValueLabel.setText(f"Value: {self.ActiveModule.Value}\nThreat {self.ActiveModule.Threat}\nMass {self.ActiveModule.Mass}\n{f'Expected cost to change: {round(costToChange,5)}' if round(costToChange,5) else ''}")
+    def updateValueLabel(self, costAndModule:'tuple[Resources._ResourceDict,BaseModules.Module]'=(None,None)):
+        costToChange, module = costAndModule
+        self.ValueLabel.setText(
+            f"Value: {round(self.ActiveModule.Value,5)}{f' (-> {round(module.Value,5)})' if (module and round(module.Value-self.ActiveModule.Value,5)) else ''}\n"
+            f"Threat {round(self.ActiveModule.Threat,5)}{f' (-> {round(module.Threat,5)})' if (module and round(module.Threat-self.ActiveModule.Threat,5)) else ''}\n"
+            f"Mass {round(self.ActiveModule.Mass,5)}{f' (-> {round(module.Mass,5)})' if (module and round(module.Mass-self.ActiveModule.Mass,5)) else ''}\n"
+            f"{costToChange.text(headline='Expected cost to change:') if costToChange else ''}"
+            )

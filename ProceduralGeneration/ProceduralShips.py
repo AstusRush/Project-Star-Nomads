@@ -266,6 +266,7 @@ class ProceduralShip(ProceduralModels._ProceduralModel):
         if not self.ship().Modules: raise HasNoShipException("This model is assigned to a ship without any modules.")
         
         from BaseClasses import ShipBase, FleetBase, BaseModules #, HexBase
+        from Economy import BaseEconomicModules
         
         self.clearProceduralNodes()
         self.ProceduralShipCentralNode = p3dc.NodePath(p3dc.PandaNode(f"Central node of procedural ship model: {id(self)}"))
@@ -279,13 +280,15 @@ class ProceduralShip(ProceduralModels._ProceduralModel):
             numWeapons -= 4
         
         for module in self.ship().Modules:
-            if isinstance(module, BaseModules.Hull):
+            if isinstance(module, BaseModules.Hull): # Hull
                 hull = self.createAndConnectModule(ModuleTypes.MidSection, module)
-            if isinstance(module, BaseModules.ConstructionModule):
+            elif isinstance(module, BaseEconomicModules.ConstructionModule): # Construction Module
                 constructionBay = self.createAndConnectModule(ModuleTypes.ConstructionBay, module)
-            if isinstance(module, BaseModules.Shield):
+            elif isinstance(module, BaseModules.Shield): # Shield
                 shield = self.createAndConnectModule(ModuleTypes.ShieldGenerator, module)
-            if isinstance(module, (BaseModules._Economic, BaseModules.Augment, BaseModules.Support, BaseModules.Special,)):
+            elif isinstance(module, (BaseModules.Augment, BaseModules.Support, BaseModules.Special,)): # Special
+                other = self.createAndConnectModule(ModuleTypes.MidSection, module)
+            elif isinstance(module, (BaseModules._Economic,)): # Economy
                 other = self.createAndConnectModule(ModuleTypes.MidSection, module)
         
         if self.ship().thruster:

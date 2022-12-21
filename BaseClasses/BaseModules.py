@@ -52,9 +52,10 @@ if TYPE_CHECKING:
     from BaseClasses import ModelBase
     from ProceduralGeneration import ProceduralShips
 from BaseClasses import get
-from Economy import tech
 from BaseClasses import HexBase
 from GUI import ModuleWidgets
+from Tech import tech
+from Economy import Resources
 
 IMP_BASEMODULES = [("PSN get","from BaseClasses import get"),("PSN BaseModules","from BaseClasses import BaseModules"),("PSN ModuleConstructor","""
 def createModule(d:dict):
@@ -98,6 +99,9 @@ class Module():
             self.Value = self.calculateValue()
         if hasattr(self, "calculateMass"):
             self.Mass = self.calculateMass()
+    
+    def resourceCost(self) -> 'Resources._ResourceDict':
+        raise NotImplementedError(f"{type(self)} does not implement resourceCost yet!")
     
     def setShip(self, ship:'ShipBase.ShipBase') -> None:
         self.ship = weakref.ref(ship)
@@ -231,6 +235,12 @@ class Hull(Module):
         self.Widget:'ModuleWidgets.HullWidget' = None
         self.FullWidget:'ModuleWidgets.HullWidget' = None
     
+    def resourceCost(self) -> 'Resources._ResourceDict':
+        return Resources._ResourceDict.new(
+            Resources.Metals(self.Value),
+            Resources.Crystals(self.Value/4),
+        )
+    
     def calculateValue(self): #TODO: Come up with a better formula for this that takes evasion, mass, etc. into account
         return self.HP_Hull_max / 100 * (1+self.Evasion)**7 * (1+(self.HP_Hull_Regeneration - self.HP_Hull_max / 20)/200)**(1.4) / (self.Mass)**(0.6)
     
@@ -314,6 +324,13 @@ class Engine(Module): # FTL Engine
         self.Widget:ModuleWidgets.EngineWidget = None
         self.FullWidget:ModuleWidgets.EngineWidget = None
     
+    def resourceCost(self) -> 'Resources._ResourceDict':
+        return Resources._ResourceDict.new(
+            Resources.Metals(self.Value/2),
+            Resources.RareMetals(self.Value/5),
+            Resources.Crystals(self.Value*3/4),
+        )
+    
     def calculateValue(self): #TODO: Come up with a better formula for this
         return self.Thrust / 10
     
@@ -357,6 +374,7 @@ class Engine(Module): # FTL Engine
     
     def getCustomisableStats(self) -> 'dict[str,typing.Callable[[],AGeInput._TypeWidget]]':
         d = super().getCustomisableStats()
+        del d["Mass"] #TEMPORARY
         tech.addStatCustomizer(d,self,"Thrust",AGeInput.Float)
         return d
 
@@ -370,6 +388,12 @@ class Thruster(Module): # Sublight Thruster
         super().__init__()
         self.Widget:ModuleWidgets.ThrusterWidget = None
         self.FullWidget:ModuleWidgets.ThrusterWidget = None
+    
+    def resourceCost(self) -> 'Resources._ResourceDict':
+        return Resources._ResourceDict.new(
+            Resources.Metals(self.Value*3/4),
+            Resources.Crystals(self.Value/3),
+        )
     
     def calculateValue(self): #TODO: Come up with a better formula for this
         return self.Thrust / 10
@@ -417,6 +441,7 @@ class Thruster(Module): # Sublight Thruster
     
     def getCustomisableStats(self) -> 'dict[str,typing.Callable[[],AGeInput._TypeWidget]]':
         d = super().getCustomisableStats()
+        del d["Mass"] #TEMPORARY
         tech.addStatCustomizer(d,self,"Thrust",AGeInput.Float)
         return d
 
@@ -431,6 +456,13 @@ class Shield(Module):
         super().__init__()
         self.Widget:ModuleWidgets.ShieldWidget = None
         self.FullWidget:ModuleWidgets.ShieldWidget = None
+    
+    def resourceCost(self) -> 'Resources._ResourceDict':
+        return Resources._ResourceDict.new(
+            Resources.Metals(self.Value/4),
+            Resources.RareMetals(self.Value/6),
+            Resources.Crystals(self.Value),
+        )
     
     def calculateValue(self): #TODO: Come up with a better formula for this that takes HP_Shields_Regeneration into account
         return self.HP_Shields_max / 400 + self.HP_Shields_Regeneration / 400
@@ -521,80 +553,6 @@ class Hangar(Module):
         self.FullWidget = ModuleWidgets.HangarWidget(self)
         return self.FullWidget
 
-class ConstructionModule(Module):
-    # Modules to construct new ships.
-    #TODO: Make 2 variants: Enclosed (can move while constructing) and open (can not move while constructing)
-    Name = "Construction Module"
-    Buildable = True
-    ConstructionResourcesGeneratedPerTurn = 0.2 #NOTE: This is only a temporary system
-    Mass = 1
-    
-    def __init__(self) -> None:
-        super().__init__()
-        self.Widget:ModuleWidgets.ConstructionModuleWidget = None
-        self.FullWidget:ModuleWidgets.ConstructionModuleWidget = None
-        self.ConstructionResourcesStored = 0 #NOTE: This is only a temporary system
-    
-    def calculateValue(self):
-        return 10 + 50*self.ConstructionResourcesGeneratedPerTurn #NOTE: This is only a temporary system
-    
-    def handleNewCampaignTurn(self):
-        self.ConstructionResourcesStored += self.ConstructionResourcesGeneratedPerTurn #NOTE: This is only a temporary system
-    
-    def getInterface(self) -> QtWidgets.QWidget:
-        self.Widget = ModuleWidgets.ConstructionModuleWidget(self)
-        return self.Widget
-    
-    def updateInterface(self):
-        if self.Widget:
-            try:
-                self.Widget.updateInterface()
-            except RuntimeError:
-                self.Widget = None # This usually means that the widget is destroyed but I don't know of a better way to test for it...
-        if self.FullWidget:
-            try:
-                self.FullWidget.updateFullInterface()
-            except RuntimeError:
-                self.FullWidget = None # This usually means that the widget is destroyed but I don't know of a better way to test for it...
-    
-    def getFullInterface(self):
-        self.FullWidget = ModuleWidgets.ConstructionModuleWidget(self)
-        return self.FullWidget
-    
-    def buildShip(self, ship:'ShipBase.Ship', model:'typing.Union[type[ModelBase.ShipModel],None]') -> bool:
-        if get.engine().CurrentlyInBattle:
-            NC(2,"Could not construct ship: There is a battle taking place.\nThe engineers are too busy fighting to start the construction of a ship!")
-            return False
-        elif ship.Stats.Value > self.ConstructionResourcesStored:
-            NC(2, f"Could not construct ship: insufficient resources {self.ConstructionResourcesStored} out of {ship.Stats.Value}")
-            return False
-        else:
-            self.ConstructionResourcesStored -= ship.Stats.Value
-            if model is None: ship.generateProceduralModel()
-            else: ship.setModel(model())
-            self.ship().fleet().addShip(ship)
-            self.updateInterface()
-            #TODO: update the fleet Quick View to show the new ship!
-            NC(3, "Ship constructed") #TODO: Better text
-            return True
-    
-    def save(self) -> dict:
-        """
-        Returns a dictionary with all values (and their names) that need to be saved to fully recreate this module.\n
-        This method is called automatically when this module is saved.\n
-        Reimplement this method if you create custom values. But don't forget to call `d.update(super().save())` before returning the dict!
-        """
-        return {
-            "Value" : self.Value ,
-            "ConstructionResourcesGeneratedPerTurn" : self.ConstructionResourcesGeneratedPerTurn ,
-            "ConstructionResourcesStored" : self.ConstructionResourcesStored ,
-        }
-    
-    def copy(self) -> "ConstructionModule":
-        module = super().copy()
-        module.ConstructionResourcesStored = 0 #NOTE: This is only a temporary system
-        return module
-
 class Sensor(Module):
     # Includes sensors that increase weapon accuracy
     Name = "Sensors"
@@ -608,6 +566,13 @@ class Sensor(Module):
         super().__init__()
         self.Widget:'ModuleWidgets.SensorWidget' = None
         self.FullWidget:'ModuleWidgets.SensorWidget' = None
+    
+    def resourceCost(self) -> 'Resources._ResourceDict':
+        return Resources._ResourceDict.new(
+            Resources.Metals(self.Value/4),
+            Resources.RareMetals(self.Value/4),
+            Resources.Crystals(self.Value),
+        )
     
     def getFullInterface(self):
         self.FullWidget = ModuleWidgets.SensorWidget(self)
@@ -691,6 +656,13 @@ class MicroJumpDrive(Special):
         self.Widget:'ModuleWidgets.MicroJumpDriveWidget' = None
         self.FullWidget:'ModuleWidgets.MicroJumpDriveWidget' = None
         self.Charge = self.MaxCharges
+    
+    def resourceCost(self) -> 'Resources._ResourceDict':
+        return Resources._ResourceDict.new(
+            Resources.Metals(self.Value/2),
+            Resources.RareMetals(self.Value/4),
+            Resources.Crystals(self.Value*3/4),
+        )
     
     #def calculateThreat(self):
     #    return self.Damage/100 * self.Accuracy * ((20 if self.ShieldPiercing else self.ShieldFactor) + self.HullFactor)/2 * ((1+self.Range-self.MinimalRange/2)/4.5)**2
@@ -838,6 +810,13 @@ class Weapon(Module):
         self.SFX.setVolume(0.07)
         #print(f"{self.Name = }\n{self.Threat = }\n{self.Value = }\n{self.Mass = }\n")
     
+    def resourceCost(self) -> 'Resources._ResourceDict':
+        return Resources._ResourceDict.new(
+            Resources.Metals(self.Value*3/4),
+            Resources.RareMetals(max(self.Value/4*(self.Range-3),0)),
+            Resources.Crystals(self.Value),
+        )
+    
     def calculateThreat(self):
         return self.Damage/100 * self.Accuracy * ((20 if self.ShieldPiercing else self.ShieldFactor) + self.HullFactor)/2 * ((1+self.Range-self.MinimalRange/2)/4.5)**2
     
@@ -925,7 +904,7 @@ class Weapon(Module):
     
     def getCustomisableStats(self) -> 'dict[str,typing.Callable[[],AGeInput._TypeWidget]]':
         d = super().getCustomisableStats()
-        del d["Mass"]
+        if "Mass" in d: del d["Mass"]
         tech.addStatCustomizer(d,self,"Damage",AGeInput.Float)
         tech.addStatCustomizer(d,self,"Accuracy",AGeInput.Float)
         tech.addStatCustomizer(d,self,"ShieldFactor",AGeInput.Float,"Shield Damage Factor")

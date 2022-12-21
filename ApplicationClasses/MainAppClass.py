@@ -48,6 +48,7 @@ else:
 
 from ApplicationClasses import Scene, StarNomadsColourPalette
 from BaseClasses import HexBase, FleetBase, ShipBase, ModelBase, BaseModules, UnitManagerBase, Environment, get
+from Economy import BaseEconomicModules
 from GUI import BaseInfoWidgets, Windows
 
 class EngineClass(ape.APE):
@@ -137,13 +138,14 @@ class EngineClass(ape.APE):
             base().taskMgr.add(self.UnitManager._endTurn_handleAICombat())
     
     def distributeSalvage(self, salvage:float) -> str:
+        return "The salvaging mechanic is currently being reworked..." #CRITICAL: Implement salvaging using the new mechanics
         if salvage > 0:
-            construction_modules:typing.List[BaseModules.ConstructionModule] = []
+            construction_modules:typing.List[BaseEconomicModules.ConstructionModule] = []
             for fleet in self.FleetsInBattle:
                 if fleet.Team == 1 and not fleet.isDestroyed():
                     for ship in fleet.Ships:
                         for module in ship.Modules:
-                            if isinstance(module,BaseModules.ConstructionModule):
+                            if isinstance(module,BaseEconomicModules.ConstructionModule):
                                 construction_modules.append(module)
             if construction_modules:
                 for i in construction_modules:

@@ -49,6 +49,7 @@ else:
 # Game Imports
 if TYPE_CHECKING:
     from BaseClasses import ShipBase
+    from Economy import EconomyManager
 from BaseClasses import get
 from BaseClasses import HexBase
 from BaseClasses import AI_Base
@@ -109,6 +110,10 @@ class FleetBase():
         self._IsFleet, self._IsFlotilla = strategic, not strategic
         self.AI = AI_Fleet.FleetAI(self) if strategic else AI_Fleet.FlotillaAI(self)
         self.Ships:ShipList = ShipList()
+        
+        from Economy import EconomyManager
+        self.EconomyManager = EconomyManager.FleetEconomyManager(self)
+        
         self.Node = p3dc.NodePath(p3dc.PandaNode(f"Central node of fleet {id(self)}"))
         #self.Node.reparentTo(render())
         self.Node.reparentTo(get.engine().getSceneRootNode())
@@ -167,6 +172,9 @@ class FleetBase():
     def MovePoints_max(self) -> float:
         raise NotImplementedError()
     
+    @property
+    def ResourceManager(self) -> 'EconomyManager.FleetResourceManager':
+        return self.EconomyManager.ResourceManager
   #endregion init and destroy
   #region manage ship list
     def _addShip(self, ship:'ShipBase.ShipBase'):
@@ -238,23 +246,23 @@ class FleetBase():
         
         #self.healAtTurnStart()
     
-    def endTurn(self): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
+    def endTurn(self):
         self.ActiveTurn = False
     
-    def isSelected(self): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
+    def isSelected(self):
         return get.unitManager(self._IsFleet).isSelectedUnit(self)
     
-    def select(self): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
+    def select(self):
         self.highlightRanges(True)
         self.displayStats(True)
     
-    def unselect(self): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
+    def unselect(self):
         self.highlightRanges(False)
         self.displayStats(False)
     
   #endregion Turn and Selection
   #region Interaction
-    def interactWith(self, hex:'HexBase._Hex', mustBePlayer:bool=True): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
+    def interactWith(self, hex:'HexBase._Hex', mustBePlayer:bool=True):
         """
         Makes this unit interact with the hex. \n
         Returns `True` if the new hex should be selected after this interaction (eg in case this unit has moved to the hex or has joined a fleet in the hex due to this interaction) \n
@@ -274,7 +282,7 @@ class FleetBase():
     
   #endregion Interaction
   #region Movement
-    def moveToHex(self, hex:'HexBase._Hex', animate=True): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
+    def moveToHex(self, hex:'HexBase._Hex', animate=True):
         self.Coordinates = hex.Coordinates
         if hex.fleet:
             raise HexBase.HexOccupiedException(hex)
@@ -293,13 +301,13 @@ class FleetBase():
                 raise Exception(f"Could not assign unit to Hex. (The Hex has a different fleet assigned that is named {hex.fleet()})")
             self.hex = weakref.ref(hex)
     
-    def _navigable(self, hex:'HexBase._Hex'): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
+    def _navigable(self, hex:'HexBase._Hex'):
         return (not bool(hex.fleet)) and hex.Navigable
     
-    def _tileCost(self, hex:'HexBase._Hex'): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
+    def _tileCost(self, hex:'HexBase._Hex'):
         return 1
     
-    def lookAt(self, hex:'HexBase._Hex'): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
+    def lookAt(self, hex:'HexBase._Hex'):
         if self.MovementSequence and self.MovementSequence.isPlaying():
             self.MovementSequence.finish()
         lastAngle = self.Node.getHpr()[0]
@@ -326,7 +334,7 @@ class FleetBase():
         if select:
             hex.select(True)
     
-    def moveTo(self, hex:'HexBase._Hex'): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
+    def moveTo(self, hex:'HexBase._Hex'):
         if self.Destroyed or not self.isActiveTurn():
             return False
         if not self._navigable(hex):
@@ -424,7 +432,7 @@ class FleetBase():
                 self.moveTo_AI(path[int(self.MovePoints)-1])
                 return self.hex().distance(hex)<=distance, self.MovePoints<startMovePoints
     
-    def improveRotation(self,c,t): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
+    def improveRotation(self,c,t):
         """
         c is current rotation, t is target rotation. \n
         returns two values that are equivalent to c and t but have values between -360 and 360 and have a difference of at most 180 degree.
@@ -439,10 +447,10 @@ class FleetBase():
                         ,func="improveRotation",input="c = {}\nt = {}\nci = {}\nti = {}\nd = {}\nsolution = {}".format(c,t,ci,ti,abs(ci-ti),abs(ci-ti) <= 180))
         return ci,ti
     
-    def moveToCoordinates(self,coordinates): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
+    def moveToCoordinates(self,coordinates):
         self.moveToHex(get.engine().getHex(coordinates))
     
-    def getReachableHexes(self) -> typing.Set['HexBase._Hex']: #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
+    def getReachableHexes(self) -> typing.Set['HexBase._Hex']:
         #TODO
         # This method returns a list with all the hexes that can be reached (with the current movement points) by this unit
         # Variant 1:
@@ -505,7 +513,7 @@ class FleetBase():
     
   #endregion Movement
   #region Highlighting
-    def highlightRanges(self, highlight=True): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
+    def highlightRanges(self, highlight=True):
         """
         Highlights all hexes that are relevant (movementrange, weaponrange, etc). \n
         If `highlight = False` the highlighted hexes are instead un-highlighted.
@@ -516,7 +524,7 @@ class FleetBase():
             self.highlightMovementRange(highlight, clearFirst=False)
         self.handleSensors()
     
-    def highlightMovementRange(self, highlight=True, clearFirst=True): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
+    def highlightMovementRange(self, highlight=True, clearFirst=True):
         """
         Highlights all hexes that can be reached with the current movement points. \n
         If `highlight = False` the highlighted hexes are instead un-highlighted.
@@ -904,7 +912,7 @@ class Flotilla(FleetBase):
     
   #endregion Display Information
   #region Highlighting
-    def highlightRanges(self, highlight=True): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
+    def highlightRanges(self, highlight=True):
         """
         Highlights all hexes that are relevant (movementrange, weaponrange, etc). \n
         If `highlight = False` the highlighted hexes are instead un-highlighted.
@@ -913,7 +921,7 @@ class Flotilla(FleetBase):
         if highlight and get.menu().HighlightOptionsWidget.HighlightWeaponRange() and not self.Hidden:
             self.highlightAttackRange(highlight, clearFirst=False)
     
-    def highlightAttackRange(self, highlight=True, clearFirst=True): #TODO:OVERHAUL --- DOES NOT WORK CURRENTLY!
+    def highlightAttackRange(self, highlight=True, clearFirst=True):
         """
         Highlights all hexes that can be reached with the current movement points. \n
         If `highlight = False` the highlighted hexes are instead un-highlighted.

@@ -73,6 +73,8 @@ class NomadOne(ShipBase.Ship):
         self.addModule(ShipModules.TestModules.TestBeam_L())
         self.addModule(ShipModules.TestModules.TestShield_L())
         self.addModule(ShipModules.TestModules.TestShield_M())
+        self.addModule(ShipModules.TestModules.TestCargoModule())
+        self.addModule(ShipModules.TestModules.TestCargoModule())
         if generateModel:
             self.generateProceduralModel()
 
