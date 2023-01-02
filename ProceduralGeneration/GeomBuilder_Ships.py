@@ -185,7 +185,7 @@ class ShipBuilder(GeomBuilder.GeomBuilder):
         self.add_block(center=connection_front-p3dc.Point3(0,length/2,0), size=(width,length,height), color=color)
         self.add_cylinder(  base = connection_front-p3dc.Point3(0,length,0),
                             base_radius = height/4,
-                            top = connection_front-p3dc.Point3(0,length+module.logicalModule().Thrust/4,0),
+                            top = connection_front-p3dc.Point3(0,length+(module.logicalModule().Thrust/4)**(0.8),0),
                             top_radius = height/2,
                             radial_resolution = 10,
                             color = color,

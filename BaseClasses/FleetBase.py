@@ -54,6 +54,7 @@ from BaseClasses import get
 from BaseClasses import HexBase
 from BaseClasses import AI_Base
 from BaseClasses import AI_Fleet
+from Economy import Resources
 
 IMP_FLEETBASE = [("PSN get","from BaseClasses import get"),("PSN FleetBase","from BaseClasses import FleetBase")]
 IMP_FLEET = IMP_FLEETBASE + [("PSN FleetConstructor","""
@@ -322,8 +323,9 @@ class FleetBase():
         angleBefore, angleAfter = self.improveRotation(lastAngle,angle)
         self.MovementSequence = self.Node.hprInterval(abs(angleBefore - angleAfter)/(360), (angleAfter,0,0), (angleBefore,0,0))
         self.MovementSequence.start()
-        #CRITICAL: In order to not break other animations we must usually wait before other animations until this animation is completed. How can we do that!?!
+        #TODO: In order to not break other animations we must usually wait before other animations until this animation is completed. How can we do that!?!
         #       This will probably be necessary for other animations, too... For example a ship should only explode once a rocket has hit it - not when the rocket was fired by the other ship...
+        #     This is already sorta done by the `self.MovementSequence.finish()` in the beginning of this function but there needs to ba a more reliable system to handle animations and interactions
     
     def findPath(self,hex:'HexBase._Hex') -> typing.Tuple[typing.List['HexBase._Hex'],float]:
         "returns (path, cost)"
@@ -664,7 +666,7 @@ class Fleet(FleetBase):
     def MovePoints_max(self) -> float:
         return min([i.Stats.Movement_FTL[1] for i in self.Ships])
     
-    def battleEnded(self) -> float:
+    def battleEnded(self) -> Resources._ResourceDict:
         """
         Handles the End of the Battle for this Fleet. \n
         This Includes removing all destroyed ships and re-parenting all other ships from their flotillas back to this fleet. \n
@@ -677,18 +679,18 @@ class Fleet(FleetBase):
         for ship in self.Ships:
             if ship.Destroyed:
                 ships_to_be_removed.append(ship)
-        salvageValue = 0
+        salvageValue = Resources.Salvage(0)
         for ship in ships_to_be_removed:
             salvageValue += ship.Stats.Value/8
             self.removeShip(ship,arrange=False)
         print("Ships in fleet after cleanup:", len(self.Ships))
         if self.Destroyed:
-            return salvageValue
+            return Resources._ResourceDict.new(salvageValue)
         else:
             for ship in self.Ships:
                 ship.reparentTo(self)
             self.arrangeShips()
-        return salvageValue
+        return Resources._ResourceDict.new(salvageValue)
     
   #region Combat Offensive
     async def attack(self, target: 'HexBase._Hex', orders:AI_Base.Orders = None, performOutOfTurn = False):

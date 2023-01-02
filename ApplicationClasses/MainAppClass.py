@@ -48,7 +48,7 @@ else:
 
 from ApplicationClasses import Scene, StarNomadsColourPalette
 from BaseClasses import HexBase, FleetBase, ShipBase, ModelBase, BaseModules, UnitManagerBase, Environment, get
-from Economy import BaseEconomicModules
+from Economy import Resources, BaseEconomicModules
 from GUI import BaseInfoWidgets, Windows
 
 class EngineClass(ape.APE):
@@ -121,7 +121,7 @@ class EngineClass(ape.APE):
     
     def endBattleScene(self):
         self.BattleUnitManager.unselectAll()
-        salvage = 0
+        salvage = Resources._ResourceDict()
         for fleet in self.FleetsInBattle:
             salvage += fleet.battleEnded()
         salvageMessage = self.distributeSalvage(salvage)
@@ -137,22 +137,17 @@ class EngineClass(ape.APE):
         if self.UnitManager.CurrentlyHandlingTurn:
             base().taskMgr.add(self.UnitManager._endTurn_handleAICombat())
     
-    def distributeSalvage(self, salvage:float) -> str:
-        return "The salvaging mechanic is currently being reworked..." #CRITICAL: Implement salvaging using the new mechanics
-        if salvage > 0:
-            construction_modules:typing.List[BaseEconomicModules.ConstructionModule] = []
+    def distributeSalvage(self, salvage:Resources._ResourceDict) -> str:
+        #CRITICAL: Implement salvaging using the new salvage module mechanic that collects the salvage over time instead of instantaneously
+        fullSalvage = salvage.copy()
+        if salvage:
             for fleet in self.FleetsInBattle:
                 if fleet.Team == 1 and not fleet.isDestroyed():
-                    for ship in fleet.Ships:
-                        for module in ship.Modules:
-                            if isinstance(module,BaseEconomicModules.ConstructionModule):
-                                construction_modules.append(module)
-            if construction_modules:
-                for i in construction_modules:
-                    i.ConstructionResourcesStored += salvage/len(construction_modules)
-                return f"Total salvage rewarded: {salvage}\nSalvage rewarded to each construction module: {salvage/len(construction_modules)}"
+                    salvage = fleet.ResourceManager.add(salvage)
+            if salvage:
+                return (fullSalvage-salvage).text("Salvage collected:")+"\n"+salvage.text("Salvage that could not be stored and was therefore wasted:")
             else:
-                return f"There were {salvage} units of salvage but no construction module to gather and store it."
+                return fullSalvage.text("Salvage collected:")
         return "There was nothing to salvage..."
     
     def getSceneRootNode(self):

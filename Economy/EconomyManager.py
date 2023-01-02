@@ -104,6 +104,17 @@ class FleetResourceManager(_BaseResourceManager):
     def subtract(self, r:'Resources._ResourceDict') -> 'Resources._ResourceDict':
         return self.add(-r)
     
+    def fillFromModule(self, moduleToEmpty:'BaseEconomicModules.Cargo') -> 'bool':
+        """
+        Try to empty `moduleToEmpty` and put all resources in cargo modules in this fleet.\n
+        Returns True if the module was successfully emptied.
+        Returns False if the module could not be emptied fully.
+        """
+        for ship in self.fleet().Ships:
+            if not moduleToEmpty.storedResources(): return True
+            ship.ResourceManager.fillFromModule(moduleToEmpty)
+        return not moduleToEmpty.storedResources()
+    
     def getTransferWidget(self) -> QtWidgets.QWidget: #REMINDER: Update type hint once the method is implemented
         raise NotImplementedError("#CRITICAL: GUI to Transfer Resources")
 
@@ -133,11 +144,23 @@ class ShipResourceManager(_BaseResourceManager):
         """
         for module in self.ship().Modules:
             if isinstance(module, BaseEconomicModules.Cargo):
-                r = module.StoredResources.fillFrom(r)
+                r = module.storedResources().fillFrom(r)
         return r
     
     def subtract(self, r:'Resources._ResourceDict') -> 'Resources._ResourceDict':
         return self.add(-r)
+    
+    def fillFromModule(self, moduleToEmpty:'BaseEconomicModules.Cargo') -> 'bool':
+        """
+        Try to empty `moduleToEmpty` and put all resources in cargo modules on this ship.\n
+        Returns True if the module was successfully emptied.
+        Returns False if the module could not be emptied fully.
+        """
+        for module in self.ship().Modules:
+            if not moduleToEmpty.storedResources(): return True
+            if isinstance(module, BaseEconomicModules.Cargo) and module is not moduleToEmpty:
+                module.storedResources().transferMax(moduleToEmpty.storedResources())
+        return not moduleToEmpty.storedResources()
     
     def getTransferWidget(self) -> QtWidgets.QWidget: #REMINDER: Update type hint once the method is implemented
         raise NotImplementedError("#CRITICAL: GUI to Transfer Resources")

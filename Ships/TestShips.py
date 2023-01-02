@@ -65,8 +65,8 @@ class NomadOne(ShipBase.Ship):
         super().__init__()
         self.addModule(ShipModules.TestModules.TestHull_XL())
         self.addModule(ShipModules.TestModules.TestSensors_M())
-        self.addModule(ShipModules.TestModules.TestEngine_XL())
-        self.addModule(ShipModules.TestModules.TestThruster_XL())
+        self.addModule(ShipModules.TestModules.TestEngine_Nomad())
+        self.addModule(ShipModules.TestModules.TestThruster_Nomad())
         self.addModule(ShipModules.BaseModules.MicroJumpDrive()) #TODO: Should be from TestModules not from BaseModules. But only once it works
         self.addModule(ShipModules.TestModules.TestConstructionModule())
         self.addModule(ShipModules.TestModules.TestBeam_L())
@@ -75,6 +75,7 @@ class NomadOne(ShipBase.Ship):
         self.addModule(ShipModules.TestModules.TestShield_M())
         self.addModule(ShipModules.TestModules.TestCargoModule())
         self.addModule(ShipModules.TestModules.TestCargoModule())
+        self.addModule(ShipModules.BaseEconomicModules.RecyclingModule())
         if generateModel:
             self.generateProceduralModel()
 

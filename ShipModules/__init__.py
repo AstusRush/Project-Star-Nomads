@@ -1,6 +1,7 @@
 import typing
 from BaseClasses import ListLoader
 from BaseClasses import BaseModules
+from Economy import BaseEconomicModules
 if typing.TYPE_CHECKING:
     import TestModules
     import AI_faction_modules

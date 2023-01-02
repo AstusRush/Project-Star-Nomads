@@ -269,14 +269,16 @@ class Hull(Module):
         This method is called automatically when this module is saved.\n
         Reimplement this method if you create custom values. But don't forget to call `d.update(super().save())` before returning the dict!
         """
-        return {
+        d = super().save()
+        d.update({
             "Evasion" : self.Evasion ,
             "Mass" : self.Mass ,
             "HP_Hull_max" : self.HP_Hull_max ,
             "HP_Hull" : self.HP_Hull ,
             "HP_Hull_Regeneration" : self.HP_Hull_Regeneration ,
             "NoticeableDamage" : self.NoticeableDamage ,
-        }
+        })
+        return d
     
     def getCustomisableStats(self) -> 'dict[str,typing.Callable[[],AGeInput._TypeWidget]]':
         d = super().getCustomisableStats()
@@ -367,10 +369,12 @@ class Engine(Module): # FTL Engine
         This method is called automatically when this module is saved.\n
         Reimplement this method if you create custom values. But don't forget to call `d.update(super().save())` before returning the dict!
         """
-        return {
+        d = super().save()
+        d.update({
             "Thrust" : self.Thrust ,
             "RemainingThrust" : self.RemainingThrust ,
-        }
+        })
+        return d
     
     def getCustomisableStats(self) -> 'dict[str,typing.Callable[[],AGeInput._TypeWidget]]':
         d = super().getCustomisableStats()
@@ -434,10 +438,12 @@ class Thruster(Module): # Sublight Thruster
         This method is called automatically when this module is saved.\n
         Reimplement this method if you create custom values. But don't forget to call `d.update(super().save())` before returning the dict!
         """
-        return {
+        d = super().save()
+        d.update({
             "Thrust" : self.Thrust ,
             "RemainingThrust" : self.RemainingThrust ,
-        }
+        })
+        return d
     
     def getCustomisableStats(self) -> 'dict[str,typing.Callable[[],AGeInput._TypeWidget]]':
         d = super().getCustomisableStats()
@@ -509,11 +515,13 @@ class Shield(Module):
         This method is called automatically when this module is saved.\n
         Reimplement this method if you create custom values. But don't forget to call `d.update(super().save())` before returning the dict!
         """
-        return {
+        d = super().save()
+        d.update({
             "HP_Shields_max" : self.HP_Shields_max ,
             "HP_Shields" : self.HP_Shields ,
             "HP_Shields_Regeneration" : self.HP_Shields_Regeneration ,
-        }
+        })
+        return d
     
     def getCustomisableStats(self) -> 'dict[str,typing.Callable[[],AGeInput._TypeWidget]]':
         d = super().getCustomisableStats()
@@ -584,12 +592,14 @@ class Sensor(Module):
         This method is called automatically when this module is saved.\n
         Reimplement this method if you create custom values. But don't forget to call `d.update(super().save())` before returning the dict!
         """
-        return {
+        d = super().save()
+        d.update({
             "LowRange" : self.LowRange ,
             "MediumRange" : self.MediumRange ,
             "HighRange" : self.HighRange ,
             "PerfectRange" : self.PerfectRange ,
-        }
+        })
+        return d
 
 class _Economic(Module):
     """
@@ -774,12 +784,14 @@ class MicroJumpDrive(Special):
         This method is called automatically when this module is saved.\n
         Reimplement this method if you create custom values. But don't forget to call `d.update(super().save())` before returning the dict!
         """
-        return {
+        d = super().save()
+        d.update({
             "MaxCharges" : self.MaxCharges ,
             "Cooldown" : self.Cooldown ,
             "Range" : self.Range ,
             "Charge" : self.Charge ,
-        }
+        })
+        return d
     
     def getCustomisableStats(self) -> 'dict[str,typing.Callable[[],AGeInput._TypeWidget]]':
         d = super().getCustomisableStats()
@@ -890,7 +902,8 @@ class Weapon(Module):
         This method is called automatically when this module is saved.\n
         Reimplement this method if you create custom values. But don't forget to call `d.update(super().save())` before returning the dict!
         """
-        return {
+        d = super().save()
+        d.update({
             "SoundEffectPath" : self.SoundEffectPath ,
             "Damage" : self.Damage ,
             "Accuracy" : self.Accuracy ,
@@ -900,7 +913,8 @@ class Weapon(Module):
             "MinimalRange" : self.MinimalRange ,
             "ShieldPiercing" : self.ShieldPiercing ,
             "Ready" : self.Ready ,
-        }
+        })
+        return d
     
     def getCustomisableStats(self) -> 'dict[str,typing.Callable[[],AGeInput._TypeWidget]]':
         d = super().getCustomisableStats()
@@ -960,6 +974,8 @@ class Weapon_Beam(Weapon):
         Reimplement this method if you create custom values. But don't forget to call `d.update(super().save())` before returning the dict!
         """
         d = super().save()
-        d["ModelPath"] = self.ModelPath
-        d["PenColourName"] = self.PenColourName
+        d.update({
+            "ModelPath" : self.ModelPath ,
+            "PenColourName" : self.PenColourName ,
+        })
         return d

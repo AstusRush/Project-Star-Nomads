@@ -20,6 +20,10 @@ class _InsufficientCapacityException(Exception):
 class _InsufficientResourcesException(Exception):
     pass
 
+#region AGeToCode
+_IMP_RESOURCES = [("PSN Resources","from Economy import Resources"),]
+#endregion AGeToCode
+
 #region Resource Base Class
 class _Resource_Metaclass(type):
     #TODO: There should be a mechanism that prevents the creation of any resource that ends with an underscore!
@@ -135,6 +139,18 @@ class Resource_(metaclass=_Resource_Metaclass):
         return self.new(abs(self.Quantity))
     def __nonzero__(self) -> bool:
         return bool(self.Quantity)
+    
+    def tocode_AGeLib(self, name="", indent=0, indentstr="    ", ignoreNotImplemented = False) -> _typing.Tuple[str,dict]:
+        ret, imp = "", {}
+        # ret is the ship data that calls a function which is stored as an entry in imp which constructs the ship
+        # Thus, ret, when executed, will be this ship. This can then be nested in a list so that we can reproduce entire fleets.
+        from AGeLib import AGeToPy
+        imp.update(_IMP_RESOURCES)
+        ret = indentstr*indent
+        if name:
+            ret += name + " = "
+        ret += f"Resources.{self.__class__.__name__}({self.Quantity})"
+        return ret, imp
 #endregion Resource Base Class
 
 #region Raw Resources
@@ -233,6 +249,11 @@ class _ResourceDict(_typing.Dict['Resource_','Resource_']):
             return key
         elif isinstance(key, Resource_):
             return type(key)
+    
+    def list(self) -> 'list[Resource_]':
+        return [k(v) for k,v in self.items()]
+    
+    #MAYBE: Implement __iter__ to directly iterate over a list
     
     def isOverCapacity(self) -> bool:
         return self.FreeCapacity < 0
@@ -340,6 +361,21 @@ class _ResourceDict(_typing.Dict['Resource_','Resource_']):
                 else:            text += f"{k}: {round( v,digits)}\n"
         text = text.rstrip("\n")
         return text
+    
+    def tocode_AGeLib(self, name="", indent=0, indentstr="    ", ignoreNotImplemented = False) -> _typing.Tuple[str,dict]:
+        ret, imp = "", {}
+        # ret is the ship data that calls a function which is stored as an entry in imp which constructs the ship
+        # Thus, ret, when executed, will be this ship. This can then be nested in a list so that we can reproduce entire fleets.
+        from AGeLib import AGeToPy
+        imp.update(_IMP_RESOURCES)
+        ret = indentstr*indent
+        if name:
+            ret += name + " = "
+        ret += f"Resources._ResourceDict.fromList(\n"
+        r,i = AGeToPy._topy(self.list(), indent=indent+2, indentstr=indentstr, ignoreNotImplemented=ignoreNotImplemented)
+        ret += f"{r}\n{indentstr*(indent+1)}cap={self.Capacity})" #TODO: Save ValidResourceTypes
+        imp.update(i)
+        return ret, imp
 #endregion _ResourceDict
 
 #NOTE: Here are some Notes

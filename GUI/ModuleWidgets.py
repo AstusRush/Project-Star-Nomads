@@ -276,17 +276,17 @@ class CargoWidget(ModuleWidget):
         if advancedMode(): self.DEBUG_AddResourceButton = self.addWidget(AGeWidgets.Button(self, "DEBUG: Fill resources", lambda: self.debug_addResources()))
     
     def debug_addResources(self):
-        self.module().StoredResources.set(Resources.Metals(self.module().Capacity/3))
-        self.module().StoredResources.set(Resources.Crystals(self.module().Capacity/3))
-        self.module().StoredResources.set(Resources.RareMetals(self.module().Capacity/6))
-        self.module().StoredResources.set(Resources.AdvancedComponents(self.module().Capacity/6.001))
+        self.module().storedResources().set(Resources.Metals(self.module().Capacity/3))
+        self.module().storedResources().set(Resources.Crystals(self.module().Capacity/3))
+        self.module().storedResources().set(Resources.RareMetals(self.module().Capacity/6))
+        self.module().storedResources().set(Resources.AdvancedComponents(self.module().Capacity/6.001))
         self.updateInterface()
     
     def updateFullInterface(self):
         self.updateInterface()
     
     def updateInterface(self):
-        self.Label.setText( self.module().StoredResources.text(f"{self.module().Name} (Capacity {round(self.module().StoredResources.UsedCapacity,5)} / {round(self.module().Capacity,5)})") )
+        self.Label.setText( self.module().storedResources().text(f"{self.module().Name} (Capacity {round(self.module().storedResources().UsedCapacity,5)} / {round(self.module().Capacity,5)})") )
 
 class AugmentWidget(ModuleWidget):
     module: 'weakref.ref[BaseModules.Augment]' = None
@@ -344,4 +344,18 @@ class WeaponWidget(ModuleWidget):
                             f"\n\tAccuracy: {round(self.module().Accuracy,3)}"
                             f"\n\tHullFactor: {round(self.module().HullFactor,3)}"
                             f"\n\tShieldFactor: {round(self.module().ShieldFactor,3)}"
+                            )
+
+class RefineryWidget(EconomicWidget):
+    module: 'weakref.ref[BaseEconomicModules.Refinery]' = None
+    def __init__(self, module:typing.Optional['BaseEconomicModules.Refinery'] = None) -> None:
+        super().__init__(module=module)
+        #CRITICAL:REFINERY WIDGET
+        self.Label = self.addWidget(QtWidgets.QLabel(self))
+    
+    def updateFullInterface(self):
+        self.updateInterface()
+    
+    def updateInterface(self):
+        self.Label.setText( f"{self.module().Name}"
                             )

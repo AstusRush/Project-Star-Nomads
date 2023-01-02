@@ -84,8 +84,8 @@ class Cargo(Economic):
         super().__init__()
         self.Widget:'ModuleWidgets.CargoWidget' = None
         self.FullWidget:'ModuleWidgets.CargoWidget' = None
-        self.StoredResources = Resources._ResourceDict()
-        self.StoredResources.setCapacity(self.Capacity)
+        self._StoredResources = Resources._ResourceDict()
+        self._StoredResources.setCapacity(self.Capacity)
     
     @property
     def Capacity(self) -> float:
@@ -93,14 +93,14 @@ class Cargo(Economic):
     
     @Capacity.setter
     def Capacity(self, cap:float):
-        #TODO: The way this should work is that we first create a copy of self.StoredResources
+        #TODO: The way this should work is that we first create a copy of self._StoredResources
         #       then we change its capacity to the new value
         #       then we check if this new capacity is valid
-        #       and then apply the new capacity to the self.StoredResources and change self._Capacity
+        #       and then apply the new capacity to the self._StoredResources and change self._Capacity
         #       and if any of that fails we raise an appropriate exception and have not actually broken anything
         #   (maybe don't actually create the copy but instead just check the numbers... that would probably be cleaner... But this at least gets the idea across)
         self._Capacity = cap
-        self.StoredResources.setCapacity(self._Capacity)
+        self._StoredResources.setCapacity(self._Capacity)
     
     def resourceCost(self) -> 'Resources._ResourceDict':
         return Resources._ResourceDict.new(
@@ -109,22 +109,35 @@ class Cargo(Economic):
         )
     
     def calculateValue(self):
-        return self.Capacity /10
+        return self.Capacity /50
     
     def calculateMass(self):
-        return self.Capacity /10
+        return self.Capacity /50
     
     def getFullInterface(self):
         self.FullWidget = ModuleWidgets.CargoWidget(self)
         return self.FullWidget
     
     def storedResources(self) -> Resources._ResourceDict:
-        return self.StoredResources
+        return self._StoredResources
     
     def getCustomisableStats(self) -> 'dict[str,typing.Callable[[],AGeInput._TypeWidget]]':
         d = super().getCustomisableStats()
         if "Mass" in d: del d["Mass"]
         tech.addStatCustomizer(d,self,"Capacity",AGeInput.Float) #CRITICAL: Does this work?
+        return d
+    
+    def save(self) -> dict:
+        """
+        Returns a dictionary with all values (and their names) that need to be saved to fully recreate this module.\n
+        This method is called automatically when this module is saved.\n
+        Reimplement this method if you create custom values. But don't forget to call `d.update(super().save())` before returning the dict!
+        """
+        d = super().save()
+        d.update({
+            "_Capacity" : self._Capacity ,
+            "_StoredResources" : self._StoredResources ,
+        })
         return d
     
     #TODO: Write an interface for the content
@@ -211,11 +224,13 @@ class ConstructionModule(Economic):
         This method is called automatically when this module is saved.\n
         Reimplement this method if you create custom values. But don't forget to call `d.update(super().save())` before returning the dict!
         """
-        return {
+        d = super().save()
+        d.update({
             "Value" : self.Value ,
             # "ConstructionResourcesGeneratedPerTurn" : self.ConstructionResourcesGeneratedPerTurn ,
             # "ConstructionResourcesStored" : self.ConstructionResourcesStored ,
-        }
+        })
+        return d
     
     def copy(self) -> "ConstructionModule":
         module = super().copy()
@@ -224,3 +239,93 @@ class ConstructionModule(Economic):
     
     def availableResources(self) -> Resources._ResourceDict:
         return self.ship().fleet().ResourceManager.storedResources()
+
+class Refinery(Economic):
+    # Modules to convert resources into other resources
+    Name = "Undefined Refinery Module"
+    Buildable = False
+    Input:'list[Resources.Resource_]' = None
+    Output:'list[Resources.Resource_]' = None
+    
+    def __init__(self) -> None:
+        super().__init__()
+        self.Widget:'ModuleWidgets.RefineryWidget' = None
+        self.FullWidget:'ModuleWidgets.RefineryWidget' = None
+        #CRITICAL: REFINERY MODULE
+    
+    def calculateValue(self):
+        #CRITICAL: REFINERY MODULE
+        return 1
+    
+    def calculateMass(self):
+        #CRITICAL: REFINERY MODULE
+        return 0.5
+    
+    def resourceCost(self) -> 'Resources._ResourceDict':
+        #CRITICAL: REFINERY MODULE
+        return Resources._ResourceDict.new(
+            Resources.Metals(self.Value*3/4),
+            Resources.RareMetals(self.Value/8),
+            Resources.Crystals(self.Value/4),
+        )
+    
+    def handleNewCampaignTurn(self):
+        self.convertResources()
+    
+    def convertResources(self):
+        available = self.ship().fleet().ResourceManager.storedResources()
+        mul = 1
+        for r in self.Input:
+            mul = min(mul, available[r]/r)
+        self.ship().fleet().ResourceManager.subtract(Resources._ResourceDict.fromList([mul*r for r in self.Input]))
+        tooMuch = self.ship().fleet().ResourceManager.add(Resources._ResourceDict.fromList([mul*r for r in self.Output]))
+        if tooMuch:
+            #CRITICAL: prevent that this can even happen
+            NC(1,tooMuch.text("Could not store all produced resources. The following resources were spaced:"),func="Refinery.convertResources",input=f"{self.Name = }\n{self.ship().Name = }\n{self.ship().fleet().Name = }")
+    
+    def getInterface(self):
+        self.Widget = ModuleWidgets.RefineryWidget(self)
+        return self.Widget
+    
+    def updateInterface(self):
+        if self.Widget:
+            try:
+                self.Widget.updateInterface()
+            except RuntimeError:
+                self.Widget = None # This usually means that the widget is destroyed but I don't know of a better way to test for it...
+        if self.FullWidget:
+            try:
+                self.FullWidget.updateFullInterface()
+            except RuntimeError:
+                self.FullWidget = None # This usually means that the widget is destroyed but I don't know of a better way to test for it...
+    
+    def getFullInterface(self):
+        self.FullWidget = ModuleWidgets.RefineryWidget(self)
+        return self.FullWidget
+    
+    def save(self) -> dict:
+        """
+        Returns a dictionary with all values (and their names) that need to be saved to fully recreate this module.\n
+        This method is called automatically when this module is saved.\n
+        Reimplement this method if you create custom values. But don't forget to call `d.update(super().save())` before returning the dict!
+        """
+        d = super().save()
+        d.update({
+            "Value" : self.Value ,
+            "Input" : self.Input ,
+            "Output" : self.Output ,
+        })
+        return d
+    
+    def getCustomisableStats(self) -> 'dict[str,typing.Callable[[],AGeInput._TypeWidget]]':
+        d = super().getCustomisableStats()
+        if "Mass" in d: del d["Mass"]
+        #tech.addStatCustomizer(d,self,"Capacity",AGeInput.Float)
+        return d
+
+class RecyclingModule(Refinery):
+    # Modules to convert resources into other resources
+    Name = "Recycling Module"
+    Buildable = True
+    Input:'list[Resources.Resource_]' = [Resources.Salvage(1)]
+    Output:'list[Resources.Resource_]' = [Resources.Metals(0.5),Resources.Crystals(0.4),Resources.RareMetals(0.1)]

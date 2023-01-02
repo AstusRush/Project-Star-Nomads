@@ -142,6 +142,11 @@ class TestEngine_XL(BaseModules.Engine): # FTL Engine
     Thrust = 60
     RemainingThrust = 60
 
+class TestEngine_Nomad(BaseModules.Engine): # FTL Engine
+    Name = "TestEngine_Nomad"
+    Thrust = 120
+    RemainingThrust = 120
+
 class TestThruster_M(BaseModules.Thruster): # Sublight Thruster
     Name = "TestThruster_M"
     Thrust = 12
@@ -156,6 +161,11 @@ class TestThruster_XL(BaseModules.Thruster): # Sublight Thruster
     Name = "TestThruster_XL"
     Thrust = 60
     RemainingThrust = 60
+
+class TestThruster_Nomad(BaseModules.Thruster): # Sublight Thruster
+    Name = "TestThruster_Nomad"
+    Thrust = 120
+    RemainingThrust = 120
 
 class TestConstructionModule(BaseEconomicModules.ConstructionModule): # ConstructionModule
     Name = "TestConstructionModule"
