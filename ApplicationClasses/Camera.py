@@ -196,7 +196,7 @@ class StrategyCamera(DirectObject):
         size = 500
         self.SpaceSkyBoxCentre = p3dc.NodePath(p3dc.PandaNode("SpaceSkyBoxCentre"))
         self.SpaceSkyBoxCentre.reparentTo(ape.render())
-        self.SpaceSkyBox = loader().loadModel(skyboxPath)
+        self.SpaceSkyBox = ape.loadModel(skyboxPath)
         self.SpaceSkyBox.setScale(size)
         self.SpaceSkyBox.setBin('background', 0)
         self.SpaceSkyBox.setDepthWrite(0)

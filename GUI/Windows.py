@@ -47,6 +47,7 @@ else:
 from BaseClasses import HexBase as Hex
 from BaseClasses import get
 from GUI import BaseInfoWidgets
+from GUI import EconomyInfoWidgets
 from GUI import Menu
 
 class MainWindowClass(ape.APELabWindow):#APEWindow):
@@ -62,9 +63,9 @@ class MainWindowClass(ape.APELabWindow):#APEWindow):
         #self.genCB = QtWidgets.QCheckBox(self)
         #self.genCB.setText("Use seed 6")
         #genLayout.addWidget(self.genCB)
-        self.EndTurnButton = AGeWidgets.Button(self,"End Turn",lambda: get.unitManager().endTurn())
-        base().accept("control-enter",lambda: get.unitManager().endTurn()) # ctrl + Enter
-        base().accept("control-space",lambda: get.unitManager().endTurn()) # ctrl + Space
+        self.EndTurnButton = AGeWidgets.Button(self,"End Turn",lambda: get.engine().endTurn())
+        base().accept("control-enter",lambda: get.engine().endTurn()) # ctrl + Enter
+        base().accept("control-space",lambda: get.engine().endTurn()) # ctrl + Space
         genLayout.addWidget(self.EndTurnButton)
         
         self.genWidget.setLayout(genLayout)
@@ -78,10 +79,13 @@ class MainWindowClass(ape.APELabWindow):#APEWindow):
         #self.Console1.setText(TEMP_CODE_PROC_TEST)
         #self.Console1.setText(TEMP_CODE_PROC_TEST_ASTEROID)
         
-        self.Console2.setText("engine().endBattleScene()\n")
+        self.Console2.setText("engine().endBattleScene()\n#get.hex((24,24)).ResourcesHarvestable.add(Resources.Salvage(12))\n")
         
         self.UnitStatDisplay = BaseInfoWidgets.FleetStats(self)
         self.TabWidget.addTab(self.UnitStatDisplay, "Unit Stats")
+        
+        self.EconomyDisplay = EconomyInfoWidgets.EconomyDisplay(self)
+        self.TabWidget.addTab(self.EconomyDisplay, "Economy")
         
         self.Menu = Menu.Menu(self)
         self.TabWidget.addTab(self.Menu, "Menu")
@@ -100,79 +104,88 @@ self.Pawn = Unit((25,24),name="USS Enterprise",model="/Users/Robin/Desktop/Proje
 self.Pawn2 = Unit((25,26),name="USS Galaxy",model="/Users/Robin/Desktop/Projects/AstusGameEngine_dev/3DModels/NCC-1701-D.gltf")
 """
 TEMP_CODE = """
-get.engine().clearAll()
-self.P1_Fleet1 = FleetBase.Fleet(1)
-self.P1_Fleet1.Name = "Fleet 1"
-if True:
-    ship = Ships.TestShips.NomadOne()
-    self.P1_Fleet1.addShip(ship)
-
-if False:
-    ship = Ships.AI_faction_ships.AI_PatrolCraft_1()
-    #ship = Ships.TestShips.ProcTestShip()
-    #ship = Ships.TestShips.TestShip()
-    ship.Name = f"Test 1"
-    self.P1_Fleet1.addShip(ship)
-
-self.P1_Fleet1.moveToHex(self.getHex((25,25)))
 
 if True:
-    #ship = Ships.TestShips.SpaceDock()
-    #ship.Name = f"Home One"
-    #self.P1_Fleet1.addShip(ship)
-    for i in range(3):
-        ship = Ships.TestShips.Prometheus()
-        ship.Name = f"Prometheus 1-{i}"
+    self.P1_Fleet1 = self.getHex((24,25)).fleet()
+    ship1 = Ships.TestShips.MiningTest()
+    self.P1_Fleet1.addShip(ship1)
+    ship2 = Ships.TestShips.RefineryTest()
+    self.P1_Fleet1.addShip(ship2)
+
+else:
+    get.engine().clearAll()
+    self.P1_Fleet1 = FleetBase.Fleet(1)
+    self.P1_Fleet1.Name = "Fleet 1"
+    if True:
+        ship = Ships.TestShips.NomadOne()
         self.P1_Fleet1.addShip(ship)
-    ###########################################
-    self.P1_Fleet2 = FleetBase.Fleet(1)
-    self.P1_Fleet2.Name = "Fleet 2"
-    for i in range(3):
-        ship = Ships.TestShips.Enterprise()
-        ship.Name = f"Enterprise 1-{i}"
-        self.P1_Fleet2.addShip(ship)
-    self.P1_Fleet2.moveToHex(self.getHex((25,26)))
-    ###########################################
-    self.P2_Fleet1 = FleetBase.Fleet(2)
-    self.P2_Fleet1.Name = "P2 Fleet 1"
-    for i in range(3):
-        ship = Ships.TestShips.Prometheus()
-        ship.Name = f"Prometheus 1-{i}"
-        self.P2_Fleet1.addShip(ship)
-    self.P2_Fleet1.moveToHex(self.getHex((25,24)))
-    ###########################################
-    self.P2_Fleet2 = FleetBase.Fleet(2)
-    self.P2_Fleet2.Name = "P2 Fleet 2"
-    for i in range(3):
-        ship = Ships.TestShips.Enterprise()
-        ship.Name = f"Enterprise 2-{i}"
-        self.P2_Fleet2.addShip(ship)
-    self.P2_Fleet2.moveToHex(self.getHex((26,24)))
-    ###########################################
-    self.P2_Fleet3 = FleetBase.Fleet(2)
-    self.P2_Fleet3.Name = "P2 Fleet 3"
-    for i in range(3):
-        ship = Ships.TestShips.Enterprise()
-        ship.Name = f"Enterprise 3-{i}"
-        self.P2_Fleet3.addShip(ship)
-    self.P2_Fleet3.moveToHex(self.getHex((24,24)))
-    ###########################################
-    self.P3_Fleet1 = FleetBase.Fleet(3)
-    self.P3_Fleet1.Name = "P3 Fleet 1"
-    for i in range(3):
-        ship = Ships.TestShips.Enterprise()
-        ship.Name = f"Enterprise 1-{i}"
-        self.P3_Fleet1.addShip(ship)
-    self.P3_Fleet1.moveToHex(self.getHex((26,25)))
-    ###########################################
-    self.P3_Fleet2 = FleetBase.Fleet(3)
-    self.P3_Fleet2.Name = "P3 Fleet 2"
-    for i in range(3):
-        ship = Ships.TestShips.Enterprise()
-        ship.Name = f"Enterprise 2-{i}"
-        self.P3_Fleet2.addShip(ship)
-    self.P3_Fleet2.moveToHex(self.getHex((24,25)))
-    ###########################################
+    
+    if False:
+        ship = Ships.AI_faction_ships.AI_PatrolCraft_1()
+        #ship = Ships.TestShips.ProcTestShip()
+        #ship = Ships.TestShips.TestShip()
+        ship.Name = f"Test 1"
+        self.P1_Fleet1.addShip(ship)
+    
+    self.P1_Fleet1.moveToHex(self.getHex((25,25)))
+    
+    if True:
+        #ship = Ships.TestShips.SpaceDock()
+        #ship.Name = f"Home One"
+        #self.P1_Fleet1.addShip(ship)
+        for i in range(3):
+            ship = Ships.TestShips.Prometheus()
+            ship.Name = f"Prometheus 1-{i}"
+            self.P1_Fleet1.addShip(ship)
+        ###########################################
+        self.P1_Fleet2 = FleetBase.Fleet(1)
+        self.P1_Fleet2.Name = "Fleet 2"
+        for i in range(3):
+            ship = Ships.TestShips.Enterprise()
+            ship.Name = f"Enterprise 1-{i}"
+            self.P1_Fleet2.addShip(ship)
+        self.P1_Fleet2.moveToHex(self.getHex((25,26)))
+        ###########################################
+        self.P2_Fleet1 = FleetBase.Fleet(2)
+        self.P2_Fleet1.Name = "P2 Fleet 1"
+        for i in range(3):
+            ship = Ships.TestShips.Prometheus()
+            ship.Name = f"Prometheus 1-{i}"
+            self.P2_Fleet1.addShip(ship)
+        self.P2_Fleet1.moveToHex(self.getHex((25,24)))
+        ###########################################
+        self.P2_Fleet2 = FleetBase.Fleet(2)
+        self.P2_Fleet2.Name = "P2 Fleet 2"
+        for i in range(3):
+            ship = Ships.TestShips.Enterprise()
+            ship.Name = f"Enterprise 2-{i}"
+            self.P2_Fleet2.addShip(ship)
+        self.P2_Fleet2.moveToHex(self.getHex((26,24)))
+        ###########################################
+        self.P2_Fleet3 = FleetBase.Fleet(2)
+        self.P2_Fleet3.Name = "P2 Fleet 3"
+        for i in range(3):
+            ship = Ships.TestShips.Enterprise()
+            ship.Name = f"Enterprise 3-{i}"
+            self.P2_Fleet3.addShip(ship)
+        self.P2_Fleet3.moveToHex(self.getHex((24,24)))
+        ###########################################
+        self.P3_Fleet1 = FleetBase.Fleet(3)
+        self.P3_Fleet1.Name = "P3 Fleet 1"
+        for i in range(3):
+            ship = Ships.TestShips.Enterprise()
+            ship.Name = f"Enterprise 1-{i}"
+            self.P3_Fleet1.addShip(ship)
+        self.P3_Fleet1.moveToHex(self.getHex((26,25)))
+        ###########################################
+        self.P3_Fleet2 = FleetBase.Fleet(3)
+        self.P3_Fleet2.Name = "P3 Fleet 2"
+        for i in range(3):
+            ship = Ships.TestShips.Enterprise()
+            ship.Name = f"Enterprise 2-{i}"
+            self.P3_Fleet2.addShip(ship)
+        self.P3_Fleet2.moveToHex(self.getHex((24,25)))
+        ###########################################
 """
 
 TEMP_CODE_PROC_TEST = """

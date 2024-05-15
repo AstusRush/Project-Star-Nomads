@@ -84,12 +84,22 @@ class FleetResourceManager(_BaseResourceManager):
         d = Resources._ResourceDict()
         for ship in self.fleet().Ships:
             d += ship.ResourceManager.storedResources()
+        try:
+            d.setCapacity(self.capacity())
+        except:
+            NC(2,f"The fleet {self.fleet().Name} seems to store more resources than it should be able to!", exc=True)
         return d
     
     def capacity(self) -> float:
         cap = 0
         for ship in self.fleet().Ships:
             cap += ship.ResourceManager.capacity()
+        return cap
+    
+    def freeCapacity(self) -> float:
+        cap = 0
+        for ship in self.fleet().Ships:
+            cap += ship.ResourceManager.freeCapacity()
         return cap
     
     def add(self, r:'Resources._ResourceDict') -> 'Resources._ResourceDict':
@@ -128,6 +138,10 @@ class ShipResourceManager(_BaseResourceManager):
         for module in self.ship().Modules:
             if isinstance(module, BaseEconomicModules.Cargo):
                 d += module.storedResources()
+        try:
+            d.setCapacity(self.capacity())
+        except:
+            NC(2,f"The ship {self.ship().Name} seems to store more resources than it should be able to!", exc=True)
         return d
     
     def capacity(self) -> float:
@@ -135,6 +149,13 @@ class ShipResourceManager(_BaseResourceManager):
         for module in self.ship().Modules:
             if isinstance(module, BaseEconomicModules.Cargo):
                 cap += module.Capacity
+        return cap
+    
+    def freeCapacity(self) -> float:
+        cap = 0
+        for module in self.ship().Modules:
+            if isinstance(module, BaseEconomicModules.Cargo):
+                cap += module.freeCapacity()
         return cap
     
     def add(self, r:'Resources._ResourceDict') -> 'Resources._ResourceDict':
@@ -146,6 +167,14 @@ class ShipResourceManager(_BaseResourceManager):
             if isinstance(module, BaseEconomicModules.Cargo):
                 r = module.storedResources().fillFrom(r)
         return r
+    
+    def addDirect(self, r:'Resources.Resource_') -> 'Resources._ResourceDict':
+        """
+        Directly add a resource. This works like `add` but directly takes a resource instead of a dict.
+        """
+        d = Resources._ResourceDict()
+        d.add(r)
+        return self.add(d)
     
     def subtract(self, r:'Resources._ResourceDict') -> 'Resources._ResourceDict':
         return self.add(-r)

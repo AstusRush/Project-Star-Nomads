@@ -286,7 +286,7 @@ class CargoWidget(ModuleWidget):
         self.updateInterface()
     
     def updateInterface(self):
-        self.Label.setText( self.module().storedResources().text(f"{self.module().Name} (Capacity {round(self.module().storedResources().UsedCapacity,5)} / {round(self.module().Capacity,5)})") )
+        self.Label.setText( self.module().storedResources().text(f"{self.module().Name}:") )
 
 class AugmentWidget(ModuleWidget):
     module: 'weakref.ref[BaseModules.Augment]' = None
@@ -351,6 +351,20 @@ class RefineryWidget(EconomicWidget):
     def __init__(self, module:typing.Optional['BaseEconomicModules.Refinery'] = None) -> None:
         super().__init__(module=module)
         #CRITICAL:REFINERY WIDGET
+        self.Label = self.addWidget(QtWidgets.QLabel(self))
+    
+    def updateFullInterface(self):
+        self.updateInterface()
+    
+    def updateInterface(self):
+        self.Label.setText( f"{self.module().Name}"
+                            )
+
+class HarvestWidget(EconomicWidget):
+    module: 'weakref.ref[BaseEconomicModules.Refinery]' = None
+    def __init__(self, module:typing.Optional['BaseEconomicModules.Refinery'] = None) -> None:
+        super().__init__(module=module)
+        #CRITICAL:HARVEST WIDGET
         self.Label = self.addWidget(QtWidgets.QLabel(self))
     
     def updateFullInterface(self):

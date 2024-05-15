@@ -47,9 +47,10 @@ else:
     from AstusPandaEngine import window as _window
 
 from ApplicationClasses import Scene, StarNomadsColourPalette
-from BaseClasses import HexBase, FleetBase, ShipBase, ModelBase, BaseModules, UnitManagerBase, Environment, get
+from BaseClasses import HexBase, FleetBase, ShipBase, ModelBase, BaseModules, UnitManagerBase, get
 from Economy import Resources, BaseEconomicModules
 from GUI import BaseInfoWidgets, Windows
+from Environment import Environment
 
 class EngineClass(ape.APE):
     def start(self):
@@ -66,10 +67,18 @@ class EngineClass(ape.APE):
         
         self.newGame()
     
+    def endTurn(self):
+        get.app().S_TurnEnded.emit()
+        get.unitManager().endTurn()
+    
     def startCampaignScene(self):
         self.UnitManager = UnitManagerBase.CampaignUnitManager()
         self.Scene = Scene.CampaignScene()
         self.Scene.start()
+    
+    def generateCampaignSector(self):
+        environmentCreator = Environment.EnvironmentCreator_Sector()
+        environmentCreator.generate(self.Scene.HexGrid, combat=False)
     
     def startBattleScene(self, fleets:'list[FleetBase.Fleet]', battleType=0):
         if self.CurrentlyInBattle: raise Exception("A battle is already happening")
@@ -78,6 +87,7 @@ class EngineClass(ape.APE):
         self._HexToLookAtAfterBattle = fleets[0].hex().Coordinates
         self.setHexInteractionFunctions()
         self.CurrentlyInBattle = True
+        self.Scene.HexGrid.clearAllSelections()
         self.UnitManager.unselectAll()
         self.FleetsInBattle = fleets
         self.Scene.pause()
@@ -85,7 +95,7 @@ class EngineClass(ape.APE):
         self.BattleScene = Scene.BattleScene()
         self.BattleScene.start()
         self.transferFleetsToBattle(fleets, battleType)
-        environmentCreator = Environment.EnvironmentCreator()
+        environmentCreator = Environment.EnvironmentCreator_Battle()
         environmentCreator.generate(self.BattleScene.HexGrid, combat=True)
         #self.BattleScene.Camera.moveToHex(random.choice(self.BattleUnitManager.Teams[1]).hex())
         self.BattleScene.Camera.focusRandomFleet(team=1)
@@ -121,10 +131,9 @@ class EngineClass(ape.APE):
     
     def endBattleScene(self):
         self.BattleUnitManager.unselectAll()
-        salvage = Resources._ResourceDict()
+        fleetLogs:'list[dict]' = []
         for fleet in self.FleetsInBattle:
-            salvage += fleet.battleEnded()
-        salvageMessage = self.distributeSalvage(salvage)
+            fleetLogs.append(fleet.battleEnded())
         self.BattleUnitManager.destroy()
         self.BattleUnitManager = None
         self.BattleScene.end()
@@ -133,22 +142,12 @@ class EngineClass(ape.APE):
         self.CurrentlyInBattle = False
         #self.Scene.Camera.CameraCenter.setPos(self._CameraPositionBeforeBattle)
         self.Scene.Camera.moveToHex(self.getHex(self._HexToLookAtAfterBattle))
-        NC(3, f"The battle has ended!\n{salvageMessage}", DplStr="Battle Ended") #TODO: Give more information about the battle
+        NC(3, self.makeBattleLog(fleetLogs), DplStr="Battle Ended") #TODO: Give more information about the battle
         if self.UnitManager.CurrentlyHandlingTurn:
             base().taskMgr.add(self.UnitManager._endTurn_handleAICombat())
     
-    def distributeSalvage(self, salvage:Resources._ResourceDict) -> str:
-        #CRITICAL: Implement salvaging using the new salvage module mechanic that collects the salvage over time instead of instantaneously
-        fullSalvage = salvage.copy()
-        if salvage:
-            for fleet in self.FleetsInBattle:
-                if fleet.Team == 1 and not fleet.isDestroyed():
-                    salvage = fleet.ResourceManager.add(salvage)
-            if salvage:
-                return (fullSalvage-salvage).text("Salvage collected:")+"\n"+salvage.text("Salvage that could not be stored and was therefore wasted:")
-            else:
-                return fullSalvage.text("Salvage collected:")
-        return "There was nothing to salvage..."
+    def makeBattleLog(self, fleetLogs:'list[dict]') -> str:
+        return "The battle has ended!" #TODO: Better log
     
     def getSceneRootNode(self):
         if self.BattleScene:
@@ -319,22 +318,26 @@ class EngineClass(ape.APE):
             ship = Ships.TestShips.NomadOne()
             Fleet1.addShip(ship)
             Fleet1.moveToHex(self.getHex((24,25)))
+            self.generateCampaignSector()
             get.window().TabWidget.setCurrentWidget(get.window().UnitStatDisplay)
             get.scene().Camera.resetCameraPosition()
             get.camera().focusRandomFleet(team=1)
     
-    def _confirmNewOrLoad(self, verb:str=""):
+    def _confirmNewOrLoad(self, action:str=""):
         confirm = True
         if self.UnitManager.Teams[1]:
             msgBox = QtWidgets.QMessageBox(get.window())
             msgBox.setText(f"Are you sure?")
-            msgBox.setInformativeText(f"It seems like you are already in a game. Are you sure you want to proceed {verb}?")
+            msgBox.setInformativeText(f"It seems like you are already in a game. Are you sure you want to proceed {action}?")
             msgBox.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.Cancel)
             msgBox.setDefaultButton(QtWidgets.QMessageBox.Cancel)
             confirm = msgBox.exec() == QtWidgets.QMessageBox.Yes
         return confirm
 
 class AppClass(ape.APEApp):
+    S_NewTurnStarted = pyqtSignal()
+    S_TurnEnded = pyqtSignal()
+    S_HexSelectionChanged = pyqtSignal()
     def __init__(self, args, useExcepthook=True):
         super().__init__(args, useExcepthook)
         #StarNomadsColourPalette.SNDark.update(self.Themes["Dark"])

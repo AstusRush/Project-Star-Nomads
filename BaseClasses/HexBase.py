@@ -48,6 +48,7 @@ else:
 
 # Game Imports
 from BaseClasses import get
+from Economy import Resources
 if TYPE_CHECKING:
     from BaseClasses import FleetBase
 
@@ -335,7 +336,7 @@ class HexGrid(DirectObject):
                 # Highlight the picked hex and store it as a member
                 i.hoverHighlight()
                 self.HighlightedHex = i
-                get.window().Statusbar.showMessage(i.Name)
+                i.highlightText()
                 if self.OnHoverDo:
                     self.OnHoverDo(i)
         
@@ -404,6 +405,7 @@ class HexGrid(DirectObject):
             self.SelectedHex._select()
             if self.HighlightedHex is self.SelectedHex:
                 self.HighlightedHex = False
+        get.app().S_HexSelectionChanged.emit()
     
     def _interactWithHighlightedHex(self):
         if not self.Active: return
@@ -415,6 +417,7 @@ class HexGrid(DirectObject):
 class _Hex():
     #TODO: These Hex colours should be in the 
     COLOUR_NORMAL = "HEX_COLOUR_NORMAL"
+    COLOUR_RESOURCES = "HEX_COLOUR_RESOURCES"
     COLOUR_SELECT = "HEX_COLOUR_SELECT"
     COLOUR_SELECT_FACE = "HEX_COLOUR_SELECT_FACE"
     COLOUR_HIGHLIGHT = "HEX_COLOUR_HIGHLIGHT"
@@ -444,6 +447,12 @@ class _Hex():
             self.Coordinates = coordinates
             self.TransparentHexRings = grid.TransparentHexRings
             self.grid = weakref.ref(grid)
+            self.ResourcesFree = Resources._ResourceDict()
+            self.ResourcesHarvestable = Resources._ResourceDict()
+            #CRITICAL: The resources must be saved!
+            #CRITICAL: When a hex contains resources it should be marked as such (at least colour the face brown...)
+            #CRITICAL: There needs to be something that shows the player which resources are on a tile
+            #CRITICAL: There needs to be a way to pick up resources (and to drop them if desired)
             
             # Save cube coordinates
             self.CubeCoordinates = grid.coordToCube(coordinates)
@@ -456,13 +465,13 @@ class _Hex():
             self.Node:p3dc.NodePath = p3dc.NodePath(p3dc.PandaNode(f"Central node of hex: {name}"))
             self.Node.reparentTo(root)
             self.Node.setPos(self.Pos)
-            self.Model:p3dc.NodePath = loader().loadModel(meshRing)
+            self.Model:p3dc.NodePath = ape.loadModel(meshRing)
             self.Model.reparentTo(self.Node)
             if self.TransparentHexRings:
                 self.Model.setTransparency(p3dc.TransparencyAttrib.MAlpha)
             self._setColor(self.Colour)
             # Load, parent, hide, and position the face (a single hexagon polygon)
-            self.Face:p3dc.NodePath = loader().loadModel(mesh)
+            self.Face:p3dc.NodePath = ape.loadModel(mesh)
             self.Face.reparentTo(self.Node)
             self.Face.setPos(p3dc.LPoint3((0,0,-0.01)))
             self._setColorFace(self.CurrentColour_Face)
@@ -477,7 +486,7 @@ class _Hex():
             self.Face.find("").node().setTag('hex', str(coordinates[0])+" "+str(coordinates[1]))
             
             # Load, parent, colour, and position the model (a hexagon-shaped ring consisting of 6 polygons)
-            self.InnerRing:p3dc.NodePath = loader().loadModel(meshRingInner)
+            self.InnerRing:p3dc.NodePath = ape.loadModel(meshRingInner)
             self.InnerRing.reparentTo(self.Node)
             self.InnerRing.setPos(p3dc.LPoint3((0,0,0)))
             if self.TransparentHexRings:
@@ -496,7 +505,7 @@ class _Hex():
             self.HighlightedInner = False
             self.HighlightedFace = False
         except:
-            NC(1,f"Error while creating {name}",exc=True) #MAYBE: Since we re-raise the exception after cleanup we might as well remove the notification and turn this into a 'finally'
+            NC(1,f"Error while creating {name}",exc=True) #MAYBE: Since we re-raise the exception after cleanup we might as well remove the notification
             nodes = "InnerRing,Face,Model,Node".split(",")
             for node in nodes:
                 if hasattr(self,node):
@@ -517,7 +526,7 @@ class _Hex():
         # type: (_Hex) -> bool
         """
         Makes the contents of this hex interact with the `other` hex. \n
-        Returns `True` if the new hex should be selected after this interaction. 
+        Returns `True` if the new hex should be selected after this interaction.
         """
         if self.fleet:
             return self.fleet().interactWith(other)
@@ -612,6 +621,12 @@ class _Hex():
   #endregion Colour
   #region Highlighting
     
+    def highlightText(self):
+        text = f"{self.Name}"
+        if self.ResourcesFree: text += f" | Floating Cargo Present ({self.ResourcesFree.UsedCapacity})"
+        if self.ResourcesHarvestable: text += f" | Harvestable Resources Present ({self.ResourcesHarvestable.UsedCapacity})"
+        get.window().Statusbar.showMessage(text)
+    
     def hoverHighlight(self, highlight:bool = True):
         if highlight:
             if self.TransparentHexRings:
@@ -646,6 +661,8 @@ class _Hex():
             self.CurrentColour_Edge = self.COLOUR_NORMAL
             self.CurrentColour_InnerRing = self.COLOUR_NORMAL
             self.CurrentColour_Face = self.COLOUR_SELECT_FACE
+            if self.ResourcesHarvestable or self.ResourcesFree:
+                self.CurrentColour_InnerRing = self.COLOUR_RESOURCES
             self._setColor(self.CurrentColour_Edge)
             self._setColorInnerRing(self.CurrentColour_InnerRing)
             self._setColorFace(self.CurrentColour_Face)
@@ -654,7 +671,7 @@ class _Hex():
                 self.InnerRing.setTransparency(p3dc.TransparencyAttrib.MAlpha)
             self.Face.setTransparency(p3dc.TransparencyAttrib.MNone)
             self.Face.hide()
-            self.InnerRing.hide()
+            self.hideInnerRing()
             self.Highlighted = False
             self.HighlightedEdge = False
             self.HighlightedInner = False
@@ -700,7 +717,7 @@ class _Hex():
             self.Face.setTransparency(p3dc.TransparencyAttrib.MAlpha)
             self.Face.show()
             self.Model.show()
-            self.InnerRing.hide()
+            self.hideInnerRing()
         else:
             self.CurrentColour_Edge = self.Colour
             if self.TransparentHexRings:
@@ -708,8 +725,18 @@ class _Hex():
             self._setColor(self.Colour)
             self.Face.setTransparency(p3dc.TransparencyAttrib.MNone)
             self.Face.hide()
-            self.InnerRing.hide()
+            self.hideInnerRing()
             if get.menu().HighlightOptionsWidget.HideGrid() and not self.HighlightedEdge: self.Model.hide()
+    
+    def hideInnerRing(self):
+        if self.ResourcesHarvestable or self.ResourcesFree:
+            self.CurrentColour_InnerRing = self.COLOUR_RESOURCES
+            self._setColorInnerRing(self.CurrentColour_InnerRing)
+            self.InnerRing.show()
+        else:
+            self.CurrentColour_InnerRing = self.COLOUR_NORMAL
+            self._setColorInnerRing(self.CurrentColour_InnerRing)
+            self.InnerRing.hide()
     
   #endregion Highlighting
   #region Hex Math
@@ -759,7 +786,7 @@ class _Hex():
                 count += 1
         
         return (np.squeeze(radHex) + center).tolist()
-        
+    
     def getRing(self, radius):
         coords = self._getRing_cubeCoords(radius)
         ring: typing.List[_Hex] = []
@@ -769,7 +796,7 @@ class _Hex():
             except HexInvalidException:
                 pass
         return ring
-        
+    
     def getDisk(self, radius, radius2=0):
         """
         Takes one or two integers as the outer and optional inner radius for a ring (order does not matter). \n
@@ -781,7 +808,7 @@ class _Hex():
         for i in range(radiusInner,radiusOuter+1):
             circle.extend(self.getRing(i))
         return circle
-        
+    
     def __lt__(self, other):
         "Needed for comparissons in `findPath` (specifically the heap operations)"
         # type: (_Hex) -> bool

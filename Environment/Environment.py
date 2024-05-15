@@ -54,18 +54,19 @@ from BaseClasses import get
 from BaseClasses import HexBase
 from BaseClasses import ModelBase
 from ProceduralGeneration import ProceduralModels
+from Environment import EnvironmentalObjects
+from Environment import EnvironmentalObjectGroups
+from Economy import HarvestableObjects
 
-class EnvironmentCreator(): #TODO: Clusters should scale with map-size
+class _EnvironmentCreator(): #TODO: Clusters should scale with map-size
     ClusterNumberMin = 6
     ClusterNumberMax = 40
-    ClusterSizeMin = 3
-    ClusterSizeMax = 20
-    ObjectTypes:'list[type[EnvironmentalObject]]' = None
+    ClusterTypes:'list[type[_ClusterType]]' = None
     def __init__(self) -> None:
-        self.ObjectTypes = [Asteroid]
+        pass#self.ClusterTypes = []
     
     def generate(self, hexGrid:HexBase.HexGrid, combat:bool):
-        if not self.ObjectTypes: raise Exception("No object types were given")
+        if not self.ClusterTypes: raise Exception("No cluster types were given")
         clusterTotal = random.choice(range(self.ClusterNumberMin, self.ClusterNumberMax+1))
         for clusterNum in range(clusterTotal):
             for _ in range(20):
@@ -76,16 +77,16 @@ class EnvironmentCreator(): #TODO: Clusters should scale with map-size
     
     def _createCluster(self, clusterCentre:HexBase._Hex, combat:bool, clusterTotal, clusterNum):
         #TODO: It is currently possible that fleets are completely blocked in by obstacles. There needs to be a check that ensures that all tiles are reachable
-        objectType = random.choice(self.ObjectTypes)
+        clusterType:'_ClusterType' = random.choice(self.ClusterTypes)()
         currentHex = clusterCentre
-        entityTotal = random.choice(range(self.ClusterSizeMin, self.ClusterSizeMax+1))
+        entityTotal = clusterType.getClusterSize()
         for entityNum in range(entityTotal):
             #TODO: Use https://doc.qt.io/qtforpython-5/PySide2/QtWidgets/QProgressDialog.html#PySide2.QtWidgets.PySide2.QtWidgets.QProgressDialog
             get.window().Statusbar.showMessage(f"Generating entity {entityNum}/{entityTotal} for environment cluster {clusterNum}/{clusterTotal}")
             App().processEvents()
-            object = objectType()
-            if not combat: objectGroup = EnvironmentalObjectGroup_Campaign()
-            else: objectGroup = EnvironmentalObjectGroup_Battle()
+            object = clusterType.getObjectType()()
+            if not combat: objectGroup = EnvironmentalObjectGroups.EnvironmentalObjectGroup_Campaign()
+            else: objectGroup = EnvironmentalObjectGroups.EnvironmentalObjectGroup_Battle()
             objectGroup.Name = object.Name
             objectGroup.addShip(object)
             objectGroup.moveToHex(currentHex, False)
@@ -96,36 +97,60 @@ class EnvironmentCreator(): #TODO: Clusters should scale with map-size
             if candidate.fleet: break
             currentHex = candidate
 
-class EnvironmentalObjectGroup_Campaign(FleetBase.Fleet):
-    def __init__(self, team=-1) -> None:
-        super().__init__(team)
 
-class EnvironmentalObjectGroup_Battle(FleetBase.Flotilla):
-    def __init__(self, team=-1) -> None:
-        super().__init__(team)
-
-class EnvironmentalObject(ShipBase.ShipBase):
+class EnvironmentCreator_Battle(_EnvironmentCreator):
+    ClusterNumberMin = 6
+    ClusterNumberMax = 40
+    ClusterTypes:'list[type[_ClusterType]]' = None
     def __init__(self) -> None:
-        super().__init__()
+        self.ClusterTypes = [ClusterType_Asteroid_S, ClusterType_Asteroid_M, ClusterType_Asteroid_L]
 
-class AsteroidModel(ModelBase.EnvironmentalModel):
-    """
-    The model should be a .obj created with blender with z facing up and x facing front\n
-    If created as .gltf use `gltf2bam SingleAsteroidTest.gltf SingleAsteroidTest.bam` to convert it (adjust names as necessary) (orientation to be determined)\n
-    """
-    #ModelPath = "tempModels/TestStuff/TestConeFacingX.obj"
-    #ModelPath = "tempModels/TestStuff/SingleAsteroidTest.obj"
-    ModelPath = "tempModels/TestStuff/SingleAsteroidTest.bam" # gltf2bam SingleAsteroidTest.gltf SingleAsteroidTest.bam
-    #IconPath = "tempModels/SpaceDockNar30974/dock3.jpg"
 
-class Asteroid(EnvironmentalObject):
-    Name = "Asteroid"
-    ClassName = "Asteroid"
-    def __init__(self, generateModel=True) -> None:
-        super().__init__()
-        from BaseClasses import BaseModules
-        if generateModel:
-            #self.setModel(AsteroidModel())
-            self.setModel(ProceduralModels.ProceduralModel_Asteroid())
-            if not self.Model.CouldLoadModel and self.Model.Model: self.Model.Model.setColor(ape.colour(QtGui.QColor(0x6d4207)))
-        self.addModule(BaseModules.Asteroid_Hull())
+class EnvironmentCreator_Sector(_EnvironmentCreator):
+    ClusterNumberMin = 6
+    ClusterNumberMax = 40
+    ClusterTypes:'list[type[_ClusterType]]' = None
+    def __init__(self) -> None:
+        self.ClusterTypes = [ClusterType_Asteroid_S, ClusterType_Asteroid_M, ClusterType_AsteroidHarvestable]
+
+
+class _ClusterType:
+    ClusterSizeMin = 3
+    ClusterSizeMax = 20
+    ObjectTypes:'list[type[EnvironmentalObjects.EnvironmentalObject]]' = None
+    
+    def getClusterSize(self):
+        return random.randint(self.ClusterSizeMin, self.ClusterSizeMax)
+    
+    def getObjectType(self) -> 'type[EnvironmentalObjects.EnvironmentalObject]':
+        return random.choice(self.ObjectTypes)
+
+class ClusterType_Asteroid(_ClusterType):
+    ClusterSizeMin = 3
+    ClusterSizeMax = 20
+    ObjectTypes:'list[type[EnvironmentalObjects.EnvironmentalObject]]' = None
+    def __init__(self) -> None:
+        self.ObjectTypes = [EnvironmentalObjects.Asteroid]
+
+class ClusterType_Asteroid_S(ClusterType_Asteroid):
+    ClusterSizeMin = 3
+    ClusterSizeMax = 6
+
+class ClusterType_Asteroid_M(ClusterType_Asteroid):
+    ClusterSizeMin = 6
+    ClusterSizeMax = 10
+
+class ClusterType_Asteroid_L(ClusterType_Asteroid):
+    ClusterSizeMin = 10
+    ClusterSizeMax = 20
+
+class ClusterType_Asteroid_XL(ClusterType_Asteroid):
+    ClusterSizeMin = 15
+    ClusterSizeMax = 25
+
+class ClusterType_AsteroidHarvestable(_ClusterType):
+    ClusterSizeMin = 3
+    ClusterSizeMax = 10
+    ObjectTypes:'list[type[EnvironmentalObjects.EnvironmentalObject]]' = None
+    def __init__(self) -> None:
+        self.ObjectTypes = [EnvironmentalObjects.Asteroid, HarvestableObjects.ResourceAsteroid]

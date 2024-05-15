@@ -66,6 +66,7 @@ else:
 from ApplicationClasses import MainAppClass, Scene, Camera
 from BaseClasses import HexBase, FleetBase, ShipBase, ModelBase, UnitManagerBase, get
 from GUI import BaseInfoWidgets, Windows, WidgetsBase
+from Economy import Resources
 import Ships
 
 

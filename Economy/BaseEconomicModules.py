@@ -102,6 +102,9 @@ class Cargo(Economic):
         self._Capacity = cap
         self._StoredResources.setCapacity(self._Capacity)
     
+    def freeCapacity(self) -> float:
+        return self._StoredResources.FreeCapacity
+    
     def resourceCost(self) -> 'Resources._ResourceDict':
         return Resources._ResourceDict.new(
             Resources.Metals(self.Value/4),
@@ -282,6 +285,7 @@ class Refinery(Economic):
         if tooMuch:
             #CRITICAL: prevent that this can even happen
             NC(1,tooMuch.text("Could not store all produced resources. The following resources were spaced:"),func="Refinery.convertResources",input=f"{self.Name = }\n{self.ship().Name = }\n{self.ship().fleet().Name = }")
+            self.ship().fleet().hex().ResourcesFree += tooMuch
     
     def getInterface(self):
         self.Widget = ModuleWidgets.RefineryWidget(self)
@@ -311,7 +315,6 @@ class Refinery(Economic):
         """
         d = super().save()
         d.update({
-            "Value" : self.Value ,
             "Input" : self.Input ,
             "Output" : self.Output ,
         })
@@ -324,8 +327,172 @@ class Refinery(Economic):
         return d
 
 class RecyclingModule(Refinery):
-    # Modules to convert resources into other resources
+    # Module to convert salvage into other resources
     Name = "Recycling Module"
     Buildable = True
     Input:'list[Resources.Resource_]' = [Resources.Salvage(1)]
     Output:'list[Resources.Resource_]' = [Resources.Metals(0.5),Resources.Crystals(0.4),Resources.RareMetals(0.1)]
+
+class OreRefineryModule(Refinery):
+    # Module to convert ore into metals
+    Name = "Ore Refinery Module"
+    Buildable = True
+    Input:'list[Resources.Resource_]' = [Resources.Ore(1)]
+    Output:'list[Resources.Resource_]' = [Resources.Metals(1)]
+
+class RareOreRefineryModule(Refinery):
+    # Module to convert rare ore into rare metals
+    Name = "Rare Ore Refinery Module"
+    Buildable = True
+    Input:'list[Resources.Resource_]' = [Resources.RareOre(1)]
+    Output:'list[Resources.Resource_]' = [Resources.RareMetals(1)]
+
+class HarvestModule(Economic):
+    # Modules to harvest resources
+    Name = "Undefined Harvest Module"
+    Buildable = False
+    HarvestRange = 0
+    Input:'list[Resources.Resource_]' = None # What is collected from the hex
+    Output:'list[Resources.Resource_]' = None # What is stored in the fleet (should be the same as `Input` in most cases but could be used for )
+    
+    def __init__(self) -> None:
+        super().__init__()
+        self.Widget:'ModuleWidgets.HarvestWidget' = None
+        self.FullWidget:'ModuleWidgets.HarvestWidget' = None
+        #CRITICAL: HARVEST MODULE
+    
+    def calculateValue(self):
+        #CRITICAL: HARVEST MODULE
+        return 1 * ((self.HarvestRange+1)**2)
+    
+    def calculateMass(self):
+        #CRITICAL: HARVEST MODULE
+        return 0.5
+    
+    def resourceCost(self) -> 'Resources._ResourceDict':
+        #CRITICAL: HARVEST MODULE
+        return Resources._ResourceDict.new(
+            Resources.Metals(self.Value*3/4),
+            Resources.RareMetals(self.Value/8),
+            Resources.Crystals(self.Value/4),
+        )
+    
+    def handleNewCampaignTurn(self):
+        self.harvestResources()
+    
+    def harvestResources(self):
+        #TODO: should not harvest the amount from each tile but in total!
+        for h in self.ship().fleet().hex().getDisk(self.HarvestRange):
+            self.harvestResourcesFromHex(h)
+            self.harvestResourcesFromHexObjects(h)
+    
+    def harvestResourcesFromHex(self, hex_:"HexBase._Hex"):
+        available = hex_.ResourcesHarvestable
+        if not available: return
+        mul = 1
+        for r in self.Input:
+            mul = min(mul, available[r]/r)
+        mul = min(mul, self.ship().fleet().ResourceManager.freeCapacity() / Resources._ResourceDict.fromList([r for r in self.Input]).UsedCapacity)
+        hex_.ResourcesHarvestable -= Resources._ResourceDict.fromList([mul*r for r in self.Input])
+        tooMuch = self.ship().fleet().ResourceManager.add(Resources._ResourceDict.fromList([mul*r for r in self.Output]))
+        if tooMuch:
+            #VALIDATE: This case should be impossible but this is exactly why this message is helpful for debugging: If this case occurs something is broken
+            text = tooMuch.text("Could not store all harvested resources. This should not happen. Please report this incident. The following resources were spaced:"),
+            NC(1,text,input=f"{self.Name = }\n{self.ship().Name = }\n{self.ship().fleet().Name = }")
+            hex_.ResourcesFree += tooMuch
+    
+    def harvestResourcesFromHexObjects(self, hex_:"HexBase._Hex"):
+        try:
+            if not hex_.fleet: return
+            if hex_.fleet().team() != -1: return
+            available = hex_.fleet().ResourceManager.storedResources()
+            if not available: return
+            mul = 1
+            for r in self.Input:
+                mul = min(mul, available[r]/r)
+            mul = min(mul, self.ship().fleet().ResourceManager.freeCapacity() / Resources._ResourceDict.fromList([r for r in self.Input]).UsedCapacity)
+            hex_.fleet().ResourceManager.subtract(Resources._ResourceDict.fromList([mul*r for r in self.Input]))
+            tooMuch = self.ship().fleet().ResourceManager.add(Resources._ResourceDict.fromList([mul*r for r in self.Output]))
+            if tooMuch:
+                #VALIDATE: This case should be impossible but this is exactly why this message is helpful for debugging: If this case occurs something is broken
+                text = tooMuch.text("Could not store all harvested resources. This should not happen. Please report this incident. The following resources were spaced:"),
+                NC(1,text,input=f"{self.Name = }\n{self.ship().Name = }\n{self.ship().fleet().Name = }\nHarvested from {hex_.fleet().Name = }")
+                hex_.ResourcesFree += tooMuch
+            if not hex_.fleet().ResourceManager.storedResources():
+                hex_.fleet().TeamRing.hide()
+        except:
+            NC(4,"Could not harvest resources due to exception",exc=True)
+            return
+    
+    def getInterface(self):
+        self.Widget = ModuleWidgets.HarvestWidget(self)
+        return self.Widget
+    
+    def updateInterface(self):
+        if self.Widget:
+            try:
+                self.Widget.updateInterface()
+            except RuntimeError:
+                self.Widget = None # This usually means that the widget is destroyed but I don't know of a better way to test for it...
+        if self.FullWidget:
+            try:
+                self.FullWidget.updateFullInterface()
+            except RuntimeError:
+                self.FullWidget = None # This usually means that the widget is destroyed but I don't know of a better way to test for it...
+    
+    def getFullInterface(self):
+        self.FullWidget = ModuleWidgets.HarvestWidget(self)
+        return self.FullWidget
+    
+    def save(self) -> dict:
+        """
+        Returns a dictionary with all values (and their names) that need to be saved to fully recreate this module.\n
+        This method is called automatically when this module is saved.\n
+        Reimplement this method if you create custom values. But don't forget to call `d.update(super().save())` before returning the dict!
+        """
+        d = super().save()
+        d.update({
+            "HarvestRange" : self.HarvestRange ,
+            "Input" : self.Input ,
+            "Output" : self.Output ,
+        })
+        return d
+    
+    def getCustomisableStats(self) -> 'dict[str,typing.Callable[[],AGeInput._TypeWidget]]':
+        d = super().getCustomisableStats()
+        if "Mass" in d: del d["Mass"]
+        tech.addStatCustomizer(d,self,"HarvestRange",AGeInput.Int)
+        return d
+
+class SalvageModule(HarvestModule):
+    Name = "Salvage Module"
+    Buildable = True
+    HarvestRange = 0
+    Input:'list[Resources.Resource_]' = [Resources.Salvage(2)]
+    Output:'list[Resources.Resource_]' = [Resources.Salvage(2)]
+
+class OreMiningModule(HarvestModule):
+    Name = "Ore Mining Module"
+    Buildable = True
+    HarvestRange = 1
+    Input:'list[Resources.Resource_]' = [Resources.Ore(2)]
+    Output:'list[Resources.Resource_]' = [Resources.Ore(2)]
+
+class RareOreMiningModule(HarvestModule):
+    Name = "Rare Ore Mining Module"
+    Buildable = True
+    HarvestRange = 1
+    Input:'list[Resources.Resource_]' = [Resources.RareOre(0.5)]
+    Output:'list[Resources.Resource_]' = [Resources.RareOre(0.5)]
+
+class CrystalMiningModule(HarvestModule):
+    Name = "Crystal Mining Module"
+    Buildable = True
+    HarvestRange = 1
+    Input:'list[Resources.Resource_]' = [Resources.Crystals(1.5)]
+    Output:'list[Resources.Resource_]' = [Resources.Crystals(1.5)]
+
+class Asteroid_Resources(Cargo):
+    Name = "Resource Rich Asteroid"
+    Buildable = False
+    _Capacity = 200

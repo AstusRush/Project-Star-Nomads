@@ -166,6 +166,7 @@ class UnitManager():
         self.CurrentlyHandlingTurn = False
         print("Start of player turn")
         NC(10,"New turn has started", log=False)
+        get.app().S_NewTurnStarted.emit()
     
     def checkAndHandleTeamDefeat(self):
         pass

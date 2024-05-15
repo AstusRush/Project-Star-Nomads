@@ -73,13 +73,14 @@ class ShipList(typing.List['ShipBase.ShipBase']):
 class TeamRing():
     def __init__(self, fleet, team, node) -> None:
         self.fleet:'weakref.ref[FleetBase]' = weakref.ref(fleet)
-        self.TeamRing:p3dc.NodePath = loader().loadModel("Models/Simple Geometry/hexagonRing.ply")
+        self.TeamRing:p3dc.NodePath = ape.loadModel("Models/Simple Geometry/hexagonRing.ply")
         self.TeamRing.reparentTo(node)
         self.TeamRing.setColor(ape.colour(App().Theme["Star Nomads"][f"Team {team}"]))
         self.TeamRing.setScale(0.9)
         self.TeamRing.setPos(p3dc.LPoint3((0,0,-0.02)))
         self.C_ColourChangedConnection = App().S_ColourChanged.connect(self.recolour)
         if team == -1: self.hide()
+        self.hide() #TODO: This is temporary to see if the team colours on the ships is good enough
     
     def destroy(self):
         if self.C_ColourChangedConnection:
@@ -204,6 +205,8 @@ class FleetBase():
             if notifyIfNotContained: NC(2,f"SHIP WAS NOT IN SHIP LIST\nFleet name: {self.Name}\nShip name: {ship.Name}", tb=True) #TODO: give more info
         if not self.Ships:
             self.destroy()
+            if arrange: print(f"{self.Name} was destroyed!")
+            else: print(f"{self.Name} was emptied")
             return False
         else:
             return True
@@ -666,31 +669,33 @@ class Fleet(FleetBase):
     def MovePoints_max(self) -> float:
         return min([i.Stats.Movement_FTL[1] for i in self.Ships])
     
-    def battleEnded(self) -> Resources._ResourceDict:
+    def battleEnded(self) -> 'dict':
         """
         Handles the End of the Battle for this Fleet. \n
         This Includes removing all destroyed ships and re-parenting all other ships from their flotillas back to this fleet. \n
         If all ships were destroyed this fleet will delete itself. \n
-        Returns the salvage Value of all destroyed ships.
+        Returns a log containing information about the battle
         """
         print("Battle Ended for", self.Name)
         print("Ships in fleet before cleanup:", len(self.Ships))
+        hex_ = self.hex()
         ships_to_be_removed:typing.List['ShipBase.ShipBase'] = []
         for ship in self.Ships:
             if ship.Destroyed:
                 ships_to_be_removed.append(ship)
-        salvageValue = Resources.Salvage(0)
+        salvage = Resources.Salvage(0)
         for ship in ships_to_be_removed:
-            salvageValue += ship.Stats.Value/8
+            salvage += ship.Stats.Value/8
             self.removeShip(ship,arrange=False)
         print("Ships in fleet after cleanup:", len(self.Ships))
+        hex_.ResourcesHarvestable.add(salvage)
         if self.Destroyed:
-            return Resources._ResourceDict.new(salvageValue)
+            return {"salvage":Resources._ResourceDict.new(salvage)}
         else:
             for ship in self.Ships:
                 ship.reparentTo(self)
             self.arrangeShips()
-        return Resources._ResourceDict.new(salvageValue)
+        return {"salvage":Resources._ResourceDict.new(salvage)}
     
   #region Combat Offensive
     async def attack(self, target: 'HexBase._Hex', orders:AI_Base.Orders = None, performOutOfTurn = False):

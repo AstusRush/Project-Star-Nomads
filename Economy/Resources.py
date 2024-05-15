@@ -317,7 +317,7 @@ class _ResourceDict(_typing.Dict['Resource_','Resource_']):
     def __sub__(self, a:'_ResourceDict') -> '_ResourceDict':
         return self._add_sub(a,-1)
     def _add_sub(self, other:'_ResourceDict', sign:'int') -> '_ResourceDict':
-        if other is 0: return self.copy() # Required to sum of a list of ResourceDicts as the sum is initialized with a 0
+        if other == 0: return self.copy() # Required to sum of a list of ResourceDicts as the sum is initialized with a 0
         if not isinstance(other, _ResourceDict): raise TypeError(f"Only a ResourceStorageDict can be added to or subtracted from a ResourceStorageDict, not a {type(other)} ({other})")
         d = self.copy()
         for k,v in other.items():
@@ -350,7 +350,13 @@ class _ResourceDict(_typing.Dict['Resource_','Resource_']):
         Returns a formatted text that describes this storage dict and its content.
         """
         if indent is None: indent = bool(headline)
-        text = f"{headline}\n" if headline else ""
+        if self.Capacity != float("inf"):
+            text = f"{headline} (Cap" if headline else "Capacity"
+            text += f": {round(self.UsedCapacity,5)} / {round(self.Capacity,5)}"
+            if headline: text += ")"
+            text += "\n"
+        else:
+            text = f"{headline}\n" if headline else ""
         if not self:
             if indent: text += "\t"
             text += "None"

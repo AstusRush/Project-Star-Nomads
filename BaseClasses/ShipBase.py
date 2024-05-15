@@ -575,6 +575,10 @@ class ShipBase():
             raise Exception(f"Fleet '{fleet.Name}' is neither a fleet nor a flotilla! This should not be possible! This ship will self-destruct as a response to this!")
         self.Node.reparentTo(fleet.Node)
         self.Node.setPos(0,0,0)
+        try:
+            self.Model.applyTeamColour()
+        except:
+            NC(2,"Could not apply team colour",exc=True,input=f"{self.Model = }")
     
     def makeModel(self, modelPath):
         if not modelPath:
@@ -633,7 +637,7 @@ class ShipBase():
         self.ExplosionSoundEffect.setVolume(get.menu().SoundOptionsWidget.WeaponSoundVolume())
         self.ExplosionSoundEffect.play()
         
-        self.ExplosionEffect:p3dc.NodePath = loader().loadModel("Models/Simple Geometry/sphere.ply")
+        self.ExplosionEffect:p3dc.NodePath = ape.loadModel("Models/Simple Geometry/sphere.ply")
         if typing.TYPE_CHECKING: self.ExplosionEffect = p3dc.NodePath()
         colour = App().PenColours["Orange"].color()
         colour.setAlphaF(0.6)
@@ -643,7 +647,7 @@ class ShipBase():
         self.ExplosionEffect.reparentTo(self.Node)
         self.ExplosionEffect.scaleInterval(explosionDuration, 1.5, 0.1).start()
         
-        self.ExplosionEffect2:p3dc.NodePath = loader().loadModel("Models/Simple Geometry/sphere.ply")
+        self.ExplosionEffect2:p3dc.NodePath = ape.loadModel("Models/Simple Geometry/sphere.ply")
         if typing.TYPE_CHECKING: self.ExplosionEffect2 = p3dc.NodePath()
         colour = App().PenColours["Red"].color()
         #colour.setAlphaF(0.5)
@@ -653,11 +657,13 @@ class ShipBase():
         self.ExplosionEffect2.reparentTo(self.Node)
         self.ExplosionEffect2.scaleInterval(explosionDuration, 1.1, 0.05).start()
         
+        print(f"{self.Name} was destroyed!")
+        
         base().taskMgr.doMethodLater(explosionDuration, self.destroy, str(id(self)))
     
     def showShield(self, time = 1):
         
-        shieldEffect:p3dc.NodePath = loader().loadModel("Models/Simple Geometry/sphere.ply")
+        shieldEffect:p3dc.NodePath = ape.loadModel("Models/Simple Geometry/sphere.ply")
         try:
             if self.Stats.HP_Shields >= self.Stats.HP_Shields_max / 2:
                 c = "Shield 100"

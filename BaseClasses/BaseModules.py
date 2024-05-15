@@ -936,7 +936,7 @@ class Weapon_Beam(Weapon):
     PenColourName = "Orange"
     
     def fireEffectAt(self, target:'ShipBase.ShipBase', hit:bool=True):
-        laserEffect:p3dc.NodePath = loader().loadModel(self.ModelPath)
+        laserEffect:p3dc.NodePath = ape.loadModel(self.ModelPath)
         try:
             laserEffect.reparentTo(self.ship().Node)
             if self.moduleModel:

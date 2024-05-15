@@ -31,6 +31,7 @@ SNDark = {
             "Shield 50" : QtGui.QBrush(QtGui.QColor(255,119,0,255),QtCore.Qt.SolidPattern) ,
             "Shield 25" : QtGui.QBrush(QtGui.QColor(255,0,0,255),QtCore.Qt.SolidPattern) ,
             "HEX_COLOUR_NORMAL" : QtGui.QBrush(QtGui.QColor(55,55,255,255),QtCore.Qt.SolidPattern) , #"Blue"
+            "HEX_COLOUR_RESOURCES" : QtGui.QBrush(QtGui.QColor(155,55,55,255),QtCore.Qt.SolidPattern) ,
             "HEX_COLOUR_SELECT" : QtGui.QBrush(QtGui.QColor(255,255,0,255),QtCore.Qt.SolidPattern) , #"Yellow"
             "HEX_COLOUR_SELECT_FACE" : QtGui.QBrush(QtGui.QColor(0,170,255,255),QtCore.Qt.SolidPattern) , #"Light Blue"
             "HEX_COLOUR_HIGHLIGHT" : QtGui.QBrush(QtGui.QColor(0,170,255,255),QtCore.Qt.SolidPattern) , #"Light Blue"
