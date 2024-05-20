@@ -80,6 +80,26 @@ class EngineClass(ape.APE):
         environmentCreator = Environment.EnvironmentCreator_Sector()
         environmentCreator.generate(self.Scene.HexGrid, combat=False)
     
+    def transitionToNewCampaignSector(self):
+        self.clearAll(exceptPlayer=True)
+        
+        #TODO: The following code is ugly but at least it handles all reasonable edge-cases
+        c = 2
+        hexes = self.Scene.HexGrid.getCentreHexes(c)
+        while len(hexes) < len(self.UnitManager.Teams[1])+1:
+            c += 1
+            hexes = self.Scene.HexGrid.getCentreHexes(c)
+        for fleet in self.UnitManager.Teams[1]:
+            for h in hexes:
+                if not h.fleet:
+                    fleet.moveToHex(h, animate=False)
+                    break
+                elif h.fleet() is fleet:
+                    break
+        
+        self.generateCampaignSector()
+        self.resetCameraAndSetUnitTab()
+    
     def startBattleScene(self, fleets:'list[FleetBase.Fleet]', battleType=0):
         if self.CurrentlyInBattle: raise Exception("A battle is already happening")
         #TODO: What happens when no player fleet is involved?!
@@ -302,12 +322,17 @@ class EngineClass(ape.APE):
             self.clearAll()
             from SavedGames import LastSave
     
-    def clearAll(self): #TODO: also clear any battle that is currently active and return to the campaign map
+    def clearAll(self,exceptPlayer=False): #TODO: also clear any battle that is currently active and return to the campaign map
         fleetList:UnitManagerBase.UnitList = []
         for team in self.getUnitManager().Teams.values():
-            fleetList += team
+            if exceptPlayer and team.ID == 1: continue
+            else: fleetList += team
         for i in fleetList:
             i.completelyDestroy()
+        for i in self.Scene.HexGrid.Hexes:
+            for j in i:
+                j.ResourcesFree.clear()
+                j.ResourcesHarvestable.clear()
     
     def newGame(self):
         if self._confirmNewOrLoad("starting a new game"):
@@ -317,11 +342,10 @@ class EngineClass(ape.APE):
             Fleet1.Name = "Nomad Fleet"
             ship = Ships.TestShips.NomadOne()
             Fleet1.addShip(ship)
-            Fleet1.moveToHex(self.getHex((24,25)))
+            #Fleet1.moveToHex(self.getHex((24,25)))
+            Fleet1.moveToHex(self.Scene.HexGrid.getCentreHexes(1)[0])
             self.generateCampaignSector()
-            get.window().TabWidget.setCurrentWidget(get.window().UnitStatDisplay)
-            get.scene().Camera.resetCameraPosition()
-            get.camera().focusRandomFleet(team=1)
+            self.resetCameraAndSetUnitTab()
     
     def _confirmNewOrLoad(self, action:str=""):
         confirm = True
@@ -333,6 +357,14 @@ class EngineClass(ape.APE):
             msgBox.setDefaultButton(QtWidgets.QMessageBox.Cancel)
             confirm = msgBox.exec() == QtWidgets.QMessageBox.Yes
         return confirm
+    
+    def resetCameraAndSetUnitTab(self):
+        get.hexGrid().clearAllSelections()
+        get.window().TabWidget.setCurrentWidget(get.window().UnitStatDisplay)
+        get.scene().Camera.resetCameraPosition()
+        fleet = get.camera().focusRandomFleet(team=1)
+        if fleet:
+            fleet.hex().select()
 
 class AppClass(ape.APEApp):
     S_NewTurnStarted = pyqtSignal()

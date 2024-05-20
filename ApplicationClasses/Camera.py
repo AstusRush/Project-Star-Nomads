@@ -49,6 +49,7 @@ from BaseClasses import get
 
 if TYPE_CHECKING:
     from BaseClasses import HexBase
+    from BaseClasses import FleetBase
 
 class StrategyCamera(DirectObject):
     def __init__(self):
@@ -176,14 +177,17 @@ class StrategyCamera(DirectObject):
         ape.base().camera.setPos(0,-15,0)
         ape.base().camera.lookAt(self.CameraCenter)
     
-    def focusRandomFleet(self, team:'int'=1):
+    def focusRandomFleet(self, team:'int'=1) -> 'typing.Union[None,FleetBase.FleetBase]':
+        fleet = None
         try:
             if get.unitManager().Teams[team]:
-                self.moveToHex(random.choice(get.unitManager().Teams[team]).hex())
+                fleet = random.choice(get.unitManager().Teams[team])
+                self.moveToHex(fleet.hex())
             else:
                 NC(2,f"There are no fleets in {get.unitManager().Teams[team].name()} for the camera to focus on.")
         except:
             NC(1,"Could not focus camera on random fleet.", exc=True, input=f"{team = }")
+        return fleet
     
     def moveToHex(self, hex_:'HexBase._Hex'):
         self.CameraCenter.setPos(hex_.Pos)

@@ -289,7 +289,8 @@ class FleetBase():
     def moveToHex(self, hex:'HexBase._Hex', animate=True):
         self.Coordinates = hex.Coordinates
         if hex.fleet:
-            raise HexBase.HexOccupiedException(hex)
+            if hex.fleet() is not self:
+                raise HexBase.HexOccupiedException(hex)
         else:
             if animate and self.hex:
                 self.Node.lookAt(hex.Pos)
@@ -303,6 +304,7 @@ class FleetBase():
                 raise Exception("Could not assign unit to Hex")
             if hex.fleet() != self: #TODO: We have a serious problem when this occurs. What do we do in that case?
                 raise Exception(f"Could not assign unit to Hex. (The Hex has a different fleet assigned that is named {hex.fleet()})")
+            if self.hex: self.hex().fleet = None
             self.hex = weakref.ref(hex)
     
     def _navigable(self, hex:'HexBase._Hex'):
