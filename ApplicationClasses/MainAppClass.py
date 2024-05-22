@@ -56,11 +56,11 @@ class EngineClass(ape.APE):
     REINFORCEMENT_RANGE =  4
     REINFORCEMENT_TIME  = 15
     CurrentBattleTurn = 0
-    CurrentBattleAggressorHex:'HexBase._Hex'
-    CurrentBattleDefenderHex:'HexBase._Hex'
+    CurrentBattleAggressorHex:'HexBase._Hex' = None
+    CurrentBattleDefenderHex:'HexBase._Hex' = None
+    _HexToLookAtAfterBattle:'HexBase._Hex' = None
     def start(self):
         self._NumHexGridsCampaign, self._NumHexGridsBattle = 0, 0
-        self._HexToLookAtAfterBattle = (0,0)
         self.Scene:'Scene.CampaignScene' = None
         self.BattleScene:'Scene.BattleScene' = None
         self.UnitManager:'UnitManagerBase.CampaignUnitManager' = None
@@ -111,12 +111,12 @@ class EngineClass(ape.APE):
         self.generateCampaignSector()
         self.resetCameraAndSetUnitTab()
     
-    def startBattleScene(self, fleets:'list[FleetBase.Fleet]', aggressorHex, defenderHex, battleType=0):
+    def startBattleScene(self, fleets:'list[FleetBase.Fleet]', aggressorHex:'HexBase._Hex', defenderHex:'HexBase._Hex', battleType=0):
         if self.CurrentlyInBattle: raise Exception("A battle is already happening")
         #TODO: What happens when no player fleet is involved?!
         #self._CameraPositionBeforeBattle = self.Scene.Camera.CameraCenter.getPos()
         self.CurrentBattleTurn = 1
-        self._HexToLookAtAfterBattle = fleets[0].hex().Coordinates
+        self._HexToLookAtAfterBattle = defenderHex
         self.setHexInteractionFunctions()
         self.CurrentlyInBattle = True
         self.BattleType = battleType
@@ -167,6 +167,9 @@ class EngineClass(ape.APE):
     def handleReinforcement(self):
         if not self.CurrentlyInBattle: raise Exception("No battle is happening already happening")
         if self.CurrentBattleTurn % self.REINFORCEMENT_TIME == 0 and (self.CurrentBattleTurn // self.REINFORCEMENT_TIME) + 2 <= self.REINFORCEMENT_RANGE:
+            if not self.CurrentBattleDefenderHex:
+                NC(2,"Can not handle reinforcements due to unspecified CurrentBattleDefenderHex")
+                return
             currentRange = (self.CurrentBattleTurn // self.REINFORCEMENT_TIME)
             hexes = set(self.CurrentBattleDefenderHex.getRing(currentRange))
             #hexes.update(self.CurrentBattleAggressorHex.getRing(currentRange))
@@ -194,7 +197,8 @@ class EngineClass(ape.APE):
         self.Scene.continue_()
         self.CurrentlyInBattle = False
         #self.Scene.Camera.CameraCenter.setPos(self._CameraPositionBeforeBattle)
-        self.Scene.Camera.moveToHex(self.getHex(self._HexToLookAtAfterBattle))
+        if self._HexToLookAtAfterBattle: self.Scene.Camera.moveToHex(self._HexToLookAtAfterBattle)
+        else: NC(2,"Can not recentre camera due to unspecified _HexToLookAtAfterBattle")
         NC(3, self.makeBattleLog(fleetLogs), DplStr="Battle Ended") #TODO: Give more information about the battle
         if self.UnitManager.CurrentlyHandlingTurn:
             base().taskMgr.add(self.UnitManager._endTurn_handleAICombat())
