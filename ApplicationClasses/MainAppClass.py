@@ -71,10 +71,13 @@ class EngineClass(ape.APE):
         self.CurrentlyInBattle = False
         
         self.newGame()
+        get.app().S_NewTurnStarted.connect(lambda: self._handleNewTurn())
     
     def endTurn(self):
         get.app().S_TurnEnded.emit()
         get.unitManager().endTurn()
+    
+    def _handleNewTurn(self):
         if self.CurrentlyInBattle:
             self.CurrentBattleTurn += 1
             self.handleReinforcement()
@@ -176,6 +179,7 @@ class EngineClass(ape.APE):
             if fleetsToAdd:
                 self.transferFleetsToBattle(fleetsToAdd, self.BattleType, reinforcements=True)
                 textList = [f"{f.Name} of {f.TeamName}" for f in fleetsToAdd]
+                get.app().processEvents()
                 NC(3,"Sensors have detected reinforcements entering the battle!\n"+"\n".join(textList),DplStr="Reinforcements Detected!")
     
     def endBattleScene(self):
