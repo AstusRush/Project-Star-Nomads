@@ -55,6 +55,8 @@ from BaseClasses import get
 #       (and can do other cleanup work like clearing the Hex interaction functions)
 
 class FleetStats(QtWidgets.QSplitter):
+    #MAYBE: Currently all of this is operated by the fleet in displayStats, getInterface, and updateInterface.
+    #       Maybe hte code populating the UI should be moved here instead and the fleet simply calls the appropriate methods when appropriate.
     def __init__(self, parent: typing.Optional['QtWidgets.QWidget']) -> None:
         super().__init__(parent=parent)
         self.setOrientation(QtCore.Qt.Orientation.Vertical)
@@ -79,8 +81,10 @@ class FleetStats(QtWidgets.QSplitter):
         self.FleetOverview.layout().addWidget(widget)
     
     def removeWidget(self, widget:'QtWidgets.QWidget'):
-        self.FleetOverview.layout().removeWidget(widget)
-        widget.deleteLater()
+        if widget:
+            self.FleetOverview.layout().removeWidget(widget)
+        if widget:
+            widget.deleteLater()
         self.DetailView = AGeWidgets.TightGridWidget(self)
         self.DetailScrollWidget.setWidget(self.DetailView)
         #if self.LastDetailsWidget:

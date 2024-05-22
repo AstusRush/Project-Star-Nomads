@@ -177,6 +177,10 @@ class FleetBase():
     @property
     def ResourceManager(self) -> 'EconomyManager.FleetResourceManager':
         return self.EconomyManager.ResourceManager
+    
+    @property
+    def TeamName(self) -> str:
+        return get.unitManager().Teams[self.Team].name()
   #endregion init and destroy
   #region manage ship list
     def _addShip(self, ship:'ShipBase.ShipBase'):
@@ -716,7 +720,7 @@ class Fleet(FleetBase):
             try: await self.MovementSequence
             except: self.MovementSequence.finish()
         involvedFleets = self.getInvolvedFleetsForPotentialBattle(self.hex(), target)
-        get.engine().startBattleScene(involvedFleets)
+        get.engine().startBattleScene(involvedFleets, aggressorHex = self.hex(), defenderHex = target)
     
     def getInvolvedFleetsForPotentialBattle(self, hex:'HexBase._Hex', target:'HexBase._Hex') -> 'list[Fleet]':
         involvedFleets = [self,target.fleet()]
@@ -744,8 +748,9 @@ class Fleet(FleetBase):
             self.updateInterface()
         else:
             #get.window().UnitStatDisplay.Text.setText("No unit selected")
-            get.window().UnitStatDisplay.removeWidget(self.Widget)
-            self.Widget.deleteLater()
+            if self.Widget:
+                get.window().UnitStatDisplay.removeWidget(self.Widget)
+                self.Widget.deleteLater()
             self.Widget = None
     
     def getInterface(self): #TODO: Overhaul this! The displayed information should not be the combat interface but the campaign interface!
@@ -762,7 +767,7 @@ class Fleet(FleetBase):
         if self.Widget:
             try:
                 text = textwrap.dedent(f"""
-                Team: {self.Team}
+                Team: {self.TeamName}
                 Positions: {self.hex().Coordinates}
                 Movement Points: {round(self.MovePoints,3)}/{round(self.MovePoints_max,3)}
                 """).strip()
@@ -888,8 +893,9 @@ class Flotilla(FleetBase):
             self.updateInterface()
         else:
             #get.window().UnitStatDisplay.Text.setText("No unit selected")
-            get.window().UnitStatDisplay.removeWidget(self.Widget)
-            self.Widget.deleteLater()
+            if self.Widget:
+                get.window().UnitStatDisplay.removeWidget(self.Widget)
+                self.Widget.deleteLater()
             self.Widget = None
     
     def getInterface(self):

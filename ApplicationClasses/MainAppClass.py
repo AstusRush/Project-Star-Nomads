@@ -53,6 +53,11 @@ from GUI import BaseInfoWidgets, Windows
 from Environment import Environment
 
 class EngineClass(ape.APE):
+    REINFORCEMENT_RANGE =  4
+    REINFORCEMENT_TIME  = 15
+    CurrentBattleTurn = 0
+    CurrentBattleAggressorHex:'HexBase._Hex'
+    CurrentBattleDefenderHex:'HexBase._Hex'
     def start(self):
         self._NumHexGridsCampaign, self._NumHexGridsBattle = 0, 0
         self._HexToLookAtAfterBattle = (0,0)
@@ -70,6 +75,9 @@ class EngineClass(ape.APE):
     def endTurn(self):
         get.app().S_TurnEnded.emit()
         get.unitManager().endTurn()
+        if self.CurrentlyInBattle:
+            self.CurrentBattleTurn += 1
+            self.handleReinforcement()
     
     def startCampaignScene(self):
         self.UnitManager = UnitManagerBase.CampaignUnitManager()
@@ -100,16 +108,20 @@ class EngineClass(ape.APE):
         self.generateCampaignSector()
         self.resetCameraAndSetUnitTab()
     
-    def startBattleScene(self, fleets:'list[FleetBase.Fleet]', battleType=0):
+    def startBattleScene(self, fleets:'list[FleetBase.Fleet]', aggressorHex, defenderHex, battleType=0):
         if self.CurrentlyInBattle: raise Exception("A battle is already happening")
         #TODO: What happens when no player fleet is involved?!
         #self._CameraPositionBeforeBattle = self.Scene.Camera.CameraCenter.getPos()
+        self.CurrentBattleTurn = 1
         self._HexToLookAtAfterBattle = fleets[0].hex().Coordinates
         self.setHexInteractionFunctions()
         self.CurrentlyInBattle = True
+        self.BattleType = battleType
         self.Scene.HexGrid.clearAllSelections()
         self.UnitManager.unselectAll()
         self.FleetsInBattle = fleets
+        self.CurrentBattleAggressorHex = aggressorHex
+        self.CurrentBattleDefenderHex = defenderHex
         self.Scene.pause()
         self.BattleUnitManager = UnitManagerBase.CombatUnitManager()
         self.BattleScene = Scene.BattleScene()
@@ -120,7 +132,7 @@ class EngineClass(ape.APE):
         #self.BattleScene.Camera.moveToHex(random.choice(self.BattleUnitManager.Teams[1]).hex())
         self.BattleScene.Camera.focusRandomFleet(team=1)
     
-    def transferFleetsToBattle(self, fleets:'list[FleetBase.Fleet]', battleType):
+    def transferFleetsToBattle(self, fleets:'list[FleetBase.Fleet]', battleType, reinforcements=False):
         for fleet in fleets:
             fleet_parts = self.splitFleetIntoFlotillas(fleet)
             for num, ships in enumerate(fleet_parts):
@@ -128,9 +140,9 @@ class EngineClass(ape.APE):
                 flotilla.Name = f"Flotilla {num} of {fleet.Name}"
                 for ship in ships:
                     flotilla.addShip(ship)
-                self.placeFlotillaInBattle(flotilla, fleet, battleType)
+                self.placeFlotillaInBattle(flotilla, fleet, battleType, reinforcements)
     
-    def placeFlotillaInBattle(self, flotilla:FleetBase.Flotilla, fleet:FleetBase.Fleet, battleType):
+    def placeFlotillaInBattle(self, flotilla:FleetBase.Flotilla, fleet:FleetBase.Fleet, battleType, reinforcements):
         #TODO: Implement battle types and have special positioning rules for things like ambushes or imprecise jump drives
         #MAYBE: It would be cool to have an FTL precision system without which ships jump to random positions
         #           and higher levels allow the player to pick initial positions and then maybe inhibitors that disallow the placement of ships right next to enemies...
@@ -148,6 +160,23 @@ class EngineClass(ape.APE):
                 if flotilla._navigable(hex_):
                     break
         flotilla.moveToHex(hex_,animate=False)
+    
+    def handleReinforcement(self):
+        if not self.CurrentlyInBattle: raise Exception("No battle is happening already happening")
+        if self.CurrentBattleTurn % self.REINFORCEMENT_TIME == 0 and (self.CurrentBattleTurn // self.REINFORCEMENT_TIME) + 1 <= self.REINFORCEMENT_RANGE:
+            currentRange = (self.CurrentBattleTurn // self.REINFORCEMENT_TIME) + 1
+            hexes = set(self.CurrentBattleAggressorHex.getRing(currentRange))
+            hexes.update(self.CurrentBattleDefenderHex.getRing(currentRange))
+            fleets = [h.fleet() for h in hexes if h.fleet]
+            fleetsToAdd:'list[FleetBase.Fleet]' = []
+            for fleet in fleets:
+                if fleet not in self.FleetsInBattle:
+                    self.FleetsInBattle.append(fleet)
+                    fleetsToAdd.append(fleet)
+            if fleetsToAdd:
+                self.transferFleetsToBattle(fleetsToAdd, self.BattleType, reinforcements=True)
+                textList = [f"{f.Name} of {f.TeamName}" for f in fleetsToAdd]
+                NC(3,"Sensors have detected reinforcements entering the battle!\n"+"\n".join(textList),DplStr="Reinforcements Detected!")
     
     def endBattleScene(self):
         self.BattleUnitManager.unselectAll()
