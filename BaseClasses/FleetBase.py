@@ -724,10 +724,10 @@ class Fleet(FleetBase):
     
     def getInvolvedFleetsForPotentialBattle(self, hex:'HexBase._Hex', target:'HexBase._Hex') -> 'list[Fleet]':
         involvedFleets = [self,target.fleet()]
-        for i in hex.getNeighbour()+target.getNeighbour():
-            if i.fleet:
-                if not i.fleet() in involvedFleets:
-                    involvedFleets.append(i.fleet())
+        #for i in hex.getNeighbour()+target.getNeighbour():
+        #    if i.fleet:
+        #        if not i.fleet() in involvedFleets:
+        #            involvedFleets.append(i.fleet())
         return involvedFleets
     
     def getAttackableHexes(self, _hex:'HexBase._Hex'=None) -> typing.List['HexBase._Hex']:

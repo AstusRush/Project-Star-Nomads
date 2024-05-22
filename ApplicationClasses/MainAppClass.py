@@ -163,10 +163,10 @@ class EngineClass(ape.APE):
     
     def handleReinforcement(self):
         if not self.CurrentlyInBattle: raise Exception("No battle is happening already happening")
-        if self.CurrentBattleTurn % self.REINFORCEMENT_TIME == 0 and (self.CurrentBattleTurn // self.REINFORCEMENT_TIME) + 1 <= self.REINFORCEMENT_RANGE:
-            currentRange = (self.CurrentBattleTurn // self.REINFORCEMENT_TIME) + 1
-            hexes = set(self.CurrentBattleAggressorHex.getRing(currentRange))
-            hexes.update(self.CurrentBattleDefenderHex.getRing(currentRange))
+        if self.CurrentBattleTurn % self.REINFORCEMENT_TIME == 0 and (self.CurrentBattleTurn // self.REINFORCEMENT_TIME) + 2 <= self.REINFORCEMENT_RANGE:
+            currentRange = (self.CurrentBattleTurn // self.REINFORCEMENT_TIME)
+            hexes = set(self.CurrentBattleDefenderHex.getRing(currentRange))
+            #hexes.update(self.CurrentBattleAggressorHex.getRing(currentRange))
             fleets = [h.fleet() for h in hexes if h.fleet]
             fleetsToAdd:'list[FleetBase.Fleet]' = []
             for fleet in fleets:
