@@ -192,6 +192,83 @@ class StrategyCamera(DirectObject):
     def moveToHex(self, hex_:'HexBase._Hex'):
         self.CameraCenter.setPos(hex_.Pos)
     
+    def makeSkybox(self, seed=None, sector=True, sun=False) -> 'float':
+        #TODO: Skybox needs to be bound to scene such that a return to the sector map after a battle restores the sector map skybox
+        if self.SpaceSkyBox:
+            self.SpaceSkyBox.hide()
+            self.SpaceSkyBox.removeNode()
+        if self.SpaceSkyBoxCentre:
+            self.SpaceSkyBoxCentre.removeNode()
+        size = 5000
+        self.SpaceSkyBoxCentre = p3dc.NodePath(p3dc.PandaNode("SpaceSkyBoxCentre"))
+        self.SpaceSkyBoxCentre.reparentTo(ape.render())
+        try:
+            from ProceduralGeneration import SkyboxGeneration
+            if not seed: seed = random.random()
+            rand = random.Random(seed)
+            params = {
+                "seed": str(seed),
+                "backgroundColor": [pow(rand.random(),2)*32,pow(rand.random(),2)*32,pow(rand.random(),2)*32],
+                "pointStars": True,
+                "stars": 200,
+                "sun": False, #TODO
+                "sunFalloff": 100,
+                "jpegQuality": 0.85,
+                "nebulaColorBegin": [rand.random()*255,rand.random()*255,rand.random()*255],
+                "nebulaColorEnd": [rand.random()*255,rand.random()*255,rand.random()*255],
+                "nebulae": True,
+                "resolution": 1024*2,#*4,
+                "renderToTexture": True,
+            }
+            old_pos = ape.base().camera.getPos()
+            ape.base().camera.setPos(0,0,0)
+            ape.base().camera.lookAt(0,1,0)
+            self.SpaceSkyBox = SkyboxGeneration.SkyboxGenerator().getSkybox(params)
+            self._skyboxHelper(size)
+            ape.base().camera.setPos(old_pos)
+            ape.base().camera.lookAt(self.CameraCenter)
+            #raise Exception()
+        except:
+            NC(exc=True)
+            #self.SpaceSkyBox = ape.loadModel('Models/Skyboxes/LastGenerated/RandomSpace.egg')
+            self.SpaceSkyBox = ape.loadModel('Models/Skyboxes/Sector/GreenSpace1/GreenSpace1.egg')
+            self._skyboxHelper(size)
+        #directions = [0,90,180,270]
+        #self.SpaceSkyBox.setHpr(random.choice(directions),random.choice(directions),random.choice(directions))
+        #SkyboxGeneration.SkyboxGenerator().getSkybox(params)
+        return seed
+    
+    def makeSkybox_alt(self, sector, sun):
+        try:
+            from ProceduralGeneration import SkyboxGeneration
+            
+            params = {
+                "seed": "The very best seed!",
+                "backgroundColor": [pow(random.random(),2)*32,pow(random.random(),2)*32,pow(random.random(),2)*32],
+                "pointStars": True,
+                "stars": 200,
+                "sun": False,
+                "sunFalloff": 100,
+                "jpegQuality": 0.85,
+                "nebulaColorBegin": [random.random()*255,random.random()*255,random.random()*255],
+                "nebulaColorEnd": [random.random()*255,random.random()*255,random.random()*255],
+                "nebulae": True,
+                "resolution": 1024*4,
+                "renderToTexture": True,
+            }
+            ape.base().camera.setPos(0,0,0)
+            ape.base().camera.lookAt(0,1,0)
+            if self.SpaceSkyBoxCentre:
+                self.SpaceSkyBoxCentre.hide()
+            SkyboxGeneration.SkyboxGenerator().makeSkybox(params)
+            if self.SpaceSkyBoxCentre:
+                self.SpaceSkyBoxCentre.show()
+            path = "Models/Skyboxes/LastGenerated/RandomSpace.egg"
+        except:
+            NC(exc=True)
+            path = 'Models/Skyboxes/Sector/GreenSpace1/GreenSpace1.egg'
+        self.loadSkybox(path)
+    
     def loadSkybox(self, skyboxPath='Models/Skyboxes/Sector/GreenSpace1/GreenSpace1.egg'):
         if self.SpaceSkyBox:
             self.SpaceSkyBox.removeNode()
@@ -200,16 +277,24 @@ class StrategyCamera(DirectObject):
         size = 500
         self.SpaceSkyBoxCentre = p3dc.NodePath(p3dc.PandaNode("SpaceSkyBoxCentre"))
         self.SpaceSkyBoxCentre.reparentTo(ape.render())
-        self.SpaceSkyBox = ape.loadModel(skyboxPath)
-        self.SpaceSkyBox.setScale(size)
-        self.SpaceSkyBox.setBin('background', 0)
-        self.SpaceSkyBox.setDepthWrite(0)
-        self.SpaceSkyBox.setTwoSided(True)
-        self.SpaceSkyBox.setTexGen(p3dc.TextureStage.getDefault(),p3dc.TexGenAttrib.MWorldCubeMap)
-        self.SpaceSkyBox.reparentTo(self.SpaceSkyBoxCentre)
+        lo = p3dc.LoaderOptions()
+        lo.setFlags(lo.LF_no_cache)
+        #self.SpaceSkyBox = ape.loadModel(skyboxPath, noCache=True, loaderOptions=lo)
+        self.SpaceSkyBox = loader().loadModel(skyboxPath, noCache=True, loaderOptions=lo)
+        self._skyboxHelper(size)
         directions = [0,90,180,270]
         self.SpaceSkyBox.setHpr(random.choice(directions),random.choice(directions),random.choice(directions))
         #self.SpaceSkyBox.setPos((-size/2,-size/2,-size/2)) #VALIDATE: I think it already is centred correctly...
+    
+    def _skyboxHelper(self, size):
+        self.SpaceSkyBox.setTwoSided(True)
+        self.SpaceSkyBox.setTexGen(p3dc.TextureStage.getDefault(),p3dc.TexGenAttrib.MWorldCubeMap)
+        self.SpaceSkyBox.setScale(size)
+        self.SpaceSkyBox.setBin('background', 0)
+        self.SpaceSkyBox.setDepthWrite(0)
+        self.SpaceSkyBox.reparentTo(self.SpaceSkyBoxCentre)
+        self.SpaceSkyBox.setLightOff()
+        self.SpaceSkyBox.setMaterialOff()
     
     def acceptAllCombinations(self, key, *args):
         if not self.Active:
