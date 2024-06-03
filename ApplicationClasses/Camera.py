@@ -217,15 +217,18 @@ class StrategyCamera(DirectObject):
                 "nebulaColorBegin": [rand.random()*255,rand.random()*255,rand.random()*255],
                 "nebulaColorEnd": [rand.random()*255,rand.random()*255,rand.random()*255],
                 "nebulae": True,
-                "resolution": 1024*2,#*4,
+                "resolution": 1024*4,
                 "renderToTexture": True,
             }
-            old_pos = ape.base().camera.getPos()
+            old_pos_cam = ape.base().camera.getPos()
+            old_pos_cen = self.CameraCenter.getPos()
+            self.CameraCenter.setPos(0,0,0)
             ape.base().camera.setPos(0,0,0)
             ape.base().camera.lookAt(0,1,0)
             self.SpaceSkyBox = SkyboxGeneration.SkyboxGenerator().getSkybox(params)
             self._skyboxHelper(size)
-            ape.base().camera.setPos(old_pos)
+            self.CameraCenter.setPos(old_pos_cen)
+            ape.base().camera.setPos(old_pos_cam)
             ape.base().camera.lookAt(self.CameraCenter)
             #raise Exception()
         except:
@@ -406,8 +409,8 @@ class StrategyCamera(DirectObject):
             if self.CamMouseControlRotate:
                 if self.SmoothCam:
                     d = (mpos - self.CamMouseControlCentre)
-                    self.CameraCenter.setH(self.CameraCenter, 10*d[0])
-                    p = self.CameraRotCenter.getP() + 10*d[1]
+                    self.CameraCenter.setH(self.CameraCenter, 0.4*d[0])
+                    p = self.CameraRotCenter.getP() + 0.4*d[1]
                     if p < -90: p = -90
                     elif p > 90: p = 90
                     self.CameraRotCenter.setP(p)
