@@ -62,7 +62,7 @@ def createFleet(d:dict):
     fleet = FleetBase.Fleet(d["Team"])
     fleet.Name = d["Name"]
     fleet.addShips(d["Ships"])
-    fleet.moveToHex(get.hexGrid().getHex(d["Coordinates"]))
+    fleet.moveToHex(get.hexGrid().getHex(d["Coordinates"]), False)
     
     return fleet
 """)]

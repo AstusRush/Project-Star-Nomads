@@ -42,7 +42,7 @@ class Resource_(metaclass=_Resource_Metaclass):
     Quantity = 0
     
     def __init__(self, quantity:float=0) -> None:
-        self.Quantity = quantity
+        self.Quantity = float(quantity)
     
     @property
     def Name(self) -> str:
@@ -60,7 +60,7 @@ class Resource_(metaclass=_Resource_Metaclass):
     
     @Q.setter
     def Q(self, value:float):
-        self.Quantity = value
+        self.Quantity = float(value)
     
     def __str__(self) -> str:
         return self.Name #MAYBE: This probably should also display the amount if it is not 0? Or would that make it too unpredictable for formatting?
@@ -149,7 +149,7 @@ class Resource_(metaclass=_Resource_Metaclass):
         ret = indentstr*indent
         if name:
             ret += name + " = "
-        ret += f"Resources.{self.__class__.__name__}({self.Quantity})"
+        ret += f"Resources.{self.__class__.__name__}({float(self.Quantity)})"
         return ret, imp
 #endregion Resource Base Class
 
@@ -379,7 +379,7 @@ class _ResourceDict(_typing.Dict['Resource_','Resource_']):
             ret += name + " = "
         ret += f"Resources._ResourceDict.fromList(\n"
         r,i = AGeToPy._topy(self.list(), indent=indent+2, indentstr=indentstr, ignoreNotImplemented=ignoreNotImplemented)
-        ret += f"{r}\n{indentstr*(indent+1)}cap={self.Capacity})" #TODO: Save ValidResourceTypes
+        ret += f"{r},\n{indentstr*(indent+1)}cap={self.Capacity})" #TODO: Save ValidResourceTypes
         imp.update(i)
         return ret, imp
 #endregion _ResourceDict
