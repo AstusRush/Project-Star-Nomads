@@ -217,7 +217,7 @@ class StrategyCamera(DirectObject):
                 "nebulaColorBegin": [rand.random()*255,rand.random()*255,rand.random()*255],
                 "nebulaColorEnd": [rand.random()*255,rand.random()*255,rand.random()*255],
                 "nebulae": True,
-                "resolution": 1024*4,
+                "resolution": 512*pow(2, get.menu().GraphicsOptionsWidget.SkyboxResolution()), #1024*4,
                 "renderToTexture": True,
             }
             old_pos_cam = ape.base().camera.getPos()
@@ -256,7 +256,7 @@ class StrategyCamera(DirectObject):
                 "nebulaColorBegin": [random.random()*255,random.random()*255,random.random()*255],
                 "nebulaColorEnd": [random.random()*255,random.random()*255,random.random()*255],
                 "nebulae": True,
-                "resolution": 1024*4,
+                "resolution": 512*pow(2, get.menu().GraphicsOptionsWidget.SkyboxResolution()), #1024*4,
                 "renderToTexture": True,
             }
             ape.base().camera.setPos(0,0,0)
