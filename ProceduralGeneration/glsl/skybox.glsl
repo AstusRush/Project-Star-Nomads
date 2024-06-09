@@ -1,4 +1,4 @@
-#version 120
+#version 150
 
 uniform mat4 p3d_ProjectionMatrix;
 uniform mat4 p3d_ViewMatrix;
@@ -38,7 +38,7 @@ void main() {
 
 __split__
 
-#version 120
+#version 150
 
 #ifdef USE_330
     #define textureCube texture

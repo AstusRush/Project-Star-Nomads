@@ -1,4 +1,4 @@
-#version 100
+#version 150
 precision highp float;
 
 uniform mat4 uModel;
