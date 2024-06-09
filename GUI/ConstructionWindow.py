@@ -521,9 +521,14 @@ class ModuleList(QtWidgets.QListWidget):
         #CRITICAL: VALIDATE Resource spending: Does this work now?
         if self.lifeEditing():
             if not self.constructionWidget().constructionModule().canSpend(-item.data(100).resourceCost()): # minus because we actually want to add something
-                NC(2, f"Can not remove the module since not all resources can be stored!")
-                return
-            self.constructionWidget().constructionModule().spend(-item.data(100).resourceCost())
+                if force:
+                    NC(2, f"Not all resources can be stored. Since this removal was internally forced the module removal will be executed regardless to prevent bugs and the resources are spaced to be picked up later.")
+                    self.constructionWidget().constructionModule().ship().fleet().hex().ResourcesFree += item.data(100).resourceCost()
+                else:
+                    NC(2, f"Can not remove the module since not all resources can be stored!")
+                    return
+            else:
+                self.constructionWidget().constructionModule().spend(-item.data(100).resourceCost())
         self.constructionWidget().ModuleEditor.unsetModule(item)
         self.constructionWidget().removeModule(item.data(100))
         self.takeItem(self.row(item))

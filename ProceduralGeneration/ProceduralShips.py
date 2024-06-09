@@ -134,17 +134,17 @@ class ModuleTypes:
     class FrontSection(ModuleType):
         @classmethod
         def wedge(cls, gb:'GeomBuilder_Ships.ShipBuilder',module:'ShipModule') -> 'GeomBuilder_Ships.ShipBuilder':
-            return gb.add_frontSection_wedge(module, connection=p3dc.Point3(0,0,0), connection_size=2, width=4, length=8, height=2.5, color=(0.6,0.4,1,1))
+            return gb.add_frontSection_wedge(module, connection=p3dc.Point3(0,0,0), connection_size=2, width=4, length=8, height=2.5, color=module.ship().TeamColour) #(0.6,0.4,1,1))
     class MidSection(ModuleType):
         @classmethod
         def block(cls, gb:'GeomBuilder_Ships.ShipBuilder',module:'ShipModule') -> 'GeomBuilder_Ships.ShipBuilder':
-            return gb.add_midSection_block(module, connection_front=p3dc.Point3(0,0,0), connection_front_size=2, connection_rear=p3dc.Point3(0,-3,0), connection_rear_size=2, width=4, height=2.5, color=(1,0.3,1,1))
+            return gb.add_midSection_block(module, connection_front=p3dc.Point3(0,0,0), connection_front_size=2, connection_rear=p3dc.Point3(0,-3,0), connection_rear_size=2, width=4, height=2.5, color=module.ship().TeamColour)
     class AftSection(ModuleType):
         @classmethod
         def cone(cls, gb:'GeomBuilder_Ships.ShipBuilder',module:'ShipModule') -> 'GeomBuilder_Ships.ShipBuilder':
             from BaseClasses import BaseModules
             if not module.logicalModule or not isinstance(module.logicalModule(),BaseModules.Thruster):
-                return gb.add_aftSection_cone_static(module, connection_front=p3dc.Point3(0,0,0), connection_front_size=2, width=4, height=2.5, length=10, color=(0,1,1,1))
+                return gb.add_aftSection_cone_static(module, connection_front=p3dc.Point3(0,0,0), connection_front_size=2, width=4, height=2.5, length=10, color=module.ship().TeamColour) #(0,1,1,1))
             else: return gb.add_aftSection_cone(module, width=4, height=2.5, length=3, color=(0,1,1,1))
     class Turret(ModuleType):
         @classmethod
@@ -153,7 +153,7 @@ class ModuleTypes:
     class ConstructionBay(ModuleType):
         @classmethod
         def block(cls, gb:'GeomBuilder_Ships.ShipBuilder',module:'ShipModule') -> 'GeomBuilder_Ships.ShipBuilder':
-            return gb.add_midSection_block(module, connection_front=p3dc.Point3(0,0,0), connection_front_size=2, connection_rear=p3dc.Point3(0,-10,0), connection_rear_size=2, width=8, height=4, color=(1,0.3,1,1))
+            return gb.add_midSection_block(module, connection_front=p3dc.Point3(0,0,0), connection_front_size=2, connection_rear=p3dc.Point3(0,-10,0), connection_rear_size=2, width=8, height=4, color=module.ship().TeamColour) #(1,0.3,1,1))
     class ShieldGenerator(ModuleType):
         @classmethod
         def block(cls, gb:'GeomBuilder_Ships.ShipBuilder',module:'ShipModule') -> 'GeomBuilder_Ships.ShipBuilder':
@@ -167,11 +167,14 @@ class ProceduralShip(ProceduralModels._ProceduralModel):
     IconPath = ""
     ModelPath = ""
     AutogenerateOnAssignment = True
+    TeamColour = (1,0.3,1,1) #TODO: This solution is not all that pretty
     def __init__(self, loadImmediately=True, seed:int=None, ship:'ShipBase.ShipBase'=None) -> None:
         style = ""
         self.Modules:'list[ShipModule]' = []
         self.ProceduralShipCentralNode:'p3dc.NodePath' = None
         self.CentralModule:'ShipModule' = None
+        if ship and ship.fleet:
+            self.TeamColour = ape.colour(App().Theme["Star Nomads"][f"Team {ship.fleet().Team}"])
         super().__init__(loadImmediately=loadImmediately,seed=seed,ship=ship)
     
     def tocode_AGeLib(self, name="", indent=0, indentstr="    ", ignoreNotImplemented = False) -> typing.Tuple[str,dict]:
@@ -332,6 +335,12 @@ class ProceduralShip(ProceduralModels._ProceduralModel):
         #plt.show()
         #input("WAITING")
         return col
+    
+    def applyTeamColour(self):
+        #TODO: This is a pretty bad way to do this...
+        if self.ship:
+            self.ship().generateProceduralModel()
+        #return super().applyTeamColour(team)
 
 class ShipModule():
     def __init__(self, ship:'ProceduralShip', type_:'type[ModuleTypes.ModuleType]', seed:int=None, module:'typing.Union[BaseModules.Module,None]'=None, extraInfo:'typing.Union[dict,None]'=None) -> None:

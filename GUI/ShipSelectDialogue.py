@@ -75,6 +75,7 @@ class _SelectorWidget(AGeWidgets.TightGridWidget):
         self.AbortButton = self.addWidget(AGeWidgets.Button(self, "Abort", lambda: self.ShipSelectDialogue.done(int(bool(None)))))
         self.ConfirmButton = self.addWidget(AGeWidgets.Button(self, "Confirm", lambda: self.ShipSelectDialogue.done(int(bool(self.parent().SelectedShip)))))
         self.ShipList.ShipList.itemDoubleClicked.connect(lambda item: self.selectShip(item))
+        self.ShipList.ShipList.itemClicked.connect(lambda item: self.selectShip(item))
     
     def selectShip(self, item:'ShipItem'):
         self.parent().SelectedShip = item.data(100)

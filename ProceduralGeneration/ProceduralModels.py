@@ -21,6 +21,7 @@ import textwrap
 import numpy as np
 
 # Panda imports
+from BaseClasses.ShipBase import ShipBase
 import panda3d as p3d
 import panda3d.core as p3dc
 import direct as p3dd
@@ -54,6 +55,9 @@ from ProceduralGeneration import GeomBuilder
 if TYPE_CHECKING:
     from BaseClasses import ShipBase, FleetBase, BaseModules, HexBase
 
+
+IMP_PROCMODEL = [("PSN ProceduralModels","from ProceduralGeneration import ProceduralModels"),]
+
 class _ProceduralModel(ModelBase.ModelBase):
     IconPath = ""
     ModelPath = ""
@@ -70,6 +74,9 @@ class _ProceduralModel(ModelBase.ModelBase):
     
     def setColour(self):
         pass
+    
+    def applyTeamColour(self):
+        return super().applyTeamColour()
     
     def getModel(self):
         return self.generateModel()
@@ -100,8 +107,8 @@ class _ProceduralModel(ModelBase.ModelBase):
         #self.Model.setScale(value)
     
     def tocode_AGeLib(self, name="", indent=0, indentstr="    ", ignoreNotImplemented = False) -> typing.Tuple[str,dict]:
-        raise NotImplementedError() #CRITICAL: How do we save the instructions for generating models?
-        #ret, imp = "", {}
+        #raise NotImplementedError() #CRITICAL: How do we save the instructions for generating models?
+        ret, imp = "None", {}
         ## ret is the ship data that calls a function which is stored as an entry in imp which constructs the ship
         ## Thus, ret, when executed, will be this ship. This can then be nested in a list so that we can reproduce entire fleets.
         #imp.update(IMP_MODELBASE)
@@ -113,12 +120,16 @@ class _ProceduralModel(ModelBase.ModelBase):
         #    ret += f"get.shipModels()[\"{self.INTERNAL_NAME}\"]()"
         #else:
         #    ret += f"createShip({self.IconPath},{self.ModelPath})"
-        #return ret, imp
+        return ret, imp
     
     def generateModel(self):
         raise NotImplementedError("generateModel must be implemented in the subclass of _ProceduralModel")
 
 class ProceduralModel_Asteroid(_ProceduralModel):
+    def __init__(self, loadImmediately=True, seed: int = None, ship: ShipBase = None, resourceTypeName: str = "") -> None:
+        super().__init__(loadImmediately, seed, ship)
+        self.ResourceTypeName = resourceTypeName #TODO: the asteroid should visually reflect the resources in it
+    
     def generateModel(self):
         gb = GeomBuilder.GeomBuilder('asteroid', rng=self.rng)
         res = get.menu().GraphicsOptionsWidget.AsteroidResolution()
@@ -185,6 +196,13 @@ class ProceduralModel_Asteroid(_ProceduralModel):
         #plt.show()
         #input("WAITING")
         return col
+    
+    def tocode_AGeLib(self, name="", indent=0, indentstr="    ", ignoreNotImplemented = False) -> typing.Tuple[str,dict]:
+        ret, imp = f"ProceduralModels.ProceduralModel_Asteroid(seed={self.Seed}, resourceTypeName=\"{self.ResourceTypeName}\")", {}
+        if name:
+            ret += name + " = "
+        imp.update(IMP_PROCMODEL)
+        return ret, imp
 
 class ProceduralModel_Planet(_ProceduralModel):
     def generateModel(self):

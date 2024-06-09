@@ -3,6 +3,7 @@
 """
 
 SupportsRenderPipeline = False
+StartSkyboxTestInsteadOfStarNomads = False
 
 # Python standard imports 1/2
 import datetime
@@ -62,12 +63,17 @@ else:
     from AstusPandaEngine import engine, base, render, loader
     from AstusPandaEngine import window as _window
 
-# Game Imports
-from ApplicationClasses import MainAppClass, Scene, Camera
-from BaseClasses import HexBase, FleetBase, ShipBase, ModelBase, UnitManagerBase, get
-from GUI import BaseInfoWidgets, Windows, WidgetsBase
-import Ships
-
-
-if __name__ == '__main__':
-    ape.start(WindowTitle, MainAppClass.EngineClass, Scene.BaseClass, MainAppClass.AppClass, Windows.MainWindowClass, WidgetsBase.PandaWidget, True, SupportsRenderPipeline)
+if StartSkyboxTestInsteadOfStarNomads:
+    import SkyboxTest
+    SkyboxTest.main()
+else:
+    # Game Imports
+    from ApplicationClasses import MainAppClass, Scene, Camera
+    from BaseClasses import HexBase, FleetBase, ShipBase, ModelBase, UnitManagerBase, get
+    from GUI import BaseInfoWidgets, Windows, WidgetsBase
+    from Economy import Resources
+    import Ships
+    
+    
+    if __name__ == '__main__':
+        ape.start(WindowTitle, MainAppClass.EngineClass, Scene.BaseClass, MainAppClass.AppClass, Windows.MainWindowClass, WidgetsBase.PandaWidget, True, SupportsRenderPipeline)

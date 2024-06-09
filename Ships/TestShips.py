@@ -68,6 +68,7 @@ class NomadOne(ShipBase.Ship):
         self.addModule(ShipModules.TestModules.TestEngine_Nomad())
         self.addModule(ShipModules.TestModules.TestThruster_Nomad())
         self.addModule(ShipModules.BaseModules.MicroJumpDrive()) #TODO: Should be from TestModules not from BaseModules. But only once it works
+        self.addModule(ShipModules.BaseModules.TeamJumpDrive()) #TODO: Should be from TestModules not from BaseModules. But only once it works
         self.addModule(ShipModules.TestModules.TestConstructionModule())
         self.addModule(ShipModules.TestModules.TestBeam_L())
         self.addModule(ShipModules.TestModules.TestBeam_L())
@@ -76,6 +77,42 @@ class NomadOne(ShipBase.Ship):
         self.addModule(ShipModules.TestModules.TestCargoModule())
         self.addModule(ShipModules.TestModules.TestCargoModule())
         self.addModule(ShipModules.BaseEconomicModules.RecyclingModule())
+        self.addModule(ShipModules.BaseEconomicModules.SalvageModule())
+        if generateModel:
+            self.generateProceduralModel()
+
+class MiningTest(ShipBase.Ship):
+    Name = "Digger"
+    ClassName = "Mining Ship"
+    def __init__(self, generateModel=True) -> None:
+        super().__init__()
+        self.addModule(ShipModules.TestModules.TestHull_XL())
+        self.addModule(ShipModules.TestModules.TestSensors_M())
+        self.addModule(ShipModules.TestModules.TestEngine_Nomad())
+        self.addModule(ShipModules.TestModules.TestThruster_Nomad())
+        self.addModule(ShipModules.TestModules.TestBeam_L())
+        self.addModule(ShipModules.TestModules.TestShield_M())
+        self.addModule(ShipModules.TestModules.TestCargoModule())
+        self.addModule(ShipModules.BaseEconomicModules.OreMiningModule())
+        self.addModule(ShipModules.BaseEconomicModules.RareOreMiningModule())
+        self.addModule(ShipModules.BaseEconomicModules.CrystalMiningModule())
+        if generateModel:
+            self.generateProceduralModel()
+
+class RefineryTest(ShipBase.Ship):
+    Name = "Purifier"
+    ClassName = "Refinery Ship"
+    def __init__(self, generateModel=True) -> None:
+        super().__init__()
+        self.addModule(ShipModules.TestModules.TestHull_XL())
+        self.addModule(ShipModules.TestModules.TestSensors_M())
+        self.addModule(ShipModules.TestModules.TestEngine_Nomad())
+        self.addModule(ShipModules.TestModules.TestThruster_Nomad())
+        self.addModule(ShipModules.TestModules.TestBeam_L())
+        self.addModule(ShipModules.TestModules.TestShield_M())
+        self.addModule(ShipModules.TestModules.TestCargoModule())
+        self.addModule(ShipModules.BaseEconomicModules.OreRefineryModule())
+        self.addModule(ShipModules.BaseEconomicModules.RareOreRefineryModule())
         if generateModel:
             self.generateProceduralModel()
 

@@ -62,7 +62,7 @@ def createFleet(d:dict):
     fleet = FleetBase.Fleet(d["Team"])
     fleet.Name = d["Name"]
     fleet.addShips(d["Ships"])
-    fleet.moveToHex(get.hexGrid().getHex(d["Coordinates"]))
+    fleet.moveToHex(get.hexGrid().getHex(d["Coordinates"]), False)
     
     return fleet
 """)]
@@ -73,13 +73,14 @@ class ShipList(typing.List['ShipBase.ShipBase']):
 class TeamRing():
     def __init__(self, fleet, team, node) -> None:
         self.fleet:'weakref.ref[FleetBase]' = weakref.ref(fleet)
-        self.TeamRing:p3dc.NodePath = loader().loadModel("Models/Simple Geometry/hexagonRing.ply")
+        self.TeamRing:p3dc.NodePath = ape.loadModel("Models/Simple Geometry/hexagonRing.ply")
         self.TeamRing.reparentTo(node)
         self.TeamRing.setColor(ape.colour(App().Theme["Star Nomads"][f"Team {team}"]))
         self.TeamRing.setScale(0.9)
         self.TeamRing.setPos(p3dc.LPoint3((0,0,-0.02)))
         self.C_ColourChangedConnection = App().S_ColourChanged.connect(self.recolour)
         if team == -1: self.hide()
+        self.hide() #TODO: This is temporary to see if the team colours on the ships is good enough
     
     def destroy(self):
         if self.C_ColourChangedConnection:
@@ -176,6 +177,10 @@ class FleetBase():
     @property
     def ResourceManager(self) -> 'EconomyManager.FleetResourceManager':
         return self.EconomyManager.ResourceManager
+    
+    @property
+    def TeamName(self) -> str:
+        return get.unitManager().Teams[self.Team].name()
   #endregion init and destroy
   #region manage ship list
     def _addShip(self, ship:'ShipBase.ShipBase'):
@@ -204,6 +209,8 @@ class FleetBase():
             if notifyIfNotContained: NC(2,f"SHIP WAS NOT IN SHIP LIST\nFleet name: {self.Name}\nShip name: {ship.Name}", tb=True) #TODO: give more info
         if not self.Ships:
             self.destroy()
+            if arrange: print(f"{self.Name} was destroyed!")
+            else: print(f"{self.Name} was emptied")
             return False
         else:
             return True
@@ -286,7 +293,8 @@ class FleetBase():
     def moveToHex(self, hex:'HexBase._Hex', animate=True):
         self.Coordinates = hex.Coordinates
         if hex.fleet:
-            raise HexBase.HexOccupiedException(hex)
+            if hex.fleet() is not self:
+                raise HexBase.HexOccupiedException(hex)
         else:
             if animate and self.hex:
                 self.Node.lookAt(hex.Pos)
@@ -300,6 +308,7 @@ class FleetBase():
                 raise Exception("Could not assign unit to Hex")
             if hex.fleet() != self: #TODO: We have a serious problem when this occurs. What do we do in that case?
                 raise Exception(f"Could not assign unit to Hex. (The Hex has a different fleet assigned that is named {hex.fleet()})")
+            if self.hex: self.hex().fleet = None
             self.hex = weakref.ref(hex)
     
     def _navigable(self, hex:'HexBase._Hex'):
@@ -666,31 +675,33 @@ class Fleet(FleetBase):
     def MovePoints_max(self) -> float:
         return min([i.Stats.Movement_FTL[1] for i in self.Ships])
     
-    def battleEnded(self) -> Resources._ResourceDict:
+    def battleEnded(self) -> 'dict':
         """
         Handles the End of the Battle for this Fleet. \n
         This Includes removing all destroyed ships and re-parenting all other ships from their flotillas back to this fleet. \n
         If all ships were destroyed this fleet will delete itself. \n
-        Returns the salvage Value of all destroyed ships.
+        Returns a log containing information about the battle
         """
         print("Battle Ended for", self.Name)
         print("Ships in fleet before cleanup:", len(self.Ships))
+        hex_ = self.hex()
         ships_to_be_removed:typing.List['ShipBase.ShipBase'] = []
         for ship in self.Ships:
             if ship.Destroyed:
                 ships_to_be_removed.append(ship)
-        salvageValue = Resources.Salvage(0)
+        salvage = Resources.Salvage(0)
         for ship in ships_to_be_removed:
-            salvageValue += ship.Stats.Value/8
+            salvage += ship.Stats.Value/8
             self.removeShip(ship,arrange=False)
         print("Ships in fleet after cleanup:", len(self.Ships))
+        hex_.ResourcesHarvestable.add(salvage)
         if self.Destroyed:
-            return Resources._ResourceDict.new(salvageValue)
+            return {"salvage":Resources._ResourceDict.new(salvage)}
         else:
             for ship in self.Ships:
                 ship.reparentTo(self)
             self.arrangeShips()
-        return Resources._ResourceDict.new(salvageValue)
+        return {"salvage":Resources._ResourceDict.new(salvage)}
     
   #region Combat Offensive
     async def attack(self, target: 'HexBase._Hex', orders:AI_Base.Orders = None, performOutOfTurn = False):
@@ -709,14 +720,14 @@ class Fleet(FleetBase):
             try: await self.MovementSequence
             except: self.MovementSequence.finish()
         involvedFleets = self.getInvolvedFleetsForPotentialBattle(self.hex(), target)
-        get.engine().startBattleScene(involvedFleets)
+        get.engine().startBattleScene(involvedFleets, aggressorHex = self.hex(), defenderHex = target)
     
     def getInvolvedFleetsForPotentialBattle(self, hex:'HexBase._Hex', target:'HexBase._Hex') -> 'list[Fleet]':
         involvedFleets = [self,target.fleet()]
-        for i in hex.getNeighbour()+target.getNeighbour():
-            if i.fleet:
-                if not i.fleet() in involvedFleets:
-                    involvedFleets.append(i.fleet())
+        #for i in hex.getNeighbour()+target.getNeighbour():
+        #    if i.fleet:
+        #        if not i.fleet() in involvedFleets:
+        #            involvedFleets.append(i.fleet())
         return involvedFleets
     
     def getAttackableHexes(self, _hex:'HexBase._Hex'=None) -> typing.List['HexBase._Hex']:
@@ -737,8 +748,9 @@ class Fleet(FleetBase):
             self.updateInterface()
         else:
             #get.window().UnitStatDisplay.Text.setText("No unit selected")
-            get.window().UnitStatDisplay.removeWidget(self.Widget)
-            self.Widget.deleteLater()
+            if self.Widget:
+                get.window().UnitStatDisplay.removeWidget(self.Widget)
+                self.Widget.deleteLater()
             self.Widget = None
     
     def getInterface(self): #TODO: Overhaul this! The displayed information should not be the combat interface but the campaign interface!
@@ -755,7 +767,7 @@ class Fleet(FleetBase):
         if self.Widget:
             try:
                 text = textwrap.dedent(f"""
-                Team: {self.Team}
+                Team: {self.TeamName}
                 Positions: {self.hex().Coordinates}
                 Movement Points: {round(self.MovePoints,3)}/{round(self.MovePoints_max,3)}
                 """).strip()
@@ -881,8 +893,9 @@ class Flotilla(FleetBase):
             self.updateInterface()
         else:
             #get.window().UnitStatDisplay.Text.setText("No unit selected")
-            get.window().UnitStatDisplay.removeWidget(self.Widget)
-            self.Widget.deleteLater()
+            if self.Widget:
+                get.window().UnitStatDisplay.removeWidget(self.Widget)
+                self.Widget.deleteLater()
             self.Widget = None
     
     def getInterface(self):

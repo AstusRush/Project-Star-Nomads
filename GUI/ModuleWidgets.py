@@ -286,7 +286,7 @@ class CargoWidget(ModuleWidget):
         self.updateInterface()
     
     def updateInterface(self):
-        self.Label.setText( self.module().storedResources().text(f"{self.module().Name} (Capacity {round(self.module().storedResources().UsedCapacity,5)} / {round(self.module().Capacity,5)})") )
+        self.Label.setText( self.module().storedResources().text(f"{self.module().Name}:") )
 
 class AugmentWidget(ModuleWidget):
     module: 'weakref.ref[BaseModules.Augment]' = None
@@ -308,7 +308,12 @@ class MicroJumpDriveWidget(SpecialWidget):
     def __init__(self, module:typing.Optional['BaseModules.MicroJumpDrive'] = None) -> None:
         super().__init__(module=module)
         self.Label = self.addWidget(QtWidgets.QLabel(self))
-        if self.module().isPlayer(): self.Button = self.addWidget(AGeWidgets.Button(self,"Jump",lambda: self.jump()))
+        self.ButtonStandardTextReady = "Jump"
+        self.ButtonStandardTextNotReady = "Not enough charge to jump"
+        if self.module().isPlayer(): self.Button = self.addWidget(AGeWidgets.Button(self,self.buttonText(),lambda: self.jump()))
+    
+    def buttonText(self):
+        return self.ButtonStandardTextReady if self.module().Charge >= 1 else self.ButtonStandardTextNotReady
     
     def updateFullInterface(self):
         self.updateInterface()
@@ -318,6 +323,37 @@ class MicroJumpDriveWidget(SpecialWidget):
                             f"\n\tCharge: {round(self.module().Charge,3)}/{round(self.module().MaxCharges,3)} (+{1/round(self.module().Cooldown,3)} per Turn)"
                             f"\n\tRange: {round(self.module().Range,3)}"
                             )
+        self.Button.setText(self.buttonText())
+    
+    def jump(self):
+        if self.module().Charge >= 1:
+            try:
+                self.module().jump()
+            except:
+                NC(2,"Can not Jump!", exc=True)
+        else:
+            self.Button.setText("Not enough charge!")
+
+class TeamJumpDriveWidget(SpecialWidget):
+    module: 'weakref.ref[BaseModules.TeamJumpDrive]' = None
+    def __init__(self, module:typing.Optional['BaseModules.TeamJumpDrive'] = None) -> None:
+        super().__init__(module=module)
+        self.Label = self.addWidget(QtWidgets.QLabel(self))
+        self.ButtonStandardTextReady = "Jump to new sector"
+        self.ButtonStandardTextNotReady = "Not enough charge to jump to new sector"
+        if self.module().isPlayer(): self.Button = self.addWidget(AGeWidgets.Button(self,self.buttonText(),lambda: self.jump()))
+    
+    def buttonText(self):
+        return self.ButtonStandardTextReady if self.module().Charge >= 1 else self.ButtonStandardTextNotReady
+    
+    def updateFullInterface(self):
+        self.updateInterface()
+    
+    def updateInterface(self):
+        self.Label.setText( f"{self.module().Name} is {'Ready' if self.module().Charge >= 1 else 'Charging'}"
+                            f"\n\tCharge: {round(self.module().Charge,3)}/{round(self.module().MaxCharges,3)} (+{1/round(self.module().Cooldown,3)} per Turn)"
+                            )
+        self.Button.setText(self.buttonText())
     
     def jump(self):
         if self.module().Charge >= 1:
@@ -351,6 +387,20 @@ class RefineryWidget(EconomicWidget):
     def __init__(self, module:typing.Optional['BaseEconomicModules.Refinery'] = None) -> None:
         super().__init__(module=module)
         #CRITICAL:REFINERY WIDGET
+        self.Label = self.addWidget(QtWidgets.QLabel(self))
+    
+    def updateFullInterface(self):
+        self.updateInterface()
+    
+    def updateInterface(self):
+        self.Label.setText( f"{self.module().Name}"
+                            )
+
+class HarvestWidget(EconomicWidget):
+    module: 'weakref.ref[BaseEconomicModules.Refinery]' = None
+    def __init__(self, module:typing.Optional['BaseEconomicModules.Refinery'] = None) -> None:
+        super().__init__(module=module)
+        #CRITICAL:HARVEST WIDGET
         self.Label = self.addWidget(QtWidgets.QLabel(self))
     
     def updateFullInterface(self):

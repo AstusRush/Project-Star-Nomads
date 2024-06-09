@@ -129,7 +129,22 @@ class BaseScene(ape.APEScene):
         #base().accept("e", self.toggleShadows
     
     def loadSkybox(self):
-        self.Camera.loadSkybox(getRandomSkyboxPath())
+        #self.Camera.loadSkybox(getRandomSkyboxPath())
+        self.hide()
+        self.Camera.makeSkybox()
+        self.show()
+    
+    def hide(self):
+        try:
+            self.HexGrid.Root.hide()
+        except AttributeError:
+            pass
+    
+    def show(self):
+        try:
+            self.HexGrid.Root.show()
+        except AttributeError:
+            pass
     
     def pause(self):
         self.HexGrid.Root.hide()
@@ -151,12 +166,18 @@ class BaseScene(ape.APEScene):
 class CampaignScene(BaseScene):
     _SCENE_TYPE_STR = "Campaign"
     def loadSkybox(self):
-        self.Camera.loadSkybox(getRandomSkyboxPath(sector=True, sun=False))
+        #self.Camera.loadSkybox(getRandomSkyboxPath(sector=True, sun=False))
+        self.hide()
+        self.Camera.makeSkybox(sector=True, sun=False)
+        self.show()
 
 class BattleScene(BaseScene):
     _SCENE_TYPE_STR = "Battle"
     def loadSkybox(self):
-        self.Camera.loadSkybox(getRandomSkyboxPath(sector=True, sun=True))
+        #self.Camera.loadSkybox(getRandomSkyboxPath(sector=True, sun=True))
+        self.hide()
+        self.Camera.makeSkybox(sector=True, sun=True)
+        self.show()
 
 
 

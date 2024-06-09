@@ -42,7 +42,7 @@ class Resource_(metaclass=_Resource_Metaclass):
     Quantity = 0
     
     def __init__(self, quantity:float=0) -> None:
-        self.Quantity = quantity
+        self.Quantity = float(quantity)
     
     @property
     def Name(self) -> str:
@@ -60,7 +60,7 @@ class Resource_(metaclass=_Resource_Metaclass):
     
     @Q.setter
     def Q(self, value:float):
-        self.Quantity = value
+        self.Quantity = float(value)
     
     def __str__(self) -> str:
         return self.Name #MAYBE: This probably should also display the amount if it is not 0? Or would that make it too unpredictable for formatting?
@@ -149,7 +149,7 @@ class Resource_(metaclass=_Resource_Metaclass):
         ret = indentstr*indent
         if name:
             ret += name + " = "
-        ret += f"Resources.{self.__class__.__name__}({self.Quantity})"
+        ret += f"Resources.{self.__class__.__name__}({float(self.Quantity)})"
         return ret, imp
 #endregion Resource Base Class
 
@@ -317,7 +317,7 @@ class _ResourceDict(_typing.Dict['Resource_','Resource_']):
     def __sub__(self, a:'_ResourceDict') -> '_ResourceDict':
         return self._add_sub(a,-1)
     def _add_sub(self, other:'_ResourceDict', sign:'int') -> '_ResourceDict':
-        if other is 0: return self.copy() # Required to sum of a list of ResourceDicts as the sum is initialized with a 0
+        if other == 0: return self.copy() # Required to sum of a list of ResourceDicts as the sum is initialized with a 0
         if not isinstance(other, _ResourceDict): raise TypeError(f"Only a ResourceStorageDict can be added to or subtracted from a ResourceStorageDict, not a {type(other)} ({other})")
         d = self.copy()
         for k,v in other.items():
@@ -350,7 +350,13 @@ class _ResourceDict(_typing.Dict['Resource_','Resource_']):
         Returns a formatted text that describes this storage dict and its content.
         """
         if indent is None: indent = bool(headline)
-        text = f"{headline}\n" if headline else ""
+        if self.Capacity != float("inf"):
+            text = f"{headline} (Cap" if headline else "Capacity"
+            text += f": {round(self.UsedCapacity,5)} / {round(self.Capacity,5)}"
+            if headline: text += ")"
+            text += "\n"
+        else:
+            text = f"{headline}\n" if headline else ""
         if not self:
             if indent: text += "\t"
             text += "None"
@@ -373,7 +379,7 @@ class _ResourceDict(_typing.Dict['Resource_','Resource_']):
             ret += name + " = "
         ret += f"Resources._ResourceDict.fromList(\n"
         r,i = AGeToPy._topy(self.list(), indent=indent+2, indentstr=indentstr, ignoreNotImplemented=ignoreNotImplemented)
-        ret += f"{r}\n{indentstr*(indent+1)}cap={self.Capacity})" #TODO: Save ValidResourceTypes
+        ret += f"{r},\n{indentstr*(indent+1)}cap={self.Capacity})" #TODO: Save ValidResourceTypes
         imp.update(i)
         return ret, imp
 #endregion _ResourceDict

@@ -89,7 +89,7 @@ class ModelBase():
             except:
                 self.CouldLoadModel = False
                 NC(2,f"Could not load model {self.ModelPath}. Loading a cube instead...", exc=True, unique=True)
-                self.Model:p3dc.NodePath = loader().loadModel("Models/Simple Geometry/cube.ply")
+                self.Model:p3dc.NodePath = ape.loadModel("Models/Simple Geometry/cube.ply")
         except:
             self.CouldLoadModel = False
             self.Node.removeNode()
@@ -108,8 +108,11 @@ class ModelBase():
     def setColour(self):
         self.Model.setColor((1,1,1,1))
     
+    def applyTeamColour(self):
+        pass # Not supported for the base model and therefore ignored
+    
     def getModel(self):
-        return loader().loadModel(self.ModelPath)
+        return ape.loadModel(self.ModelPath)
     
     def destroy(self):
         if hasattr(self,"Model") and self.Model:

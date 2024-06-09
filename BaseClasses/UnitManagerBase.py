@@ -70,6 +70,11 @@ class UnitManager():
             2  : self.Units_Team2,
             3  : self.Units_Team3,
         }
+        self.Units_Environmental._name = "The Universe"
+        self.Units_Neutral._name = "The Neutrals"
+        self.Units_Team1._name = "The Star Nomads"
+        self.Units_Team2._name = "The Buccaneers"
+        self.Units_Team3._name = "The Star Raiders"
         for teamID, team in self.Teams.items():
             team.ID = teamID
             if teamID > 1:
@@ -166,6 +171,7 @@ class UnitManager():
         self.CurrentlyHandlingTurn = False
         print("Start of player turn")
         NC(10,"New turn has started", log=False)
+        get.app().S_NewTurnStarted.emit()
     
     def checkAndHandleTeamDefeat(self):
         pass

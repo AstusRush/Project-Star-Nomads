@@ -801,6 +801,92 @@ class MicroJumpDrive(Special):
         tech.addStatCustomizer(d,self,"Range",AGeInput.Int,"Range")
         return d
 
+class TeamJumpDrive(Special):
+    Name = "Team Jump Drive"
+    Buildable = True
+    Value = 1
+    Threat = 0
+    Cooldown = 100
+    MaxCharges = 1
+    def __init__(self) -> None:
+        super().__init__()
+        self.Widget:'ModuleWidgets.TeamJumpDriveWidget' = None
+        self.FullWidget:'ModuleWidgets.TeamJumpDriveWidget' = None
+        self.Charge = self.MaxCharges
+    
+    def resourceCost(self) -> 'Resources._ResourceDict':
+        return Resources._ResourceDict.new(
+            Resources.Metals(self.Value/2),
+            Resources.RareMetals(self.Value/4),
+            Resources.Crystals(self.Value*3/4),
+        )
+    
+    #def calculateThreat(self):
+    #    return self.Damage/100 * self.Accuracy * ((20 if self.ShieldPiercing else self.ShieldFactor) + self.HullFactor)/2 * ((1+self.Range-self.MinimalRange/2)/4.5)**2
+    
+    #def calculateValue(self): #TODO: Tinkers with this formula some more
+    #    return 3*(self.Range/2)**(1.6)/(self.Cooldown)**(0.7)*(self.MaxCharges*5/9)**(1.2)
+    
+    #def calculateMass(self):
+    #    return max(0.01 , self.calculateThreat()/3 + ((1+self.Range-self.MinimalRange/3)/4.5)**2 - 1)/2 * self.Accuracy
+    
+    #def makeValuesValid(self) -> 'str':
+    #    adjustments = super().makeValuesValid()
+    #    if self.Range < self.MinimalRange:
+    #        adjustments += "The maximal range was smaller than the minimal range and was therefore increased to match. The outcome may be undesirable.\n"
+    #        self.Range = self.MinimalRange
+    #    return adjustments
+    
+    def handleNewCampaignTurn(self):
+        self.Charge = min(self.Charge+1/self.Cooldown , self.MaxCharges)
+    
+    def resetCondition(self):
+        super().resetCondition()
+        self.Charge = 0#self.MaxCharges
+    
+    def getInterface(self) -> QtWidgets.QWidget:
+        self.Widget = ModuleWidgets.TeamJumpDriveWidget(self)
+        return self.Widget
+    
+    def updateInterface(self):
+        if self.Widget:
+            try:
+                self.Widget.updateInterface()
+            except RuntimeError:
+                self.Widget = None # This usually means that the widget is destroyed but I don't know of a better way to test for it...
+        if self.FullWidget:
+            try:
+                self.FullWidget.updateFullInterface()
+            except RuntimeError:
+                self.FullWidget = None # This usually means that the widget is destroyed but I don't know of a better way to test for it...
+    
+    def getFullInterface(self):
+        self.FullWidget = ModuleWidgets.TeamJumpDriveWidget(self)
+        return self.FullWidget
+    
+    def jump(self):
+        if get.engine().CurrentlyInBattle: raise Exception("The Team Jump Drive can not be used in battle!")
+        if self.Charge < 1: raise Exception("Not enough charge to jump!")
+        get.engine().transitionToNewCampaignSector()
+        self.Charge -= 1
+    
+    def playEffect(self):
+        pass #TODO: team jump effect
+    
+    def save(self) -> dict:
+        """
+        Returns a dictionary with all values (and their names) that need to be saved to fully recreate this module.\n
+        This method is called automatically when this module is saved.\n
+        Reimplement this method if you create custom values. But don't forget to call `d.update(super().save())` before returning the dict!
+        """
+        d = super().save()
+        d.update({
+            "MaxCharges" : self.MaxCharges ,
+            "Cooldown" : self.Cooldown ,
+            "Charge" : self.Charge ,
+        })
+        return d
+
 class Weapon(Module):
     Name = "Weapon Module"
     Buildable = False
@@ -936,7 +1022,7 @@ class Weapon_Beam(Weapon):
     PenColourName = "Orange"
     
     def fireEffectAt(self, target:'ShipBase.ShipBase', hit:bool=True):
-        laserEffect:p3dc.NodePath = loader().loadModel(self.ModelPath)
+        laserEffect:p3dc.NodePath = ape.loadModel(self.ModelPath)
         try:
             laserEffect.reparentTo(self.ship().Node)
             if self.moduleModel:

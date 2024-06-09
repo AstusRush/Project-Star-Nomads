@@ -84,8 +84,8 @@ class DifficultyOptionsWidget(AGeWidgets.TightGridFrame):
         self.HeadlineLine = self.addWidget(QtWidgets.QFrame(self))
         self.HeadlineLine.setFrameShape(QtWidgets.QFrame.HLine)
         self.HeadlineLine.setFrameShadow(QtWidgets.QFrame.Sunken)
-        self.EnemyTotalStrength = self.addWidget(AGeInput.Float(self,"Enemy Total Strength",3.0,0.5,10.0))
-        self.EnemyStrengthPerFleet = self.addWidget(AGeInput.Float(self,"Enemy Strength per Fleet",1.0,0.5,10.0))
+        self.EnemyTotalStrength = self.addWidget(AGeInput.Float(self,"Enemy Total Strength",2.0,0.6,20.0))
+        self.EnemyStrengthPerFleet = self.addWidget(AGeInput.Float(self,"Enemy Strength per Fleet",0.7,0.2,10.0))
 
 class HighlightOptionsWidget(AGeWidgets.TightGridFrame):
     def __init__(self, parent: typing.Optional['QtWidgets.QWidget'] = None) -> None:
@@ -105,6 +105,7 @@ class GraphicsOptionsWidget(AGeWidgets.TightGridFrame):
         self.HeadlineLine.setFrameShape(QtWidgets.QFrame.HLine)
         self.HeadlineLine.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.ChangeSkyboxButton = self.addWidget(AGeWidgets.Button(self,"Change Skybox", self.newSkybox))
+        self.SkyboxResolution = self.addWidget(AGeInput.Int(self,"Skybox Resolution (512·2ˣ)", 2, 0, 4))
         self.AsteroidResolution = self.addWidget(AGeInput.Int(self,"Asteroid Resolution\n(lower=faster battle loading)",10,5,50,"²"))
         self.AsteroidNoisePasses = self.addWidget(AGeInput.Int(self,"Asteroid Noise Passes\n(higher=more diverse asteroids\n but higher likelihood of 'negative volume')",3,0,5))
         self.AsteroidTexture = self.addWidget(AGeInput.Bool(self,"Use a randomly generated texture for asteroids\nIf disabled the individual faces are\n coloured which results in a retro look",False))

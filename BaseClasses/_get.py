@@ -71,11 +71,17 @@ def menu() -> 'Menu.Menu':
 def engine() -> 'MainAppClass.EngineClass':
     return _engine()
 
+def app() -> 'MainAppClass.AppClass':
+    return App()
+
 def unitManager(campaign = None) -> 'UnitManagerBase.UnitManager':
     return engine().getUnitManager(campaign)
 
 def hexGrid(campaign = None) -> 'HexBase.HexGrid':
     return engine().getHexGrid(campaign)
+
+def hex(hex_:'tuple[int,int]', campaign = None) -> 'HexBase._Hex':
+    return engine().getHexGrid(campaign).getHex(hex_)
 
 def scene(campaign = None) -> 'Scene.BaseScene':
     return engine().getScene(campaign)
