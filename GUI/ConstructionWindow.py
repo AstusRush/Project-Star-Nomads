@@ -619,7 +619,10 @@ class ModuleEditor(AGeWidgets.TightGridFrame):
         self.ModuleStatContainer = self.addWidget(AGeWidgets.TightGridFrame(self,makeCompact=False))
         self.StatDict = {statName:self.ModuleStatContainer.addWidget(widget()) for statName, widget in self.ActiveModule.getCustomisableStats().items()}
         for v in self.StatDict.values():
-            v.S_ValueChanged.connect(lambda: self.previewCostAndStats())
+            try:
+                v.S_ValueChanged.connect(lambda: self.previewCostAndStats())
+            except:
+                NC(exc=True,input=v)
     
     def applyStats(self):
         if self.ModuleStatContainer and self.ActiveModule and self.StatDict:
