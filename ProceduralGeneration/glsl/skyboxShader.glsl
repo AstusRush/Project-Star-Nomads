@@ -20,6 +20,7 @@ precision highp int;
 
 uniform int Seed;
 
+uniform vec4 bgColor;
 
 uniform bool MakeSun;
 
@@ -227,35 +228,41 @@ void main() {
     skybox_uv.x = (atan(view_dir.y, view_dir.x) + (0.5 * pi)) / (2 * pi);
     skybox_uv.y = clamp(view_dir.z * 0.72 + 0.35, 0.0, 1.0);
     
-    color = vec4(0,0,0,0);
+    vec4 colour = vec4(0,0,0,0);
     
     // Add Nebulae
     float c = 0.0;
     for(int i = 0; i<Nebula_Count; i++){
         c = min(1.0, nebula(view_dir + Nebula_Offset[i]) * Nebula_Intensity[i]);
         c = pow(c, Nebula_Falloff[i]);
-        color = mixInNebulaColor(color, vec4(Nebula_Color[i], c));
+        colour = mixInNebulaColor(colour, vec4(Nebula_Color[i], c));
     }
     
     // Add Stars
     if(MakePointStars){
         vec3 starIntensity = star(skybox_uv, view_dir); //TODO: bring in Star_Count
-        color.rgb += starIntensity;
-        color.a = max(color.a, maxComponent(starIntensity));
+        colour.rgb += starIntensity;
+        colour.a = max(colour.a, maxComponent(starIntensity));
     }
     
     // Add Bright Stars
     // potentially slower version:
     vec4 starColour = brightStars(skybox_uv, view_dir, BrightStar_Count);
-    color.rgb += starColour.rgb;
-    color.a = max(color.a, starColour.a);
+    colour.rgb += starColour.rgb;
+    colour.a = max(colour.a, starColour.a);
     // potentially faster version but less pretty and still WIP
     //vec4 starIntensity = star_bright(skybox_uv, view_dir); //TODO: bring in BrightStar_Count
-    //color.rgb += starIntensity.rgb;
-    //color.a = max(color.a, starIntensity.a);
+    //colour.rgb += starIntensity.rgb;
+    //colour.a = max(colour.a, starIntensity.a);
     
     // Add Sun
     //if(MakeSun){
     //    //TODO: Draw Sun at location specified by python so that a lightsource can be placed there
     //}
+    
+    if(colour.a == 1.0){
+        color = colour;
+    }else{
+        color = vec4(colour.rgb + bgColor.rgb, 1.0);
+    }
 }

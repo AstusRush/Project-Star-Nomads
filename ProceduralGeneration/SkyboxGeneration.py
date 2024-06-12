@@ -706,17 +706,8 @@ class SkyboxGenerator:
         base().win.setClearColor(backgroundColorVec)
         base().win.setClearColorActive(True)
         
-        #self.render(params, False)
-        #self.cleanUp()
-        #skybox = ape.loadModel('Models/Skyboxes/LastGenerated/RandomSpace.egg')
-        
         #self.Skybox = self.buildSphere(20000.0, self.SkyShader)
         self.Skybox = self.buildBox(20000.0, self.SkyShader)
-        
-        #self.Skybox.setDepthWrite(False)
-        self.Skybox.setTransparency(p3dc.TransparencyAttrib.M_alpha)
-        
-        #self.Skybox.setTexGen(p3dc.TextureStage.getDefault(), p3dc.TexGenAttrib.MWorldCubeMap)
         
         
         skybox_texture = p3dc.Texture('SkyboxTexture')
@@ -738,6 +729,7 @@ class SkyboxGenerator:
         
         uniforms = {
             "Seed": rand.randint(7,1369),
+            "bgColor": backgroundColorVec,
             "Star_Count": self.NSTARS,
             "MakeSun": params["sun"],
             "BrightStar_Count": params["stars"],
@@ -772,11 +764,5 @@ class SkyboxGenerator:
         self.updateUniforms(self.Skybox, uniforms)
         
         self.Skybox.reparentTo(render())
-        #self.Skybox.setBin("fixed", 0)
-        #self.Skybox.setDepthTest(False)
-        self.Skybox.setDepthWrite(False)
-        #CRITICAL: FIX TRANSPARENCY!!!
-        #NOTE: it might be best to not make the skybox transparent but instead to use
-        # the backgroungcolour directly in the shader to not have to deal with transparency
         
         return self.Skybox
