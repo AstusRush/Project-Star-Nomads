@@ -53,7 +53,7 @@ else:
     from AstusPandaEngine import window as _window
 
 def loadProgram(gl, source:str):
-    with open("ProceduralGeneration/glsl/classic-noise-4d.snip") as file:
+    with open("ProceduralGeneration/glsl/classic-noise-4d.snip.glsl") as file:
         noise4d = file.read()
     with open(source) as file:
         source = file.read()
@@ -218,6 +218,8 @@ class SkyboxGenerator:
         self.rPointStars:'typing.Union[p3dc.NodePath,None]' = None
         self.rNebulae:'typing.List[p3dc.NodePath]' = []
         
+        self.SkyShader = loadProgram(self.gl, "ProceduralGeneration/glsl/skyboxShader.glsl")
+        self.Skybox:'typing.Union[p3dc.NodePath,None]' = None
         
         self.CubeDisplay = self.buildBox(1/2, None, False)
         self.CubeDisplay.reparentTo(self.Scene)
@@ -696,3 +698,88 @@ class SkyboxGenerator:
                 node_path.set_shader_input(key, value)
             except:
                 NC(1,exc=True,input=f"{key = }\n{value = }")
+    
+    def makeWithShader(self, params:"typing.Dict[str,typing.Any]"):
+        nMin = 2
+        nMax = 6
+        
+        #TODO: Remove later
+        self.SkyShader = loadProgram(self.gl, "ProceduralGeneration/glsl/skyboxShader.glsl")
+        
+        if self.Skybox:
+            self.Skybox.removeNode()
+            self.Skybox = None
+        
+        backgroundColor = params["backgroundColor"]
+        backgroundColorVec = p3dc.Vec4F(backgroundColor[0]/255.0, backgroundColor[1]/255.0, backgroundColor[2]/255.0, 1.0)
+        base().win.setClearColor(backgroundColorVec)
+        base().win.setClearColorActive(True)
+        
+        #self.render(params, False)
+        #self.cleanUp()
+        #skybox = ape.loadModel('Models/Skyboxes/LastGenerated/RandomSpace.egg')
+        
+        #self.Skybox = self.buildSphere(20000.0, self.SkyShader)
+        self.Skybox = self.buildBox(20000.0, self.SkyShader)
+        
+        self.Skybox.setDepthWrite(False)
+        self.Skybox.setTransparency(p3dc.TransparencyAttrib.M_alpha)
+        
+        #self.Skybox.setTexGen(p3dc.TextureStage.getDefault(), p3dc.TexGenAttrib.MWorldCubeMap)
+        
+        
+        skybox_texture = p3dc.Texture('SkyboxTexture')
+        skybox_texture.set_minfilter(p3dc.SamplerState.FT_linear)
+        skybox_texture.set_magfilter(p3dc.SamplerState.FT_linear)
+        skybox_texture.set_wrap_u(p3dc.SamplerState.WM_repeat)
+        skybox_texture.set_wrap_v(p3dc.SamplerState.WM_mirror)
+        skybox_texture.set_anisotropic_degree(16)
+        
+        ts = p3dc.TextureStage
+        skybox_texture_stage = p3dc.TextureStage('SkyboxTextureStage')
+        skybox_texture_stage.setCombineRgb(ts.CMModulate, ts.CS_texture, ts.CO_src_alpha, ts.CS_previous, ts.CO_one_minus_src_alpha)
+        skybox_texture_stage.setCombineAlpha(ts.CM_replace, ts.CS_texture, ts.CO_src_alpha)
+        
+        self.Skybox.setTexture(skybox_texture_stage, skybox_texture)
+        #self.Skybox.reparentTo(self.Scene)
+        
+        rand = random.Random(hash(params['seed']) + 2000)
+        
+        uniforms = {
+            "Seed": rand.randint(7,1369),
+            "Star_Count": self.NSTARS,
+            "MakeSun": params["sun"],
+            "BrightStar_Count": params["stars"],
+            "MakePointStars": params["pointStars"],
+        }
+        
+        if not params['nebulae']:
+            uniforms["Nebula_Count"] = 0
+        else:
+            countNebulas = rand.choice(list(range(nMin,nMax+1)))
+            uniforms["Nebula_Count"] = countNebulas
+            uniforms["Nebula_Color"] = p3dc.PTA_LVecBase3()
+            uniforms["Nebula_Intensity"] = p3dc.PTA_float()
+            uniforms["Nebula_Falloff"] = p3dc.PTA_float()
+            uniforms["Nebula_Offset"] = p3dc.PTA_LVecBase3()
+            beginColor = params['nebulaColorBegin']
+            endColor = params['nebulaColorEnd']
+            for ni in range(countNebulas):
+                uniforms['Nebula_Intensity'].pushBack(rand.random() * 0.2 + 0.9)
+                uniforms['Nebula_Falloff'].pushBack(rand.random() * 3.0 + 3.0)
+                uniforms['Nebula_Color'].pushBack(p3dc.LVecBase3f(
+                    (beginColor[0] + ni * (endColor[0] - beginColor[0]) / (countNebulas - 1)) / 255,
+                    (beginColor[1] + ni * (endColor[1] - beginColor[1]) / (countNebulas - 1)) / 255,
+                    (beginColor[2] + ni * (endColor[2] - beginColor[2]) / (countNebulas - 1)) / 255
+                ))
+                uniforms['Nebula_Offset'].pushBack(p3dc.LVecBase3f(
+                    rand.random() * 2000 - 1000,
+                    rand.random() * 2000 - 1000,
+                    rand.random() * 2000 - 1000
+                ))
+        
+        self.updateUniforms(self.Skybox, uniforms)
+        
+        self.Skybox.reparentTo(render())
+        
+        return self.Skybox

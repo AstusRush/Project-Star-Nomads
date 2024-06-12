@@ -23,6 +23,7 @@ __split__
 
 #version 150
 precision highp float;
+precision highp int;
 
 uniform vec3 uColor;
 uniform vec3 uOffset;

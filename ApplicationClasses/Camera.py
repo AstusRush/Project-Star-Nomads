@@ -121,6 +121,8 @@ class StrategyCamera(DirectObject):
         self.accept("alt-mouse2",    lambda: self.setCamMouseControl(True,True, True )) # alt + MMB   -- smooth rotation
         # When the MMB is released the camera control is ended
         self.accept("mouse2-up", lambda: self.setCamMouseControl(False,False,False)) # MMB
+        
+        #CRITICAL: Look the cursor position while MMB is held down!!!!
     
     def unbindEvents(self):
         if self._MouseTask:
@@ -220,16 +222,19 @@ class StrategyCamera(DirectObject):
                 "resolution": 512*pow(2, get.menu().GraphicsOptionsWidget.SkyboxResolution()), #1024*4,
                 "renderToTexture": True,
             }
-            old_pos_cam = ape.base().camera.getPos()
-            old_pos_cen = self.CameraCenter.getPos()
-            self.CameraCenter.setPos(0,0,0)
-            ape.base().camera.setPos(0,0,0)
-            ape.base().camera.lookAt(0,1,0)
-            self.SpaceSkyBox = SkyboxGeneration.SkyboxGenerator().getSkybox(params)
-            self._skyboxHelper(size)
-            self.CameraCenter.setPos(old_pos_cen)
-            ape.base().camera.setPos(old_pos_cam)
-            ape.base().camera.lookAt(self.CameraCenter)
+            if get.menu().GraphicsOptionsWidget.SkyboxStatic():
+                old_pos_cam = ape.base().camera.getPos()
+                old_pos_cen = self.CameraCenter.getPos()
+                self.CameraCenter.setPos(0,0,0)
+                ape.base().camera.setPos(0,0,0)
+                ape.base().camera.lookAt(0,1,0)
+                self.SpaceSkyBox = SkyboxGeneration.SkyboxGenerator().getSkybox(params)
+                self._skyboxHelper(size)
+                self.CameraCenter.setPos(old_pos_cen)
+                ape.base().camera.setPos(old_pos_cam)
+                ape.base().camera.lookAt(self.CameraCenter)
+            else:
+                self.SpaceSkyBox = SkyboxGeneration.SkyboxGenerator().makeWithShader(params)
             #raise Exception()
         except:
             NC(exc=True)

@@ -73,27 +73,29 @@ class EngineClass(ape.APE):
         
         self.Gen = SkyGen.SkyboxGenerator()
         
-        self.Params = {
-            "seed": "The very best seed!",
-            "backgroundColor": [pow(random.random(),2)*32,pow(random.random(),2)*32,pow(random.random(),2)*32],
-            "pointStars": True,
-            "stars": 200,
-            "sun": False,
-            "sunFalloff": 100,
-            "jpegQuality": 0.85,
-            "nebulaColorBegin": [random.random()*255,random.random()*255,random.random()*255],
-            "nebulaColorEnd": [random.random()*255,random.random()*255,random.random()*255],
-            "nebulae": True,
-            "resolution": 1024,
-            "renderToTexture": True,
-        }
+        #self.Params = {
+        #    "seed": "The very best seed!",
+        #    "backgroundColor": [pow(random.random(),2)*32,pow(random.random(),2)*32,pow(random.random(),2)*32],
+        #    "pointStars": True,
+        #    "stars": 200,
+        #    "sun": True,
+        #    "sunFalloff": 100,
+        #    "jpegQuality": 0.85,
+        #    "nebulaColorBegin": [random.random()*255,random.random()*255,random.random()*255],
+        #    "nebulaColorEnd": [random.random()*255,random.random()*255,random.random()*255],
+        #    "nebulae": True,
+        #    "resolution": 1024,
+        #    "renderToTexture": True,
+        #}
         
+        App().MW.Console1.executeCode()
         self.gen()
         
         return super().start()
     
     def gen(self):
-        self.Gen.render(self.Params)
+        #self.Gen.render(self.Params)
+        self.Gen.makeWithShader(self.Params)
 
 class BaseClass(ape.APEPandaBase):
     def __init__(self,rp):
@@ -168,7 +170,7 @@ ape.engine().Params = {
     "backgroundColor": [pow(random.random(),2)*32,pow(random.random(),2)*32,pow(random.random(),2)*32],
     "pointStars": True,
     "stars": 200,
-    "sun": False,
+    "sun": True,
     "sunFalloff": 100,
     "jpegQuality": 0.85,
     "nebulaColorBegin": [random.random()*255,random.random()*255,random.random()*255],
