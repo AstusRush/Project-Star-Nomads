@@ -5,18 +5,18 @@ uniform mat4 uModel;
 uniform mat4 uView;
 uniform mat4 uProjection;
 
-attribute vec4 p3d_Color;
+in vec4 p3d_Color;
 
-varying vec4 color;
+out vec4 pColor;
 
-attribute vec4 p3d_Vertex;
+in vec4 p3d_Vertex;
 uniform mat4 p3d_ModelViewProjectionMatrix;
-varying vec3 pos;
+out vec3 pos;
 
 void main() {
     //gl_Position = uProjection * uView * uModel * p3d_ModelViewProjectionMatrix * p3d_Vertex;
     gl_Position = p3d_ModelViewProjectionMatrix * p3d_Vertex;
-    color = p3d_Color;
+    pColor = p3d_Color;
     pos = p3d_Vertex.xyz;
 }
 
@@ -28,8 +28,9 @@ __split__
 precision highp float;
 
 
-varying vec4 color;
+in vec4 pColor;
+out vec4 color;
 
 void main() {
-    gl_FragColor = color;
+    color = pColor;
 }

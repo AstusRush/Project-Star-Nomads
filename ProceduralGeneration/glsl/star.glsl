@@ -5,9 +5,9 @@ uniform mat4 uModel;
 uniform mat4 uView;
 uniform mat4 uProjection;
 
-attribute vec4 p3d_Vertex;
+in vec4 p3d_Vertex;
 uniform mat4 p3d_ModelViewProjectionMatrix;
-varying vec3 pos;
+out vec3 pos;
 
 void main() {
     //gl_Position = uProjection * uView * uModel * p3d_ModelViewProjectionMatrix * p3d_Vertex;

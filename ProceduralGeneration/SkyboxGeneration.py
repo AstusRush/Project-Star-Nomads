@@ -52,17 +52,7 @@ else:
     from AstusPandaEngine import engine, base, render, loader
     from AstusPandaEngine import window as _window
 
-def loadProgram(gl, source:str):
-    with open("ProceduralGeneration/glsl/classic-noise-4d.snip.glsl") as file:
-        noise4d = file.read()
-    with open(source) as file:
-        source = file.read()
-    source = source.replace("__noise4d__", noise4d)
-    source = source.split("__split__")
-    #shader = p3dc.Shader.load(p3dc.Shader.SL_GLSL, source[0], source[1])
-    shader = p3dc.Shader.make(p3dc.Shader.SL_GLSL, source[0], source[1])
-    return shader
-
+from ProceduralGeneration import ShaderTools
 
 # Helper function to create a box geometry
 def buildBox_old(radius, shader):
@@ -137,7 +127,7 @@ class SkyboxGenerator:
         self.render(params, False)
         self.cleanUp()
         #skybox = ape.loadModel('Models/Skyboxes/LastGenerated/RandomSpace.egg')
-        skyShader = loadProgram(self.gl, "ProceduralGeneration/glsl/skybox.glsl")
+        skyShader = ShaderTools.loadShader("skybox.glsl")
         skybox = self.buildBox(1, skyShader)
         
         # The following may look weird but this double loading and clearing is necessary to load the new skybox.
@@ -208,17 +198,17 @@ class SkyboxGenerator:
         #);
         
         # Load the programs.
-        self.pPointStars = loadProgram(self.gl, "ProceduralGeneration/glsl/point-stars.glsl")
-        self.pNebula = loadProgram(self.gl, "ProceduralGeneration/glsl/nebula.glsl")
-        self.pStar = loadProgram(self.gl, "ProceduralGeneration/glsl/star.glsl")
-        self.pSun = loadProgram(self.gl, "ProceduralGeneration/glsl/sun.glsl")
+        self.pPointStars = ShaderTools.loadShader("point-stars.glsl")
+        self.pNebula = ShaderTools.loadShader("nebula.glsl")
+        self.pStar = ShaderTools.loadShader("star.glsl")
+        self.pSun = ShaderTools.loadShader("sun.glsl")
         
         self.TheBuffer:'typing.Union[p3dc.GraphicsOutput,None]' = None
         self.rStars:'typing.List[p3dc.NodePath]' = []
         self.rPointStars:'typing.Union[p3dc.NodePath,None]' = None
         self.rNebulae:'typing.List[p3dc.NodePath]' = []
         
-        self.SkyShader = loadProgram(self.gl, "ProceduralGeneration/glsl/skyboxShader.glsl")
+        self.SkyShader = ShaderTools.loadShader("skyboxShader.glsl")
         self.Skybox:'typing.Union[p3dc.NodePath,None]' = None
         
         self.CubeDisplay = self.buildBox(1/2, None, False)
@@ -704,7 +694,7 @@ class SkyboxGenerator:
         nMax = 6
         
         #TODO: Remove later
-        self.SkyShader = loadProgram(self.gl, "ProceduralGeneration/glsl/skyboxShader.glsl")
+        self.SkyShader = ShaderTools.loadShader("skyboxShader.glsl")
         
         if self.Skybox:
             self.Skybox.removeNode()

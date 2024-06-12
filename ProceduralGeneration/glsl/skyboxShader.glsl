@@ -1,9 +1,9 @@
-#version 100
+#version 150
 precision highp float;
 
-attribute vec4 p3d_Vertex;
+in vec4 p3d_Vertex;
 uniform mat4 p3d_ModelViewProjectionMatrix;
-varying vec3 pos;
+out vec3 pos;
 
 void main() {
     gl_Position = p3d_ModelViewProjectionMatrix * p3d_Vertex;
