@@ -713,7 +713,7 @@ class SkyboxGenerator:
         #self.Skybox = self.buildSphere(20000.0, self.SkyShader)
         self.Skybox = self.buildBox(20000.0, self.SkyShader)
         
-        self.Skybox.setDepthWrite(False)
+        #self.Skybox.setDepthWrite(False)
         self.Skybox.setTransparency(p3dc.TransparencyAttrib.M_alpha)
         
         #self.Skybox.setTexGen(p3dc.TextureStage.getDefault(), p3dc.TexGenAttrib.MWorldCubeMap)
@@ -772,5 +772,8 @@ class SkyboxGenerator:
         self.updateUniforms(self.Skybox, uniforms)
         
         self.Skybox.reparentTo(render())
+        self.Skybox.setBin("fixed", 0)
+        self.Skybox.setDepthTest(False)
+        self.Skybox.setDepthWrite(False)
         
         return self.Skybox
