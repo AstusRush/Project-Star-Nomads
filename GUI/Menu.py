@@ -112,6 +112,7 @@ class GraphicsOptionsWidget(AGeWidgets.TightGridFrame):
         self.AsteroidTexture = self.addWidget(AGeInput.Bool(self,"Use a randomly generated texture for asteroids\nIf disabled the individual faces are\n coloured which results in a retro look",False))
         self.AsteroidTextureResolution = self.addWidget(AGeInput.Int(self,"Asteroid Texture Resolution\n(lower=faster battle loading)",256,64,1024,"²"))
         self.ShipTexture = self.addWidget(AGeInput.Bool(self,"Use a randomly generated texture for ships\nThis makes it look more interesting.",True))
+        self.ShipShader = self.addWidget(AGeInput.Bool(self,"Apply shader to ship. WIP",False))
         self.RedrawEntireGridWhenHighlighting = self.addWidget(AGeInput.Bool(self,"Redraw entire grid when highlighting\n(Useful when changing hex colours)\n(Disable if selecting a unit is slow)",True))
     
     def newSkybox(self):

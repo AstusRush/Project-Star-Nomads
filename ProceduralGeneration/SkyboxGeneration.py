@@ -485,6 +485,7 @@ class SkyboxGenerator:
             else:
                 base().graphicsEngine.renderFrame()
                 base().saveCubeMap("Models/Skyboxes/LastGenerated/Skybox_#.jpeg",size=params['resolution'])#,0,buffer)
+                #CRITICAL: the source code of saveCubeMap is actually in python and should be useable to remove the need for saving which could make this method viable!!
         
         return textures
     

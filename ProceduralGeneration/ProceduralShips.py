@@ -50,6 +50,7 @@ else:
 from BaseClasses import get
 from BaseClasses import ListLoader
 from BaseClasses import ModelBase
+from ProceduralGeneration import ShaderTools
 from ProceduralGeneration import GeomBuilder, GeomBuilder_Ships
 from ProceduralGeneration import ProceduralModels
 
@@ -315,11 +316,14 @@ class ProceduralShip(ProceduralModels._ProceduralModel):
             
             panda_tex = p3dc.Texture("default")
             panda_tex.load(ciMap)
+            node.set_texture(panda_tex)
             panda_mat = p3dc.Material("default")
             #panda_mat.emission = 0
             panda_mat.setEmission((0.1,0.1,0.1,1))
             node.set_material(panda_mat)
-            node.set_texture(panda_tex)
+            if get.menu().GraphicsOptionsWidget.ShipShader():
+                shader = ShaderTools.loadShader("hull.glsl")
+                node.set_shader(shader)
         except:
             ExceptionOutput()
     

@@ -186,6 +186,9 @@ class EngineClass(ape.APE):
                 NC(3,"Sensors have detected reinforcements entering the battle!\n"+"\n".join(textList),DplStr="Reinforcements Detected!")
     
     def endBattleScene(self):
+        if not self.CurrentlyInBattle:
+            NC(3,"It was requested to end the current battle but the is no battle.",tb=True)
+            return
         self.BattleUnitManager.unselectAll()
         fleetLogs:'list[dict]' = []
         for fleet in self.FleetsInBattle:

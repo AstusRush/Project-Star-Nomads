@@ -49,6 +49,7 @@ from BaseClasses import get
 from GUI import BaseInfoWidgets
 from GUI import EconomyInfoWidgets
 from GUI import Menu
+from GUI import Debug
 
 class MainWindowClass(ape.APELabWindow):#APEWindow):
     def setupUI(self):
@@ -80,6 +81,9 @@ class MainWindowClass(ape.APELabWindow):#APEWindow):
         #self.Console1.setText(TEMP_CODE_PROC_TEST_ASTEROID)
         
         self.Console2.setText("engine().endBattleScene()\n#get.hex((24,24)).ResourcesHarvestable.add(Resources.Salvage(12))\n")
+        
+        self.DebugMenu = Debug.DebugMenu(self)
+        self.TabWidget.addTab(self.DebugMenu, "Debug Menu")
         
         self.UnitStatDisplay = BaseInfoWidgets.FleetStats(self)
         self.TabWidget.addTab(self.UnitStatDisplay, "Unit Stats")
