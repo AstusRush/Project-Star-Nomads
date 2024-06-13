@@ -85,11 +85,13 @@ class ShipListWidget(AGeWidgets.TightGridWidget):
     def __init__(self,
                     parent: ShipSelectDialogue,
                     team:'typing.Union[None,int]'=None,
-                    fleet:'typing.Union[None,FleetBase.FleetBase]'=None
+                    fleet:'typing.Union[None,FleetBase.FleetBase]'=None,
+                    showNeutral:'bool'=False
                     ) -> None:
         super().__init__(parent, makeCompact=False)
         self.ConfinedToTeam = team
         self.ConfinedToFleet = fleet
+        self.ShowNeutral = showNeutral
         #TODO: Add Name Filter
         if self.ConfinedToFleet is None and self.ConfinedToTeam is None:
             self.TeamFilter = self.addWidget(QtWidgets.QComboBox(self))
@@ -112,6 +114,7 @@ class ShipListWidget(AGeWidgets.TightGridWidget):
         else:
             fleets = []
             for team in get.unitManager().Teams.values():
+                if (not self.ShowNeutral) and (team.ID < 1): continue
                 fleets.extend(team)
         
         for fleet in fleets:

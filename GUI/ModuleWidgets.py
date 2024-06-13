@@ -310,7 +310,10 @@ class MicroJumpDriveWidget(SpecialWidget):
         self.Label = self.addWidget(QtWidgets.QLabel(self))
         self.ButtonStandardTextReady = "Jump"
         self.ButtonStandardTextNotReady = "Not enough charge to jump"
-        if self.module().isPlayer(): self.Button = self.addWidget(AGeWidgets.Button(self,self.buttonText(),lambda: self.jump()))
+        if self.module().isPlayer():
+            self.Button = self.addWidget(AGeWidgets.Button(self,self.buttonText(),lambda: self.jump()))
+        else:
+            self.Button = None
     
     def buttonText(self):
         return self.ButtonStandardTextReady if self.module().Charge >= 1 else self.ButtonStandardTextNotReady
@@ -323,7 +326,7 @@ class MicroJumpDriveWidget(SpecialWidget):
                             f"\n\tCharge: {round(self.module().Charge,3)}/{round(self.module().MaxCharges,3)} (+{1/round(self.module().Cooldown,3)} per Turn)"
                             f"\n\tRange: {round(self.module().Range,3)}"
                             )
-        self.Button.setText(self.buttonText())
+        if self.Button: self.Button.setText(self.buttonText())
     
     def jump(self):
         if self.module().Charge >= 1:
@@ -332,7 +335,7 @@ class MicroJumpDriveWidget(SpecialWidget):
             except:
                 NC(2,"Can not Jump!", exc=True)
         else:
-            self.Button.setText("Not enough charge!")
+            if self.Button: self.Button.setText("Not enough charge!")
 
 class TeamJumpDriveWidget(SpecialWidget):
     module: 'weakref.ref[BaseModules.TeamJumpDrive]' = None
@@ -341,7 +344,10 @@ class TeamJumpDriveWidget(SpecialWidget):
         self.Label = self.addWidget(QtWidgets.QLabel(self))
         self.ButtonStandardTextReady = "Jump to new sector"
         self.ButtonStandardTextNotReady = "Not enough charge to jump to new sector"
-        if self.module().isPlayer(): self.Button = self.addWidget(AGeWidgets.Button(self,self.buttonText(),lambda: self.jump()))
+        if self.module().isPlayer():
+            self.Button = self.addWidget(AGeWidgets.Button(self,self.buttonText(),lambda: self.jump()))
+        else:
+            self.Button = None
     
     def buttonText(self):
         return self.ButtonStandardTextReady if self.module().Charge >= 1 else self.ButtonStandardTextNotReady
@@ -353,16 +359,22 @@ class TeamJumpDriveWidget(SpecialWidget):
         self.Label.setText( f"{self.module().Name} is {'Ready' if self.module().Charge >= 1 else 'Charging'}"
                             f"\n\tCharge: {round(self.module().Charge,3)}/{round(self.module().MaxCharges,3)} (+{1/round(self.module().Cooldown,3)} per Turn)"
                             )
-        self.Button.setText(self.buttonText())
+        if self.Button: self.Button.setText(self.buttonText())
     
     def jump(self):
+        msgBox = QtWidgets.QMessageBox(get.window())
+        msgBox.setText(f"Jump to new sector?")
+        msgBox.setInformativeText(f"Are you sure you want to jump to a new sector?")
+        msgBox.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.Cancel)
+        msgBox.setDefaultButton(QtWidgets.QMessageBox.Cancel)
+        if msgBox.exec() != QtWidgets.QMessageBox.Yes: return
         if self.module().Charge >= 1:
             try:
                 self.module().jump()
             except:
                 NC(2,"Can not Jump!", exc=True)
         else:
-            self.Button.setText("Not enough charge!")
+            if self.Button: self.Button.setText("Not enough charge!")
 
 class WeaponWidget(ModuleWidget):
     module: 'weakref.ref[BaseModules.Weapon]' = None

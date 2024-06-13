@@ -67,9 +67,14 @@ class DebugWidget(AGeWidgets.TightGridFrame):
         self.HeadlineLine = self.addWidget(QtWidgets.QFrame(self))
         self.HeadlineLine.setFrameShape(QtWidgets.QFrame.HLine)
         self.HeadlineLine.setFrameShadow(QtWidgets.QFrame.Sunken)
+        self.ShowDevToolTabsButton = self.addWidget(AGeWidgets.Button(self,"Show Dev Tool Tabs", lambda: self.showDevToolTabs()))
         self.SpawnAsteroidButton = self.addWidget(AGeWidgets.Button(self,"Spawn Asteroid at selected hex", lambda: spawnAsteroidAtSelectedHex()))
         self.RegenerateProceduralShipModelsButton = self.addWidget(AGeWidgets.Button(self,"Regenerate procedural ship models", lambda: regenerateProceduralShipModels()))
         self.EndBattleButton = self.addWidget(AGeWidgets.Button(self,"End Battle",lambda: engine().endBattleScene()))
+    
+    def showDevToolTabs(self):
+        get.window().showDevToolTabs()
+        self.layout().removeWidget(self.ShowDevToolTabsButton)
 
 def spawnAsteroidAtSelectedHex():
     from BaseClasses import get

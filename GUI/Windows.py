@@ -51,7 +51,28 @@ from GUI import EconomyInfoWidgets
 from GUI import Menu
 from GUI import Debug
 
-class MainWindowClass(ape.APELabWindow):#APEWindow):
+class MainWindowClass(AWWF):#APEWindow):
+    S_PandaKeystroke  = pyqtSignal(str)
+    S_PandaButtonDown = pyqtSignal(str)
+    S_PandaButtonUp   = pyqtSignal(str)
+    def __init__(self, widget):
+        super(MainWindowClass, self).__init__(IncludeErrorButton=True, FullscreenHidesBars=True)
+        App().setMainWindow(self)
+        self.LastOpenState = self.showMaximized
+        self.CentralSplitter = QtWidgets.QSplitter(self)
+        self.setCentralWidget(self.CentralSplitter)
+        
+        self.TabWidget = QtWidgets.QTabWidget(self.CentralSplitter)
+        #
+        self.cw = QtWidgets.QWidget(self.CentralSplitter)
+        self.PandaContainer = widget(self.cw)
+        self.PandaContainer.installEventFilter(self)
+        
+        self.BalanceSizes = True
+        self.setupUI()
+        
+        if self.BalanceSizes: self.CentralSplitter.setSizes([int(App().screenAt(QtGui.QCursor().pos()).size().width()/2), int(App().screenAt(QtGui.QCursor().pos()).size().width()/2)])
+    
     def setupUI(self):
         layout = QtWidgets.QVBoxLayout()
         layout.setContentsMargins(0,0,0,0)
@@ -74,14 +95,6 @@ class MainWindowClass(ape.APELabWindow):#APEWindow):
         
         self.cw.setLayout(layout)
         
-        #self.Console1.setText("self.Pawn = Unit((25,25),App().MiscColours[\"Self\"])\n")
-        
-        self.Console1.setText(TEMP_CODE)
-        #self.Console1.setText(TEMP_CODE_PROC_TEST)
-        #self.Console1.setText(TEMP_CODE_PROC_TEST_ASTEROID)
-        
-        self.Console2.setText("engine().endBattleScene()\n#get.hex((24,24)).ResourcesHarvestable.add(Resources.Salvage(12))\n")
-        
         self.DebugMenu = Debug.DebugMenu(self)
         self.TabWidget.addTab(self.DebugMenu, "Debug Menu")
         
@@ -98,6 +111,44 @@ class MainWindowClass(ape.APELabWindow):#APEWindow):
         
         self.BalanceSizes = False
         self.CentralSplitter.setSizes([510,App().screenAt(QtGui.QCursor().pos()).size().width()-510])
+    
+    def showDevToolTabs(self):
+        self.Console1 = AGeIDE.ConsoleWidget(self)
+        self.Console1.setGlobals(self.globals())
+        #self.Console1.setText("self.genPlayer()\nself.HexGrid = AGE.HexGrid(self.AGE)\n")
+        self.TabWidget.insertTab(0, self.Console1, "Con1")
+        self.Console2 = AGeIDE.ConsoleWidget(self)
+        self.Console2.setGlobals(self.globals())
+        #self.Console2.setText("self.genFloorAndPlayer()\n")
+        self.TabWidget.insertTab(1, self.Console2, "Con2")
+        #self.GeneratorEditor = AGeIDE.OverloadWidget(self, self.gen, "gen")
+        #self.TabWidget.addTab(self.GeneratorEditor, "Gen")
+        self.Overload1 = AGeIDE.OverloadWidget(self)
+        self.Overload1.setGlobals(self.globals())
+        self.TabWidget.insertTab(2, self.Overload1, "Overload 1")
+        self.Overload2 = AGeIDE.OverloadWidget(self)
+        self.Overload2.setGlobals(self.globals())
+        self.TabWidget.insertTab(3, self.Overload2, "Overload 2")
+        self.Inspect = AGeIDE.InspectWidget(self)
+        self.Inspect.setGlobals(self.globals())
+        self.TabWidget.insertTab(4, self.Inspect, "Inspect")
+        
+        #self.Console1.setText("self.Pawn = Unit((25,25),App().MiscColours[\"Self\"])\n")
+        
+        self.Console1.setText(TEMP_CODE)
+        #self.Console1.setText(TEMP_CODE_PROC_TEST)
+        #self.Console1.setText(TEMP_CODE_PROC_TEST_ASTEROID)
+        
+        self.Console2.setText("engine().endBattleScene()\n#get.hex((24,24)).ResourcesHarvestable.add(Resources.Salvage(12))\n")
+    
+    def eventFilter(self, source, event):
+        #if event.type() == 6: # QtCore.QEvent.KeyPress
+        #if hasattr(self,"AGE"):
+        #    self.AGE.eventFilter(source, event)
+        return super().eventFilter(source, event) # let the normal eventFilter handle the event
+    
+    def globals(self):
+        return vars(sys.modules['__main__'])
     
     def getHex(self, i:typing.Tuple[int,int]) -> 'Hex._Hex':
         return get.engine().getHex(i)
