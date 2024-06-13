@@ -260,9 +260,10 @@ void main() {
     //    //TODO: Draw Sun at location specified by python so that a lightsource can be placed there
     //}
     
-    if(colour.a == 1.0){
-        color = colour;
-    }else{
-        color = vec4(colour.rgb + bgColor.rgb, 1.0);
-    }
+    //if(colour.a == 1.0){
+    //    color = colour;
+    //}else{
+    //    color = vec4(colour.rgb + bgColor.rgb, 1.0);
+    //}
+    color = vec4(colour.rgb + bgColor.rgb*(1.0-colour.a), 1.0);
 }
