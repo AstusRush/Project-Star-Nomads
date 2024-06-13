@@ -728,7 +728,7 @@ class SkyboxGenerator:
         rand = random.Random(hash(params['seed']) + 2000)
         
         uniforms = {
-            "Seed": rand.randint(7,1369),
+            "Seed": rand.randint(7,10000),
             "bgColor": backgroundColorVec,
             "Star_Count": self.NSTARS,
             "MakeSun": params["sun"],
