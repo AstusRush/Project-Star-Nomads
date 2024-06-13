@@ -68,10 +68,7 @@ class MainWindowClass(AWWF):#APEWindow):
         self.PandaContainer = widget(self.cw)
         self.PandaContainer.installEventFilter(self)
         
-        self.BalanceSizes = True
         self.setupUI()
-        
-        if self.BalanceSizes: self.CentralSplitter.setSizes([int(App().screenAt(QtGui.QCursor().pos()).size().width()/2), int(App().screenAt(QtGui.QCursor().pos()).size().width()/2)])
     
     def setupUI(self):
         layout = QtWidgets.QVBoxLayout()
@@ -109,7 +106,6 @@ class MainWindowClass(AWWF):#APEWindow):
         
         self.TabWidget.setCurrentWidget(self.Menu) # Overwritten by the engine starting a new game but sensible nonetheless
         
-        self.BalanceSizes = False
         self.CentralSplitter.setSizes([510,App().screenAt(QtGui.QCursor().pos()).size().width()-510])
     
     def showDevToolTabs(self):
