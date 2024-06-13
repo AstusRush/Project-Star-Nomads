@@ -265,5 +265,5 @@ void main() {
     //}else{
     //    color = vec4(colour.rgb + bgColor.rgb, 1.0);
     //}
-    color = vec4(colour.rgb + bgColor.rgb*(1.0-colour.a), 1.0);
+    color = vec4(colour.rgb*colour.a + bgColor.rgb*(1.0-colour.a), 1.0);
 }
