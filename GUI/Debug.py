@@ -70,6 +70,7 @@ class DebugWidget(AGeWidgets.TightGridFrame):
         self.ShowDevToolTabsButton = self.addWidget(AGeWidgets.Button(self,"Show Dev Tool Tabs", lambda: self.showDevToolTabs()))
         self.SpawnAsteroidButton = self.addWidget(AGeWidgets.Button(self,"Spawn Asteroid at selected hex", lambda: spawnAsteroidAtSelectedHex()))
         self.RegenerateProceduralShipModelsButton = self.addWidget(AGeWidgets.Button(self,"Regenerate procedural ship models", lambda: regenerateProceduralShipModels()))
+        self.RegenerateAllProceduralModelsButton = self.addWidget(AGeWidgets.Button(self,"Regenerate all procedural models", lambda: regenerateAllProceduralModels()))
         self.EndBattleButton = self.addWidget(AGeWidgets.Button(self,"End Battle",lambda: engine().endBattleScene()))
     
     def showDevToolTabs(self):
@@ -90,8 +91,17 @@ def spawnAsteroidAtSelectedHex():
     objectGroup.moveToHex(currentHex, False)
 
 def regenerateProceduralShipModels():
+    #TODO: This currently removes all non-procedural models, too, and replaces them with procedural ones
     for i,t in get.unitManager().Teams.items():
         if i <=0: continue
+        for f in t:
+            for s in f.Ships:
+                s.setModel(None)
+            f.arrangeShips()
+
+def regenerateAllProceduralModels():
+    #TODO: This currently removes all non-procedural models, too, and replaces them with procedural ones
+    for i,t in get.unitManager().Teams.items():
         for f in t:
             for s in f.Ships:
                 s.setModel(None)

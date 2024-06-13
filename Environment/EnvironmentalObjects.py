@@ -70,3 +70,8 @@ class Asteroid(EnvironmentalObject):
             self.setModel(ProceduralModels.ProceduralModel_Asteroid())
             if not self.Model.CouldLoadModel and self.Model.Model: self.Model.Model.setColor(ape.colour(QtGui.QColor(0x6d4207)))
         self.addModule(BaseModules.Asteroid_Hull())
+    
+    def setModel(self, model: 'typing.Union[ModelBase.ModelBase,None]'):
+        if model is None:
+            model = ProceduralModels.ProceduralModel_Asteroid()
+        return super().setModel(model)

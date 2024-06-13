@@ -83,3 +83,8 @@ class ResourceAsteroid(HarvestableEnvironmentalObject):
         if generateModel:
             self.setModel(ProceduralModels.ProceduralModel_Asteroid(resourceTypeName=self.ResourceTypeName))
             if not self.Model.CouldLoadModel and self.Model.Model: self.Model.Model.setColor(ape.colour(QtGui.QColor(0x6d4207)))
+    
+    def setModel(self, model: 'typing.Union[ModelBase.ModelBase,None]'):
+        if model is None:
+            model = ProceduralModels.ProceduralModel_Asteroid(resourceTypeName=self.ResourceTypeName)
+        return super().setModel(model)
