@@ -209,8 +209,9 @@ class FleetBase():
             if notifyIfNotContained: NC(2,f"SHIP WAS NOT IN SHIP LIST\nFleet name: {self.Name}\nShip name: {ship.Name}", tb=True) #TODO: give more info
         if not self.Ships:
             self.destroy()
-            if arrange: print(f"{self.Name} was destroyed!")
-            else: print(f"{self.Name} was emptied")
+            if get.engine().DebugPrintsEnabled:
+                if arrange: print(f"{self.Name} was destroyed!")
+                else: print(f"{self.Name} was emptied")
             return False
         else:
             return True
@@ -500,7 +501,7 @@ class FleetBase():
                         else:
                             l.update(path[:mPoints])
             ####
-            print("list",time.time()-t1)
+            if get.engine().DebugPrintsEnabled: print("list",time.time()-t1)
             return l
         if Variant == 2:
             pass # https://www.reddit.com/r/gamemaker/comments/1eido8/mp_grid_for_tactics_grid_movement_highlights/
@@ -682,8 +683,9 @@ class Fleet(FleetBase):
         If all ships were destroyed this fleet will delete itself. \n
         Returns a log containing information about the battle
         """
-        print("Battle Ended for", self.Name)
-        print("Ships in fleet before cleanup:", len(self.Ships))
+        if get.engine().DebugPrintsEnabled:
+            print("Battle Ended for", self.Name)
+            print("Ships in fleet before cleanup:", len(self.Ships))
         hex_ = self.hex()
         ships_to_be_removed:typing.List['ShipBase.ShipBase'] = []
         for ship in self.Ships:
@@ -693,7 +695,7 @@ class Fleet(FleetBase):
         for ship in ships_to_be_removed:
             salvage += ship.Stats.Value/8
             self.removeShip(ship,arrange=False)
-        print("Ships in fleet after cleanup:", len(self.Ships))
+        if get.engine().DebugPrintsEnabled: print("Ships in fleet after cleanup:", len(self.Ships))
         hex_.ResourcesHarvestable.add(salvage)
         if self.Destroyed:
             return {"salvage":Resources._ResourceDict.new(salvage)}

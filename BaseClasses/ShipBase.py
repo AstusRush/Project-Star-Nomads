@@ -412,13 +412,15 @@ class ShipBase():
         return True
     
     def removeAllModules(self):
-        print("RM ======= START")
-        print("Removing all modules of ship", self.Name)
+        if get.engine().DebugPrintsEnabled:
+            print("RM ======= START")
+            print("Removing all modules of ship", self.Name)
         modules = self.Modules.copy()
         for module in modules:
-            print("removing", module.Name)
+            if get.engine().DebugPrintsEnabled: print("removing", module.Name)
             self.removeModule(module)
-        print("RM ======= END")
+        if get.engine().DebugPrintsEnabled:
+            print("RM ======= END")
     
     def addModules(self, modules:typing.List['BaseModules.Module']):
         for module in modules:
@@ -657,7 +659,8 @@ class ShipBase():
         self.ExplosionEffect2.reparentTo(self.Node)
         self.ExplosionEffect2.scaleInterval(explosionDuration, 1.1, 0.05).start()
         
-        print(f"{self.Name} was destroyed!")
+        if get.engine().DebugPrintsEnabled:
+            print(f"{self.Name} was destroyed!")
         
         base().taskMgr.doMethodLater(explosionDuration, self.destroy, str(id(self)))
     

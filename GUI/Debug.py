@@ -71,17 +71,27 @@ class DebugWidget(AGeWidgets.TightGridFrame):
         self.SpawnAsteroidButton = self.addWidget(AGeWidgets.Button(self,"Spawn Asteroid at selected hex", lambda: spawnAsteroidAtSelectedHex()))
         self.RegenerateProceduralShipModelsButton = self.addWidget(AGeWidgets.Button(self,"Regenerate procedural ship models", lambda: regenerateProceduralShipModels()))
         self.RegenerateAllProceduralModelsButton = self.addWidget(AGeWidgets.Button(self,"Regenerate all procedural models", lambda: regenerateAllProceduralModels()))
-        self.EndBattleButton = self.addWidget(AGeWidgets.Button(self,"End Battle",lambda: engine().endBattleScene()))
+        self.EndBattleButton = self.addWidget(AGeWidgets.Button(self,"End Battle",lambda: get.engine().endBattleScene()))
+        self.EnableDebugOutputButton = self.addWidget(AGeWidgets.Button(self,"Enable print Debug Output",lambda: self.toggleDebugOutput()))
     
     def showDevToolTabs(self):
         get.window().showDevToolTabs()
         self.layout().removeWidget(self.ShowDevToolTabsButton)
+    
+    def toggleDebugOutput(self):
+        get.engine().DebugPrintsEnabled = not get.engine().DebugPrintsEnabled
+        if get.engine().DebugPrintsEnabled:
+            self.EnableDebugOutputButton.setText("Disable print Debug Output")
+        else:
+            self.EnableDebugOutputButton.setText("Enable print Debug Output")
 
 def spawnAsteroidAtSelectedHex():
     from BaseClasses import get
     from Environment import Environment, EnvironmentalObjects, EnvironmentalObjectGroups
     currentHex = get.hexGrid().SelectedHex
-    #TODO: Ensure that the hex is empty before spawning anything!
+    if currentHex.fleet:
+        NC(2, "The Hex is already occupied", input=currentHex.fleet())
+        return
     combat = get.engine().CurrentlyInBattle
     object = EnvironmentalObjects.Asteroid()
     if not combat: objectGroup = EnvironmentalObjectGroups.EnvironmentalObjectGroup_Campaign()

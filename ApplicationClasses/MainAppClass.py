@@ -59,6 +59,8 @@ class EngineClass(ape.APE):
     CurrentBattleAggressorHex:'HexBase._Hex' = None
     CurrentBattleDefenderHex:'HexBase._Hex' = None
     _HexToLookAtAfterBattle:'HexBase._Hex' = None
+    DebugPrintsEnabled:bool = False
+    
     def start(self):
         self._NumHexGridsCampaign, self._NumHexGridsBattle = 0, 0
         self.Scene:'Scene.CampaignScene' = None
@@ -323,26 +325,29 @@ class EngineClass(ape.APE):
         else:
             raise Exception(f"{type_} is an unknown hex grid type! Only Campaign and Battle are valid options!")
     
-    def save(self, name="LastSave"):
-        #REMINDER: The name of the Save File must be not only a valid file name but also a valid python file name
+    def save(self, name=""):
         if self.CurrentlyInBattle:
             NC(2,"Currently, saving is only possible on the campaign map", DplStr="Could NOT Save!")
             return
-        name += ".py"
-        self._save(name)
-    
-    def _save(self, name="LastSave.py"):
+        
+        wd = os.path.dirname(__file__).rsplit(os.path.sep,1)[0]
+        saveFolder = os.path.join(wd,"SavedGames")
+        if not os.path.exists(saveFolder):
+            os.mkdir(saveFolder)
+        
+        if not name:
+            name = QtWidgets.QFileDialog.getSaveFileName(get.window(), "Save the game", saveFolder, "Save Files (*.save);;Python Files (*.py);;Any Files (*.*)", "Save Files (*.save)")[0]
+            if not name: return
+        if not name.endswith(".save"):
+            name += ".save"
+        
         #TODO: This is not compressed enough and I don't know how to compress it more.
         #       (It certainly is far more compressible. I just haven't learned a better way to save this data than the wacky way I invented.
         #           Other game devs have way better ways to store that data. Don't judge me! This is my first game!)
         #       Therefore we need to save each fleet into its own file.
         #       This means that each saved game creates a folder filled with multiple files that all need to be executed (by loading the text and calling `exec` on it).
         #       Then we can also have other files that store other data like the tech tree.
-        #TODO: Select a name for the save file
-        wd = os.path.dirname(__file__).rsplit(os.path.sep,1)[0]
-        saveFolder = os.path.join(wd,"SavedGames")
-        if not os.path.exists(saveFolder):
-            os.mkdir(saveFolder)
+        
         fleetList:UnitManagerBase.UnitList = []
         for team in self.getUnitManager().Teams.values():
             fleetList += team
@@ -351,16 +356,23 @@ class EngineClass(ape.APE):
         NC(3,f"Save successful! Saved at {os.path.join(saveFolder,name)}", DplStr="Game Saved!")
     
     def load(self):
-        if self._confirmNewOrLoad("loading"):
-            #TODO: See _save
-            #TODO: It would be neat to not have to restart the game every time one wants to load
-            #TODO: Select a save file
-            #TODO: It would be nice if the camera would zoom to an owned fleet or would even remember its position when the save was made
-            if self.CurrentlyInBattle:
-                NC(2,"Currently, loading is only possible on the campaign map")
-                return
-            self.clearAll()
-            from SavedGames import LastSave
+        #if self._confirmNewOrLoad("loading"): # Option to abort already covered by the file selector
+        #TODO: It would be nice if the camera would zoom to an owned fleet or would even remember its position when the save was made
+        if self.CurrentlyInBattle:
+            NC(2,"Currently, loading is only possible on the campaign map")
+            return
+        
+        wd = os.path.dirname(__file__).rsplit(os.path.sep,1)[0]
+        saveFolder = os.path.join(wd,"SavedGames")
+        savePath = QtWidgets.QFileDialog.getOpenFileName(get.window(), "Select File to Load", saveFolder, "Save Files (*.save);;Python Files (*.py);;Any Files (*.*)", "Save Files (*.save)")[0]
+        
+        if not savePath: return
+        
+        self.clearAll()
+        #from SavedGames import LastSave
+        d = globals().copy()
+        with open(savePath) as f:
+            exec(f.read(), d, d)
     
     def clearAll(self,exceptPlayer=False): #TODO: also clear any battle that is currently active and return to the campaign map
         fleetList:UnitManagerBase.UnitList = []

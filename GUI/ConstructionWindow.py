@@ -453,7 +453,7 @@ class ModuleList(QtWidgets.QListWidget):
                 if AGeAux.isInstanceOrSubclass(module,i):
                     t = i
                     break
-        print("looking for",t)
+        if get.engine().DebugPrintsEnabled: print("looking for",t)
         return self.constructionWidget().Ship.getModuleOfType(t)
     
     def populate(self):

@@ -258,7 +258,7 @@ class CampaignUnitManager(UnitManager):
         await self._endTurn_handleAICombat()
     
     async def _endTurn_handleAICombat(self):
-        print("_endTurn_handleAICombat")
+        if get.engine().DebugPrintsEnabled: print("_endTurn_handleAICombat")
         self._Fleets_that_need_combat_handling:'list[FleetBase.Fleet]' = [i for i in self._Fleets_that_need_combat_handling if not i.isDestroyed()]
         if not self._Fleets_that_need_combat_handling:
             print("player turn")

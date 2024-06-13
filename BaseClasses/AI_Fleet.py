@@ -77,10 +77,10 @@ class FleetAI(BaseFleetAI):
         moved, isClose = False, False
         if (closestEnemy:=self.fleet().findClosestEnemy()):
             isClose, moved = self.fleet().moveClose(closestEnemy.hex(), 1)
-            print(f"{self.fleet().Name} tries to move to a close enemy {isClose=} {moved=}")
+            if get.engine().DebugPrintsEnabled: print(f"{self.fleet().Name} tries to move to a close enemy {isClose=} {moved=}")
             if not isClose and (closestEnemy:=self.fleet().findClosestEnemy()):
                 isClose, moved = self.fleet().moveClose(closestEnemy.hex(), 5)
-                print(f"{self.fleet().Name} tries to move to a close enemy {isClose=} {moved=}")
+                if get.engine().DebugPrintsEnabled: print(f"{self.fleet().Name} tries to move to a close enemy {isClose=} {moved=}")
         if self.fleet().MovePoints >= 1 and not moved and (not isClose or (closestEnemy and closestEnemy.Team != 1)):
             for _ in range(6):
                 destinationHex = self.getRandomReachableHex()
@@ -117,7 +117,7 @@ class FlotillaAI(BaseFleetAI):
             if orders["aggressive"] and not attackableHexes and (closestEnemy:=self.fleet().findClosestEnemy()):
                 # If we can not find anything to attack we should try to move in the direction of the closest (detectable (in the future)) enemy
                 isClose, moved = self.fleet().moveClose(closestEnemy.hex(), self.fleet().getAttackRange()[0])
-                print(f"{self.fleet().Name} tries to move to a close enemy {isClose=} {moved=}")
+                if get.engine().DebugPrintsEnabled: print(f"{self.fleet().Name} tries to move to a close enemy {isClose=} {moved=}")
                 attackableHexes = self.getAttackableHexes(self.fleet().hex(), orders)
             else:
                 self.fleet().moveTo_AI(destinationHex)
