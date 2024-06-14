@@ -64,7 +64,7 @@ vec3 star(vec2 p2, vec3 p) {
     
     const int steps = 16;
     float scale = pow(2.0, float(steps));
-    vec3 displace;
+    vec3 displace = vec3(0);
     for (int i = 0; i < steps; i++) {
         displace = vec3(
             noise_n(p.xyz * scale + displace),
@@ -111,7 +111,7 @@ vec4 star_bright(vec2 p2, vec3 p) { // WIP
     
     const int steps = 16;
     float scale = pow(2.0, float(steps));
-    vec3 displace;
+    vec3 displace = vec3(0);
     for (int i = 0; i < steps; i++) {
         displace = vec3(
             noise_n(rpcg.xyz * scale + displace),
@@ -202,7 +202,7 @@ float nebula(vec3 p) {
     // Nebula from https://github.com/wwwtyro/space-3d under the unlicense license
     const int steps = 6;
     float scale = pow(2.0, float(steps));
-    vec3 displace;
+    vec3 displace = vec3(0);
     for (int i = 0; i < steps; i++) {
         displace = vec3(
             noise_n(p.xyz * scale + displace),
