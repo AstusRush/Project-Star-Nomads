@@ -63,6 +63,9 @@ else:
     from AstusPandaEngine import engine, base, render, loader
     from AstusPandaEngine import window as _window
 
+#NOTE: Next line is not useful in this form but I want to have noted down the way to set Config.pcr data in-application
+#p3dc.load_prc_file_data('setInApplication','notify-level-glgsg info')
+
 if StartSkyboxTestInsteadOfStarNomads:
     import SkyboxTest
     SkyboxTest.main()
