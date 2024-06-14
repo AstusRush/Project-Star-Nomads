@@ -41,13 +41,17 @@ vec3 sphericalToCartesian(vec3 v) {
     return sphericalToCartesian(v.x, v.y, v.z);
 }
 
-vec3 sfract(vec3 v, float mult=1.0) {
+vec3 sfract(vec3 v, float mult) {
     v = cartesianToSpherical(v);
     v *= mult;
     v = fract(v);
     v /= mult;
     v = sphericalToCartesian(v);
     return v;
+}
+
+vec3 sfract(vec3 v) {
+    return sfract(v, 1.0);
 }
 
 vec3 equalizeLength(vec3 v, vec3 w){
@@ -78,7 +82,7 @@ float hash2f(vec2 p) {
     return -1.0 + 2.0 * fract(sin(dot(p.xy, vec2(311.7, 74.7))) * 43758.5453123);
 }
 
-vec3 randPosS(vec2 p, vec3 p3, float l=1.0, int seed=42){
+vec3 randPosS(vec2 p, vec3 p3, float l, int seed){
     vec3 r;
     
     // Generate a random distance between minDistance and maxDistance
@@ -100,7 +104,23 @@ vec3 randPosS(vec2 p, vec3 p3, float l=1.0, int seed=42){
     return vec3(theta, phi, dist);
 }
 
-vec3 randPos(vec2 p, vec3 p3, float l=1.0, int seed=42){
+vec3 randPosS(vec2 p, vec3 p3, float l){
+    return randPosS(p, p3, l, 42);
+}
+
+vec3 randPosS(vec2 p, vec3 p3){
+    return randPosS(p, p3, 1.0);
+}
+
+vec3 randPos(vec2 p, vec3 p3, float l, int seed){
     vec3 r = randPosS(p, p3, l, seed);
     return sphericalToCartesian(r);
+}
+
+vec3 randPos(vec2 p, vec3 p3, float l){
+    return randPos(p, p3, l, 42);
+}
+
+vec3 randPos(vec2 p, vec3 p3){
+    return randPos(p, p3, 1.0);
 }
