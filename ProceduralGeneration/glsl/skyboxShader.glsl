@@ -92,6 +92,109 @@ vec3 star(vec2 p2, vec3 p) {
     return starIntensity * (1-abs(h)*0.15);
 }
 
+vec3 star_slight_fixes(vec2 p2, vec3 p) {
+    // This version has some slight fixes but needs more testing and tweaking
+    // Though both this and the unfixed version will soon be replaced by the new version
+    // I just wanted this to be in the version history in case I might need it later
+    vec3 ps = cartesianToSpherical(p);
+    vec3 pd = vec3(fract(ps.xy*2),ps.z);
+    float theta = abs(0.5-abs((ps.y-pi/2)/pi));
+    float tf = floor(theta*40)/4+1;
+    
+    float TheX = abs(ps.x*6*12*pow(tf,2));
+    float TheY = abs(ps.y*80*12);
+    
+    vec3 pc = sphericalToCartesian(vec3(abs(fract(TheX)), abs(fract(TheY)), ps.z));
+    float d = length(pc.xy-vec2(0.5,0.5));
+    
+    vec3 h = hash3(sphericalToCartesian(vec3(abs(floor(TheX)), abs(floor(TheY)), pd.z))*Seed);
+    float starIntensity = smoothstep(0.0001, 0.00015, d);
+    
+    uvec3 rpcg = pcg(vec3(floor(TheX),floor(TheY),Seed));
+    
+    const int steps = 16;
+    float scale = pow(2.0, float(steps));
+    vec3 displace = vec3(0);
+    for (int i = 0; i < steps; i++) {
+        displace = vec3(
+            noise_n(vec3(floor(TheX),floor(TheY),Seed).xyz * scale + displace),
+            noise_n(vec3(floor(TheX),floor(TheY),Seed).yzx * scale + displace),
+            noise_n(vec3(floor(TheX),floor(TheY),Seed).zxy * scale + displace)
+        );
+        scale *= 0.5;
+    }
+    float nf = noise_n(p * scale + displace);
+    
+    uint Xv = getLastBits(rpcg.x + uint(nf*10000),8);
+    uint Yv = getLastBits(rpcg.y + uint(nf*10000),8);
+    uint Zv = getLastBits(rpcg.z + uint(nf*10000),8);
+    
+    if(mod(((Yv-Xv)), 7) == 0 ){
+        starIntensity = 0.;
+    }
+    if(Xv+Yv+Zv < uint(pow(2,9)+(5-tf)*10) ){
+        starIntensity = 0.;
+    }
+    if(uint(Xv^Yv) < uint(pow(2,7)) ){
+        starIntensity = 0.;
+    }
+    
+    return starIntensity * (1-abs(h)*0.15);
+}
+
+vec3 star_Overhaul_WIP(vec2 p2, vec3 p) {
+    float xFact = 6;
+    float yFact = 80;
+    
+    vec3 ps = cartesianToSpherical(p);
+    vec3 pd = vec3(fract(ps.xy*2),ps.z);
+    float theta = abs(0.5-abs((floor(ps.y*yFact)/yFact-pi/2)/pi));
+    float tf = floor(theta*40)/4+1;
+    
+    
+    float TheX = abs(ps.x*xFact*pow(tf,2));
+    float TheY = abs(ps.y*yFact);
+    
+    vec3 pc = sphericalToCartesian(vec3(abs(fract(TheX)), abs(fract(TheY)), ps.z));
+    float d = length(pc.xy-vec2(0.5,0.5));
+    
+    float starIntensity = smoothstep(3.2/yFact, 2.6/yFact, d);
+    
+    vec3 h = hash3(sphericalToCartesian(vec3(abs(floor(TheX)), abs(floor(TheY)), pd.z))*Seed);
+    
+    uvec3 rpcg = pcg(vec3(floor(TheX),floor(TheY),Seed));
+    
+    const int steps = 16;
+    float scale = pow(2.0, float(steps));
+    vec3 displace = vec3(0);
+    for (int i = 0; i < steps; i++) {
+        displace = vec3(
+            noise_n(vec3(floor(TheX),floor(TheY),Seed).xyz * scale + displace),
+            noise_n(vec3(floor(TheX),floor(TheY),Seed).yzx * scale + displace),
+            noise_n(vec3(floor(TheX),floor(TheY),Seed).zxy * scale + displace)
+        );
+        scale *= 0.5;
+    }
+    float nf = noise_n(p * scale + displace);
+    
+    uint Xv = getLastBits(rpcg.x + uint(nf*10000),8);
+    uint Yv = getLastBits(rpcg.y + uint(nf*10000),8);
+    uint Zv = getLastBits(rpcg.z + uint(nf*10000),8);
+    
+    if(mod(((Yv-Xv)), 7) == 0 ){
+        starIntensity = 0.;
+    }
+    if(Xv+Yv+Zv < uint(pow(2,9)+(5-tf)*10) ){
+        starIntensity = 0.;
+    }
+    if(uint(Xv^Yv) < uint(pow(2,7)) ){
+        starIntensity = 0.;
+    }
+    
+    return starIntensity * (1-abs(h)*0.15);
+    //return vec3(starIntensity);
+}
+
 vec4 star_bright(vec2 p2, vec3 p) { // WIP
     vec3 ps = cartesianToSpherical(p);
     vec3 pd = vec3(fract(ps.xy*2),ps.z);
@@ -241,6 +344,7 @@ void main() {
     // Add Stars
     if(MakePointStars){
         vec3 starIntensity = star(skybox_uv, view_dir); //TODO: bring in Star_Count
+        //vec3 starIntensity = star_Overhaul_WIP(skybox_uv, view_dir); //TODO: bring in Star_Count
         colour.rgb += starIntensity;
         colour.a = max(colour.a, maxComponent(starIntensity));
     }
