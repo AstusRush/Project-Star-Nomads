@@ -96,6 +96,7 @@ class EngineClass(ape.APE):
     def gen(self):
         #self.Gen.render(self.Params)
         self.Gen.makeWithShader(self.Params)
+        #self.Gen.getSkybox_OLD(self.Params)
 
 class BaseClass(ape.APEPandaBase):
     def __init__(self,rp):

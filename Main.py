@@ -66,6 +66,9 @@ else:
 #NOTE: Next line is not useful in this form but I want to have noted down the way to set Config.pcr data in-application
 #p3dc.load_prc_file_data('setInApplication','notify-level-glgsg info')
 
+#p3dc.load_prc_file_data('setInApplication v-sync','sync-video #f') # Turns fo frame syncing, theoretically removing the 60fpd cap
+#p3dc.load_prc_file_data('setInApplication fps','show-frame-rate-meter #t') # Enables FPS counter
+
 if StartSkyboxTestInsteadOfStarNomads:
     import SkyboxTest
     SkyboxTest.main()

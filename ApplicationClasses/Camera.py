@@ -201,7 +201,7 @@ class StrategyCamera(DirectObject):
             self.SpaceSkyBox.removeNode()
         if self.SpaceSkyBoxCentre:
             self.SpaceSkyBoxCentre.removeNode()
-        size = 5000
+        size = 20000
         self.SpaceSkyBoxCentre = p3dc.NodePath(p3dc.PandaNode("SpaceSkyBoxCentre"))
         self.SpaceSkyBoxCentre.reparentTo(ape.render())
         try:
@@ -234,7 +234,8 @@ class StrategyCamera(DirectObject):
                 ape.base().camera.setPos(old_pos_cam)
                 ape.base().camera.lookAt(self.CameraCenter)
             else:
-                self.SpaceSkyBox = SkyboxGeneration.SkyboxGenerator().makeWithShader(params)
+                self.SpaceSkyBox = SkyboxGeneration.SkyboxGenerator().makeWithShader(params, size)
+                self.SpaceSkyBox.reparentTo(self.SpaceSkyBoxCentre)
             #raise Exception()
         except:
             NC(exc=True)

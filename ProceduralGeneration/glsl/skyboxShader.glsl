@@ -34,6 +34,8 @@ uniform vec3 Nebula_Offset[6];
 uniform float Nebula_Intensity[6];
 uniform float Nebula_Falloff[6];
 
+//uniform float osg_FrameTime;
+
 in vec3 pos;
 out vec4 color;
 
@@ -46,136 +48,53 @@ __util__
 //////////////////////////////////////////////////////////
 
 vec3 star(vec2 p2, vec3 p) {
-    vec3 ps = cartesianToSpherical(p);
-    vec3 pd = vec3(fract(ps.xy*2),ps.z);
-    float theta = abs(0.5-abs((ps.y-pi/2)/pi));
-    float tf = floor(theta*40)/4+1;
-    
-    float TheX = abs(pd.x*6*pow(tf,2));
-    float TheY = abs(pd.y*80);
-    
-    vec3 pc = sphericalToCartesian(vec3(abs(fract(TheX)), abs(fract(TheY)), pd.z));
-    float d = length(pc-0.4);
-    
-    vec3 h = hash3(sphericalToCartesian(vec3(abs(floor(TheX)), abs(floor(TheY)), pd.z))*Seed);
-    float starIntensity = smoothstep(0.0, 0.15, 0.4-d);
-    
-    uvec3 rpcg = pcg(vec3(floor(TheX),floor(TheY),Seed));
-    
-    const int steps = 16;
-    float scale = pow(2.0, float(steps));
-    vec3 displace = vec3(0);
-    for (int i = 0; i < steps; i++) {
-        displace = vec3(
-            noise_n(p.xyz * scale + displace),
-            noise_n(p.yzx * scale + displace),
-            noise_n(p.zxy * scale + displace)
-        );
-        scale *= 0.5;
-    }
-    float nf = noise_n(p * scale + displace);
-    
-    uint Xv = getLastBits(rpcg.x + uint(nf*10000),8);
-    uint Yv = getLastBits(rpcg.y + uint(nf*10000),8);
-    uint Zv = getLastBits(rpcg.z + uint(nf*10000),8);
-    
-    if(mod(((Yv-Xv)), 7) == 0 ){
-        starIntensity = 0.;
-    }
-    if(Xv+Yv+Zv < uint(pow(2,9)+(5-tf)*10) ){
-        starIntensity = 0.;
-    }
-    if(uint(Xv^Yv) < uint(pow(2,7)) ){
-        starIntensity = 0.;
-    }
-    
-    return starIntensity * (1-abs(h)*0.15);
-}
-
-vec3 star_slight_fixes(vec2 p2, vec3 p) {
-    // This version has some slight fixes but needs more testing and tweaking
-    // Though both this and the unfixed version will soon be replaced by the new version
-    // I just wanted this to be in the version history in case I might need it later
-    vec3 ps = cartesianToSpherical(p);
-    vec3 pd = vec3(fract(ps.xy*2),ps.z);
-    float theta = abs(0.5-abs((ps.y-pi/2)/pi));
-    float tf = floor(theta*40)/4+1;
-    
-    float TheX = abs(ps.x*6*12*pow(tf,2));
-    float TheY = abs(ps.y*80*12);
-    
-    vec3 pc = sphericalToCartesian(vec3(abs(fract(TheX)), abs(fract(TheY)), ps.z));
-    float d = length(pc.xy-vec2(0.5,0.5));
-    
-    vec3 h = hash3(sphericalToCartesian(vec3(abs(floor(TheX)), abs(floor(TheY)), pd.z))*Seed);
-    float starIntensity = smoothstep(0.0001, 0.00015, d);
-    
-    uvec3 rpcg = pcg(vec3(floor(TheX),floor(TheY),Seed));
-    
-    const int steps = 16;
-    float scale = pow(2.0, float(steps));
-    vec3 displace = vec3(0);
-    for (int i = 0; i < steps; i++) {
-        displace = vec3(
-            noise_n(vec3(floor(TheX),floor(TheY),Seed).xyz * scale + displace),
-            noise_n(vec3(floor(TheX),floor(TheY),Seed).yzx * scale + displace),
-            noise_n(vec3(floor(TheX),floor(TheY),Seed).zxy * scale + displace)
-        );
-        scale *= 0.5;
-    }
-    float nf = noise_n(p * scale + displace);
-    
-    uint Xv = getLastBits(rpcg.x + uint(nf*10000),8);
-    uint Yv = getLastBits(rpcg.y + uint(nf*10000),8);
-    uint Zv = getLastBits(rpcg.z + uint(nf*10000),8);
-    
-    if(mod(((Yv-Xv)), 7) == 0 ){
-        starIntensity = 0.;
-    }
-    if(Xv+Yv+Zv < uint(pow(2,9)+(5-tf)*10) ){
-        starIntensity = 0.;
-    }
-    if(uint(Xv^Yv) < uint(pow(2,7)) ){
-        starIntensity = 0.;
-    }
-    
-    return starIntensity * (1-abs(h)*0.15);
-}
-
-vec3 star_Overhaul_WIP(vec2 p2, vec3 p) {
-    float xFact = 6;
-    float yFact = 80;
+    float blinkIntensity = 0.15;
+    int starMult = 24;
+    float xFact = 1;
+    float yFact = 30;
+    xFact *= starMult;
+    yFact *= starMult;
     
     vec3 ps = cartesianToSpherical(p);
-    vec3 pd = vec3(fract(ps.xy*2),ps.z);
     float theta = abs(0.5-abs((floor(ps.y*yFact)/yFact-pi/2)/pi));
-    float tf = floor(theta*40)/4+1;
+    float tf = floor(theta*900)/90+1;
     
+    //vec3 pd = vec3(fract(ps.xy*2),ps.z);
+    if(theta<0.004){
+        tf = floor(theta*80)/8+0.45;
+    } else if(theta<0.008){
+        tf = floor(theta*80)/8+0.6;
+    } else if(theta<0.02){
+        tf = floor(theta*80)/8+0.8;
+    }
     
-    float TheX = abs(ps.x*xFact*pow(tf,2));
+    ps.x += 0.5*(mod((floor(ps.y*yFact))+80,2));
+    
+    float TheX = ps.x*xFact*pow(tf,2);
     float TheY = abs(ps.y*yFact);
     
     vec3 pc = sphericalToCartesian(vec3(abs(fract(TheX)), abs(fract(TheY)), ps.z));
     float d = length(pc.xy-vec2(0.5,0.5));
+    vec3 cords = sphericalToCartesian(vec3(floor(TheX), floor(TheY), 1));
     
-    float starIntensity = smoothstep(3.2/yFact, 2.6/yFact, d);
+    float starIntensity = smoothstep(4.4/yFact*starMult, 3.8/yFact*starMult, d);
     
-    vec3 h = hash3(sphericalToCartesian(vec3(abs(floor(TheX)), abs(floor(TheY)), pd.z))*Seed);
+    vec3 h = hash3(cords*Seed);
     
-    uvec3 rpcg = pcg(vec3(floor(TheX),floor(TheY),Seed));
+    uvec3 rpcg = pcg(h);
     
-    const int steps = 16;
+    const int steps = 1;
     float scale = pow(2.0, float(steps));
     vec3 displace = vec3(0);
     for (int i = 0; i < steps; i++) {
         displace = vec3(
-            noise_n(vec3(floor(TheX),floor(TheY),Seed).xyz * scale + displace),
-            noise_n(vec3(floor(TheX),floor(TheY),Seed).yzx * scale + displace),
-            noise_n(vec3(floor(TheX),floor(TheY),Seed).zxy * scale + displace)
+            noise_n(cords.xyz * scale + displace),
+            noise_n(cords.yzx * scale + displace),
+            noise_n(cords.zxy * scale + displace)
         );
         scale *= 0.5;
     }
-    float nf = noise_n(p * scale + displace);
+    float nf = noise_n(h * scale + displace);
     
     uint Xv = getLastBits(rpcg.x + uint(nf*10000),8);
     uint Yv = getLastBits(rpcg.y + uint(nf*10000),8);
@@ -184,121 +103,106 @@ vec3 star_Overhaul_WIP(vec2 p2, vec3 p) {
     if(mod(((Yv-Xv)), 7) == 0 ){
         starIntensity = 0.;
     }
-    if(Xv+Yv+Zv < uint(pow(2,9)+(5-tf)*10) ){
+    if(Xv+Yv+Zv < uint(pow(2,9)+(5-tf)*3) ){
         starIntensity = 0.;
     }
     if(uint(Xv^Yv) < uint(pow(2,7)) ){
         starIntensity = 0.;
     }
     
-    return starIntensity * (1-abs(h)*0.15);
+    return starIntensity * (1-abs(h)*0.25);
+    //return starIntensity * (1-abs(h)*0.25) * (1 - blinkIntensity/2 + sin(osg_FrameTime*2+(mod(floor(noise_n(cords)*80),20)))*(blinkIntensity/2) );
     //return vec3(starIntensity);
 }
 
 vec4 star_bright(vec2 p2, vec3 p) { // WIP
+    float blinkIntensity = 0.25;
+    int starMult = 12;
+    float xFact = 1;
+    float yFact = 30;
+    xFact *= starMult;
+    yFact *= starMult;
+    
     vec3 ps = cartesianToSpherical(p);
-    vec3 pd = vec3(fract(ps.xy*2),ps.z);
-    float theta = abs(0.5-abs((ps.y-pi/2)/pi));
-    float tf = floor(theta*40)/4+1;
+    float theta = abs(0.5-abs((floor(ps.y*yFact)/yFact-pi/2)/pi));
+    float tf = floor(theta*900)/90+1;
     
-    float TheX = abs(pd.x*3*pow(tf,2));
-    float TheY = abs(pd.y*40);
+    //vec3 pd = vec3(fract(ps.xy*2),ps.z);
+    if(theta<0.004){
+        tf = floor(theta*80)/8+0.45;
+    } else if(theta<0.008){
+        tf = floor(theta*80)/8+0.6;
+    } else if(theta<0.02){
+        tf = floor(theta*80)/8+0.8;
+    }
     
-    vec3 pc = sphericalToCartesian(vec3(abs(fract(TheX)), abs(fract(TheY)), pd.z));
-    float d = length(pc-0.4);
+    ps.x += 0.5*(mod((floor(ps.y*yFact))+80,2));
     
-    vec3 h = hash3(sphericalToCartesian(vec3(abs(floor(TheX)), abs(floor(TheY)), pd.z))*Seed);
-    float starIntensity = smoothstep(0.0, 0.15, 0.4-d);
+    float TheX = ps.x*xFact*pow(tf,2);
+    float TheY = abs(ps.y*yFact);
     
-    uvec3 rpcg = pcg(vec3(floor(TheX),floor(TheY),Seed));
+    vec3 pc = sphericalToCartesian(vec3(abs(fract(TheX)), abs(fract(TheY)), ps.z));
+    float d = length(pc.xy-vec2(0.5,0.5));
+    vec3 cords = sphericalToCartesian(vec3(floor(TheX), floor(TheY), 1));
     
-    const int steps = 16;
+    float starIntensity = smoothstep(4.4/yFact*starMult*0.9, 3.8/yFact*starMult*0.9, d);
+    
+    vec3 h = hash3(cords*Seed);
+    
+    uvec3 rpcg = pcg(h);
+    
+    const int steps = 1;
     float scale = pow(2.0, float(steps));
     vec3 displace = vec3(0);
     for (int i = 0; i < steps; i++) {
         displace = vec3(
-            noise_n(rpcg.xyz * scale + displace),
-            noise_n(rpcg.yzx * scale + displace),
-            noise_n(rpcg.zxy * scale + displace)
+            noise_n(cords.xyz * scale + displace),
+            noise_n(cords.yzx * scale + displace),
+            noise_n(cords.zxy * scale + displace)
         );
         scale *= 0.5;
     }
-    float nf = noise_n(rpcg * scale + displace);
+    float nf = noise_n(h * scale + displace);
     
-    uint Xv = getLastBits(rpcg.x + uint(nf*10000),8);
-    uint Yv = getLastBits(rpcg.y + uint(nf*10000),8);
-    uint Zv = getLastBits(rpcg.z + uint(nf*10000),8);
+    int Xv = int(getLastBits(rpcg.x + uint(nf*10000),8));
+    int Yv = int(getLastBits(rpcg.y + uint(nf*10000),8));
+    int Zv = int(getLastBits(rpcg.z + uint(nf*10000),8));
     
-    if(mod(((Yv-Xv)), 7) == 0 ){
-        starIntensity = 0;
-    }
-    if(Xv+Yv+Zv < uint(pow(2,9)+(5-tf)*10) ){
+    if(mod((abs(Yv-Xv)), 7) == 0 ){
         starIntensity = 0.;
     }
-    if(uint(Xv^Yv) < uint(pow(2,7)) ){
+    if(Xv+Yv+Zv < int(pow(2,9)+(5-tf)*3) ){
+        starIntensity = 0.;
+    }
+    if(float(Xv^Yv) < float(pow(2,7)+47.046873092) ){
         starIntensity = 0.;
     }
     
-    vec3 c = starIntensity * abs(hash3(rpcg));
-    if(starIntensity < 0.1){
-        starIntensity = 0;
-        c = vec3(0);
-    }else{
-        if(maxComponent(c)==c.r)
-            c.r = 1.0;
-        else if(maxComponent(c)==c.g)
-            c.g = 1.0;
-        else
-            c.b = 1.0;
-    }
-    return vec4(c,starIntensity);
-}
-
-//////////////////////////////////////////////////////////
-
-// Function to draw a circle at the given spherical position
-float drawCircle(vec3 pos, vec3 circlePos, float circleRadius) {
-    // Convert spherical coordinates to Cartesian coordinates
-    vec3 circleCenter = sphericalToCartesian(circlePos);
-    
-    // Calculate the distance from the current position to the center of the circle
-    float d = length(pos - circleCenter);
-    
-    // Use smoothstep to create a smooth edge for the circle
-    float circle = 1.0 - smoothstep(circleRadius*0.199, circleRadius*1.1, d);
-    
-    return circle;
-}
-
-vec4 brightStars(vec2 p2, vec3 p, int starCount) {
-    //TODO: I think it would be best to generate these random numbers in python. Or alternatively implement a good rng in lgsl;
-    // The current positions are not quite uniformly distributed enough
-    float starIntensity = 0.0;
-    vec3 rp;
-    if(bool(1)){
-        for (int i = 0; i < starCount; i++) {
-            rp = randPosS(p2, vec3(i+7,(i+10),2*i+28), cartesianToSpherical(p).z, Seed);
-            starIntensity = drawCircle(p, rp, 0.001);
-            if(starIntensity > 0.1) break;
-        }
-    } else {
-        starIntensity = drawCircle(p, sphericalToCartesian(vec3(0.5,0.5,cartesianToSpherical(p).z)), 0.12);
-    }
     
     vec3 c = vec3(0);
     if(starIntensity < 0.1){
         starIntensity = 0;
+        c = vec3(0);
     }else{
-        c = starIntensity * abs(hash3(rp));
-        if(maxComponent(c)==c.r)
+        c = fract(abs(hash3(h))) * starIntensity;
+        if(maxComponent(c)-0.0000001 <= c.r)
             c.r = 1.0;
-        else if(maxComponent(c)==c.g)
+        else if(maxComponent(c)-0.0000001 <= c.g)
             c.g = 1.0;
         else
             c.b = 1.0;
     }
-    
-    return vec4(c,starIntensity);
+    return vec4(c, starIntensity);
+    //return vec4(c * ( 1 - blinkIntensity/2 + sin(osg_FrameTime*2+(mod(floor(noise_n(cords)*80),20)))*(blinkIntensity/2) ) , starIntensity);
+}
+
+//////////////////////////////////////////////////////////
+
+float drawCircle(vec3 pos, vec3 circlePos, float circleRadius) { //NOTE: Unused but will be useful for the sun drawing function
+    vec3 circleCenter = sphericalToCartesian(circlePos);
+    float d = length(pos - circleCenter);
+    float circle = 1.0 - smoothstep(circleRadius*0.199, circleRadius*1.1, d);
+    return circle;
 }
 
 float nebula(vec3 p) {
@@ -322,6 +226,7 @@ vec4 mixInNebulaColor(vec4 c1, vec4 c2){
     return vec4(cn,max(c1.w,c2.w));
     //return vec4(cn,c2.w);
 }
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void main() {
@@ -344,20 +249,16 @@ void main() {
     // Add Stars
     if(MakePointStars){
         vec3 starIntensity = star(skybox_uv, view_dir); //TODO: bring in Star_Count
-        //vec3 starIntensity = star_Overhaul_WIP(skybox_uv, view_dir); //TODO: bring in Star_Count
         colour.rgb += starIntensity;
         colour.a = max(colour.a, maxComponent(starIntensity));
     }
     
     // Add Bright Stars
-    // potentially slower version:
-    vec4 starColour = brightStars(skybox_uv, view_dir, BrightStar_Count);
-    colour.rgb += starColour.rgb;
-    colour.a = max(colour.a, starColour.a);
-    // potentially faster version but less pretty and still WIP
-    //vec4 starIntensity = star_bright(skybox_uv, view_dir); //TODO: bring in BrightStar_Count
-    //colour.rgb += starIntensity.rgb;
-    //colour.a = max(colour.a, starIntensity.a);
+    if(BrightStar_Count > 0){
+        vec4 starIntensity = star_bright(skybox_uv, view_dir); //TODO: bring in BrightStar_Count
+        colour.rgb += starIntensity.rgb;
+        colour.a = max(colour.a, starIntensity.a);
+    }
     
     // Add Sun
     //if(MakeSun){

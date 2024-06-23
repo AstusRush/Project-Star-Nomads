@@ -662,26 +662,27 @@ class SkyboxGenerator:
             self.updateUniforms(nebula, i)
     
     def makeSun(self, params, view, projection): #TODO: WIP
-        # Initialize the sun parameters.
-        self.rSun.reparentTo(self.Scene)
-        self.rSun = self.buildBox(0.45, self.pSun)
-        rand = random.Random(hash(params['seed']) + 4000)
-        sunParams = []
-        if params['sun']:
-            model = p3dc.LMatrix4()
-            sunParams.append({
-                'uView': view,
-                'uModel': model,
-                'uPosition': p3dc.LVector3(rand.random(), rand.random(), rand.random()),
-                'uColor': [rand.random(), rand.random(), rand.random()],
-                'uSize': rand.random() * 0.0001 + 0.0001,
-                'uFalloff': params['sunFalloff'],
-                'uProjection': projection,
-            })
-        
-        for i in sunParams:
-            self.updateUniforms(self.rSun, i)
-        self.rSun.show()
+        pass
+        ## Initialize the sun parameters.
+        #self.rSun.reparentTo(self.Scene)
+        #self.rSun = self.buildBox(0.45, self.pSun)
+        #rand = random.Random(hash(params['seed']) + 4000)
+        #sunParams = []
+        #if params['sun']:
+        #    model = p3dc.LMatrix4()
+        #    sunParams.append({
+        #        'uView': view,
+        #        'uModel': model,
+        #        'uPosition': p3dc.LVector3(rand.random(), rand.random(), rand.random()),
+        #        'uColor': [rand.random(), rand.random(), rand.random()],
+        #        'uSize': rand.random() * 0.0001 + 0.0001,
+        #        'uFalloff': params['sunFalloff'],
+        #        'uProjection': projection,
+        #    })
+        #
+        #for i in sunParams:
+        #    self.updateUniforms(self.rSun, i)
+        #self.rSun.show()
     
     def updateUniforms(self, node_path:"p3dc.NodePath", uniforms:"typing.Dict[str,typing.Any]"):
         for key, value in uniforms.items():
@@ -690,7 +691,7 @@ class SkyboxGenerator:
             except:
                 NC(1,exc=True,input=f"{key = }\n{value = }")
     
-    def makeWithShader(self, params:"typing.Dict[str,typing.Any]"):
+    def makeWithShader(self, params:"typing.Dict[str,typing.Any]", size=20000.0):
         nMin = 2
         nMax = 6
         
@@ -707,7 +708,7 @@ class SkyboxGenerator:
         base().win.setClearColorActive(True)
         
         #self.Skybox = self.buildSphere(20000.0, self.SkyShader)
-        self.Skybox = self.buildBox(20000.0, self.SkyShader)
+        self.Skybox = self.buildBox(size, self.SkyShader)
         
         
         skybox_texture = p3dc.Texture('SkyboxTexture')
