@@ -28,6 +28,7 @@ from direct.interval.IntervalGlobal import Sequence as p3ddSequence
 from direct.showbase.DirectObject import DirectObject
 from direct.gui.OnscreenText import OnscreenText
 from direct.task.Task import Task
+from pandac.PandaModules import WindowProperties
 
 # AGe and APE imports
 from typing import TYPE_CHECKING
@@ -62,6 +63,8 @@ class StrategyCamera(DirectObject):
         
         self._MouseTask = None
         self._MoveCameraTask = None
+        
+        self.MouseIsHidden = False
         
         self.CameraCenter = p3dc.NodePath(p3dc.PandaNode("CameraCenter"))
         self.CameraCenter.reparentTo(ape.render())
@@ -121,8 +124,6 @@ class StrategyCamera(DirectObject):
         self.accept("alt-mouse2",    lambda: self.setCamMouseControl(True,True, True )) # alt + MMB   -- smooth rotation
         # When the MMB is released the camera control is ended
         self.accept("mouse2-up", lambda: self.setCamMouseControl(False,False,False)) # MMB
-        
-        #CRITICAL: Look the cursor position while MMB is held down!!!!
     
     def unbindEvents(self):
         if self._MouseTask:
@@ -356,7 +357,7 @@ class StrategyCamera(DirectObject):
         self._enforceLimits()
         return task.cont
     
-    def zoomCamera(self, sign): #TODO: Support zoom-to-cursor and use it as a standard as it feels way more intuitive. Make a flag (as a member) that governs this behaviour
+    def zoomCamera(self, sign): #TODO: Support zoom-to-cursor and use it as a standard as it feels way more intuitive. Add toggle to options menu
         if not self.Active:
             return
         if -ape.base().camera.getY() <= 1:
@@ -385,9 +386,9 @@ class StrategyCamera(DirectObject):
         if active and base().mouseWatcherNode.hasMouse():
             mpos = tuple(base().mouseWatcherNode.getMouse())
             if rotate or self.SmoothCam:
-                self.CamMouseControl = True
                 self.CamMouseControlRotate = rotate
                 self.CamMouseControlCentre = mpos
+                self.CamMouseControl = True
             else:
                 self.CamMouseControlRotate = False
                 pos3d = p3dc.Point3()
@@ -399,8 +400,8 @@ class StrategyCamera(DirectObject):
                         render().getRelativePoint(ape.base().camera, nearPoint),
                         render().getRelativePoint(ape.base().camera, farPoint)
                         ):
-                    self.CamMouseControl = True
                     self.CamMouseControlCentre = pos3d
+                    self.CamMouseControl = True
                 else:
                     self.CamMouseControl = False
         else:
@@ -409,8 +410,22 @@ class StrategyCamera(DirectObject):
     
     def _mouseTask(self, task):
         if not self.Active:
+            if self.MouseIsHidden:
+                props = WindowProperties()
+                props.setCursorHidden(False)
+                props.setMouseMode(WindowProperties.M_absolute)
+                base().win.requestProperties(props)
+                self.MouseIsHidden = False
             return
+        
         if base().mouseWatcherNode.hasMouse() and self.CamMouseControl:
+            if not self.MouseIsHidden and get.menu().ControlsOptionsWidget.BindMouseWhileCamControl():
+                self.MouseIsHidden = True
+                props = WindowProperties()
+                props.setCursorHidden(True)
+                props.setMouseMode(WindowProperties.M_relative)
+                base().win.requestProperties(props)
+            
             mpos = base().mouseWatcherNode.getMouse()
             if self.CamMouseControlRotate:
                 if self.SmoothCam:
@@ -445,5 +460,11 @@ class StrategyCamera(DirectObject):
                             ):
                         self.CameraCenter.setPos(self.CameraCenter.getPos()+self.CamMouseControlCentre-pos3d)
                 self._enforceLimits()
+        elif self.MouseIsHidden:
+            props = WindowProperties()
+            props.setCursorHidden(False)
+            props.setMouseMode(WindowProperties.M_absolute)
+            base().win.requestProperties(props)
+            self.MouseIsHidden = False
         
         return Task.cont

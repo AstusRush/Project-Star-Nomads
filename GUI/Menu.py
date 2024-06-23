@@ -63,6 +63,7 @@ class Menu(QtWidgets.QScrollArea):
         self.SaveLoadWidget = self.MainWidget.addWidget(SaveLoadWidget(self.MainWidget))
         self.DifficultyOptionsWidget = self.MainWidget.addWidget(DifficultyOptionsWidget(self.MainWidget))
         self.HighlightOptionsWidget = self.MainWidget.addWidget(HighlightOptionsWidget(self.MainWidget))
+        self.ControlsOptionsWidget = self.MainWidget.addWidget(ControlsOptionsWidget(self.MainWidget))
         self.GraphicsOptionsWidget = self.MainWidget.addWidget(GraphicsOptionsWidget(self.MainWidget))
         self.SoundOptionsWidget = self.MainWidget.addWidget(SoundOptionsWidget(self.MainWidget))
 
@@ -96,6 +97,15 @@ class HighlightOptionsWidget(AGeWidgets.TightGridFrame):
         self.HeadlineLine.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.HighlightWeaponRange = self.addWidget(AGeInput.Bool(self,"Highlight weapon range",True))
         self.HideGrid = self.addWidget(AGeInput.Bool(self,"Hide Grid",False))
+
+class ControlsOptionsWidget(AGeWidgets.TightGridFrame):
+    def __init__(self, parent: typing.Optional['QtWidgets.QWidget'] = None) -> None:
+        super().__init__(parent)
+        self.Label = self.addWidget(QtWidgets.QLabel("Controls",self))
+        self.HeadlineLine = self.addWidget(QtWidgets.QFrame(self))
+        self.HeadlineLine.setFrameShape(QtWidgets.QFrame.HLine)
+        self.HeadlineLine.setFrameShadow(QtWidgets.QFrame.Sunken)
+        self.BindMouseWhileCamControl = self.addWidget(AGeInput.Bool(self,"Keep the mouse in place while controlling the camera\n(Experimental, sometimes makes the camera jump to the left\nif the mouse is not still while pressing MMB\nand might not be supported on all platforms)",False))
 
 class GraphicsOptionsWidget(AGeWidgets.TightGridFrame):
     def __init__(self, parent: typing.Optional['QtWidgets.QWidget'] = None) -> None:

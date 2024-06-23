@@ -313,6 +313,10 @@ class HexGrid(DirectObject):
     def _mouseTask(self, task):
         # This task deals with the highlighting and selection based on the mouse
         
+        # If the mouse currently controls the camera we want to disable any interactions
+        if get.engine().getScene().Camera.CamMouseControl:
+            return Task.cont
+        
         # First, clear the current highlighted hex
         if self.HighlightedHex is not False:
             self.HighlightedHex.hoverHighlight(False)
