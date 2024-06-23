@@ -105,7 +105,8 @@ class ControlsOptionsWidget(AGeWidgets.TightGridFrame):
         self.HeadlineLine = self.addWidget(QtWidgets.QFrame(self))
         self.HeadlineLine.setFrameShape(QtWidgets.QFrame.HLine)
         self.HeadlineLine.setFrameShadow(QtWidgets.QFrame.Sunken)
-        self.BindMouseWhileCamControl = self.addWidget(AGeInput.Bool(self,"Keep the mouse in place while controlling the camera\n(Experimental, sometimes makes the camera jump to the left\nif the mouse is not still while pressing MMB\nand might not be supported on all platforms)",False))
+        self.BindMouseWhileCamControl = self.addWidget(AGeInput.Bool(self,"Keep the mouse in place while controlling the camera\n(Not supported on Windows)",(platform.system() != 'Windows')))
+        self.ZoomToCursor = self.addWidget(AGeInput.Bool(self,"Zoom to cursor", True))
 
 class GraphicsOptionsWidget(AGeWidgets.TightGridFrame):
     def __init__(self, parent: typing.Optional['QtWidgets.QWidget'] = None) -> None:
