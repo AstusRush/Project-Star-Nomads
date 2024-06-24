@@ -63,7 +63,6 @@ class FleetStats(QtWidgets.QSplitter):
         self.FleetScrollWidget = QtWidgets.QScrollArea(self)
         self.FleetScrollWidget.setWidgetResizable(True)
         super().addWidget(self.FleetScrollWidget)
-        #TODO: Rename Fleets (All Fleets including enemies. After all it is up to the player how they call the enemy fleets. The enemy crew will still call their fleet however they want.)
         self.FleetOverview = AGeWidgets.TightGridWidget(self)
         self.FleetScrollWidget.setWidget(self.FleetOverview)
         
@@ -77,7 +76,6 @@ class FleetStats(QtWidgets.QSplitter):
     
     def addWidget(self, widget:'QtWidgets.QWidget'):
         #TODO: This should instead handle ShipQuickView widgets
-        #REMINDER: If only one ShipQuickView is displayed it should directly open the full ShipInterface. This however must be managed at the point where addWidget is called...
         self.FleetOverview.layout().addWidget(widget)
     
     def removeWidget(self, widget:'QtWidgets.QWidget'):

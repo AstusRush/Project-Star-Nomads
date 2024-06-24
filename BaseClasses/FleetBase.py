@@ -781,6 +781,8 @@ class Fleet(FleetBase):
                 self.Label.setText(text)
             except RuntimeError:
                 self.Widget = None # This usually means that the widget is destroyed but I don't know of a better way to test for it...
+            if len(self.Ships) == 1:
+                get.window().UnitStatDisplay.showDetails(self.Ships[0].getInterface())
   #endregion Display Information
   #region Save/Load
     def tocode_AGeLib(self, name="", indent=0, indentstr="    ", ignoreNotImplemented = False) -> typing.Tuple[str,dict]:
@@ -926,6 +928,8 @@ class Flotilla(FleetBase):
                 self.Label.setText(text)
             except RuntimeError:
                 self.Widget = None # This usually means that the widget is destroyed but I don't know of a better way to test for it...
+            if len(self.Ships) == 1:
+                get.window().UnitStatDisplay.showDetails(self.Ships[0].getInterface())
     
   #endregion Display Information
   #region Highlighting
