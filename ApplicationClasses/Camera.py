@@ -495,7 +495,7 @@ class StrategyCamera(DirectObject):
                 props.setCursorHidden(True)
                 props.setMouseMode(WindowProperties.M_relative)
                 base().win.requestProperties(props)
-                #return Task.cont
+                return Task.cont
             
             mpos = self.getMousePosition()
             
@@ -504,7 +504,7 @@ class StrategyCamera(DirectObject):
             self.MouseCamControl_rotate = False
             self.MouseCamControl_smooth = False
             self.MouseCamControl_isSetup = True
-            #return Task.cont
+            return Task.cont
         
         if self.CamMouseControl:
             if not self.MouseIsHidden and get.menu().ControlsOptionsWidget.BindMouseWhileCamControl():
