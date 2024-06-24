@@ -74,6 +74,7 @@ class DebugWidget(AGeWidgets.TightGridFrame):
         self.RegenerateAllProceduralModelsButton = self.addWidget(AGeWidgets.Button(self,"Regenerate all procedural models", lambda: regenerateAllProceduralModels()))
         self.EndBattleButton = self.addWidget(AGeWidgets.Button(self,"End Battle",lambda: get.engine().endBattleScene()))
         self.EnableDebugOutputButton = self.addWidget(AGeWidgets.Button(self,"Enable print Debug Output",lambda: self.toggleDebugOutput()))
+        self.GetTeamValuesButton = self.addWidget(AGeWidgets.Button(self,"Get combined value of each team",lambda: getTeamValues()))
     
     def showDevToolTabs(self):
         get.window().showDevToolTabs()
@@ -87,7 +88,6 @@ class DebugWidget(AGeWidgets.TightGridFrame):
             self.EnableDebugOutputButton.setText("Enable print Debug Output")
 
 def spawnAsteroidAtSelectedHex():
-    from BaseClasses import get
     from Environment import Environment, EnvironmentalObjects, EnvironmentalObjectGroups
     currentHex = get.hexGrid().SelectedHex
     if not currentHex:
@@ -104,12 +104,17 @@ def spawnAsteroidAtSelectedHex():
     objectGroup.moveToHex(currentHex, False)
 
 def spawnSalvageAtSelectedHex(amount=1.0):
-    from BaseClasses import get
     from Economy import Resources
     if get.hexGrid().SelectedHex:
         get.hexGrid().SelectedHex.ResourcesHarvestable.add(Resources.Salvage(amount))
     else:
         NC(2,"No Hex is selected")
+
+def getTeamValues():
+    s = "Values of each Team:"
+    for i in get.unitManager().Teams.values():
+        s += f"\n{i.name()}: {i.value()}"
+    NC(3,s,DplStr="Team Values")
 
 def regenerateProceduralShipModels():
     #TODO: This currently removes all non-procedural models, too, and replaces them with procedural ones

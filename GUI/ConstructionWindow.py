@@ -377,7 +377,7 @@ class ModuleTypeSelectionWidget(AGeWidgets.TightGridWidget):
     
     def populate(self, startsWith:'typing.Union[str,tuple[str],None]'=None, type_:'typing.Union[type[BaseModules.Module],tuple[type[BaseModules.Module]],None]'=None):
         if startsWith is None and self.OnlyCoreCB.isChecked():
-            startsWith = "BaseModules"
+            startsWith = ("BaseModules","BaseEconomicModules")
         self.ModuleTypeList.populate(startsWith=startsWith, type_=type_, hideUniqueMandatory=self.HideUniqueMandatoryCB.isChecked())
     
     def clear(self):
