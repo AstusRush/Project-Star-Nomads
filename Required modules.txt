@@ -1,4 +1,4 @@
-pip install PyQt5  (alternatively you can use PySide2, Pyside6 and PyQt6)
+pip install PyQt5  (alternatively you can use PySide2, Pyside6 or PyQt6)
 pip install numpy
 pip install Panda3D
 # pip install panda3d-blend2bam
