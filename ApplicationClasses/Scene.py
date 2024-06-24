@@ -111,6 +111,7 @@ class BaseClass(ape.APEPandaBase):
 
 class BaseScene(ape.APEScene):
     _SCENE_TYPE_STR = "Unknown"
+    SkyboxSeed = None
     def start(self):
         self.Camera = Camera.StrategyCamera()
         ape.base().win.setClearColor(p3dc.Vec4(0,0,0,1))
@@ -128,10 +129,17 @@ class BaseScene(ape.APEScene):
         #base().accept("l", self.togglePerPixelLighting)
         #base().accept("e", self.toggleShadows
     
-    def loadSkybox(self):
+    def loadSkybox(self, generateNewSeed=False, sector=True, sun=False, seed=None):
         #self.Camera.loadSkybox(getRandomSkyboxPath())
+        if seed:
+            pass
+        elif generateNewSeed:
+            seed = None
+        else:
+            seed = self.SkyboxSeed
         self.hide()
-        self.Camera.makeSkybox()
+        self.SkyboxSeed = self.Camera.makeSkybox(seed=seed, sector=(self._SCENE_TYPE_STR == "Campaign"), sun=False)
+        get.menu().SkyboxOptionsWidget.Seed.set(self.SkyboxSeed)
         self.show()
     
     def hide(self):
@@ -156,6 +164,7 @@ class BaseScene(ape.APEScene):
         self.HexGrid.Active = True
         self.HexGrid.bindEvents()
         self.Camera.continue_()
+        get.menu().SkyboxOptionsWidget.Seed.set(self.SkyboxSeed)
     
     def end(self):
         self.HexGrid.destroy()
@@ -165,19 +174,9 @@ class BaseScene(ape.APEScene):
 
 class CampaignScene(BaseScene):
     _SCENE_TYPE_STR = "Campaign"
-    def loadSkybox(self):
-        #self.Camera.loadSkybox(getRandomSkyboxPath(sector=True, sun=False))
-        self.hide()
-        self.Camera.makeSkybox(sector=True, sun=False)
-        self.show()
 
 class BattleScene(BaseScene):
     _SCENE_TYPE_STR = "Battle"
-    def loadSkybox(self):
-        #self.Camera.loadSkybox(getRandomSkyboxPath(sector=True, sun=True))
-        self.hide()
-        self.Camera.makeSkybox(sector=True, sun=True)
-        self.show()
 
 
 

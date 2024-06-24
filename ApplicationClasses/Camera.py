@@ -204,7 +204,6 @@ class StrategyCamera(DirectObject):
         self.CameraCenter.setPos(hex_.Pos)
     
     def makeSkybox(self, seed=None, sector=True, sun=False) -> 'float':
-        #TODO: Skybox needs to be bound to scene such that a return to the sector map after a battle restores the sector map skybox
         if self.SpaceSkyBox:
             self.SpaceSkyBox.hide()
             self.SpaceSkyBox.removeNode()
@@ -215,23 +214,24 @@ class StrategyCamera(DirectObject):
         self.SpaceSkyBoxCentre.reparentTo(ape.render())
         try:
             from ProceduralGeneration import SkyboxGeneration
-            if not seed: seed = random.random()
+            if not seed: seed = random.randint(1,999999999)
             rand = random.Random(seed)
+            bgBoost = 32 if get.menu().SkyboxOptionsWidget.NonBlackSpace() else 3
             params = {
                 "seed": str(seed),
-                "backgroundColor": [pow(rand.random(),2)*32,pow(rand.random(),2)*32,pow(rand.random(),2)*32],
-                "pointStars": True,
-                "stars": 200,
+                "backgroundColor": [pow(rand.random(),2)*bgBoost,pow(rand.random(),2)*bgBoost,pow(rand.random(),2)*bgBoost],
+                "pointStars": get.menu().SkyboxOptionsWidget.PointStars(),
+                "stars": 200*int(get.menu().SkyboxOptionsWidget.BrightStars()),
                 "sun": False, #TODO
                 "sunFalloff": 100,
                 "jpegQuality": 0.85,
                 "nebulaColorBegin": [rand.random()*255,rand.random()*255,rand.random()*255],
                 "nebulaColorEnd": [rand.random()*255,rand.random()*255,rand.random()*255],
-                "nebulae": True,
-                "resolution": 512*pow(2, get.menu().GraphicsOptionsWidget.SkyboxResolution()), #1024*4,
+                "nebulae": get.menu().SkyboxOptionsWidget.Nebulae(),
+                "resolution": 512*pow(2, get.menu().SkyboxOptionsWidget.SkyboxResolution()), #1024*4,
                 "renderToTexture": True,
             }
-            if get.menu().GraphicsOptionsWidget.SkyboxStatic():
+            if get.menu().SkyboxOptionsWidget.SkyboxStatic():
                 old_pos_cam = ape.base().camera.getPos()
                 old_pos_cen = self.CameraCenter.getPos()
                 self.CameraCenter.setPos(0,0,0)
@@ -271,7 +271,7 @@ class StrategyCamera(DirectObject):
                 "nebulaColorBegin": [random.random()*255,random.random()*255,random.random()*255],
                 "nebulaColorEnd": [random.random()*255,random.random()*255,random.random()*255],
                 "nebulae": True,
-                "resolution": 512*pow(2, get.menu().GraphicsOptionsWidget.SkyboxResolution()), #1024*4,
+                "resolution": 512*pow(2, get.menu().SkyboxOptionsWidget.SkyboxResolution()), #1024*4,
                 "renderToTexture": True,
             }
             ape.base().camera.setPos(0,0,0)

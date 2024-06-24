@@ -65,6 +65,7 @@ class Menu(QtWidgets.QScrollArea):
         self.HighlightOptionsWidget = self.MainWidget.addWidget(HighlightOptionsWidget(self.MainWidget))
         self.ControlsOptionsWidget = self.MainWidget.addWidget(ControlsOptionsWidget(self.MainWidget))
         self.GraphicsOptionsWidget = self.MainWidget.addWidget(GraphicsOptionsWidget(self.MainWidget))
+        self.SkyboxOptionsWidget = self.MainWidget.addWidget(SkyboxOptionsWidget(self.MainWidget))
         self.SoundOptionsWidget = self.MainWidget.addWidget(SoundOptionsWidget(self.MainWidget))
 
 class SaveLoadWidget(AGeWidgets.TightGridFrame):
@@ -115,9 +116,6 @@ class GraphicsOptionsWidget(AGeWidgets.TightGridFrame):
         self.HeadlineLine = self.addWidget(QtWidgets.QFrame(self))
         self.HeadlineLine.setFrameShape(QtWidgets.QFrame.HLine)
         self.HeadlineLine.setFrameShadow(QtWidgets.QFrame.Sunken)
-        self.ChangeSkyboxButton = self.addWidget(AGeWidgets.Button(self,"Generate new Skybox", self.newSkybox))
-        self.SkyboxStatic = self.addWidget(AGeInput.Bool(self,"Use static Skybox\nUnchecked: Use pure shader Skybox (lower performance)\nChecked: Use static skybox (takes long to generate)", False))
-        self.SkyboxResolution = self.addWidget(AGeInput.Int(self,"Static Skybox Resolution (512·2ˣ)", 2, 0, 4))
         self.AsteroidResolution = self.addWidget(AGeInput.Int(self,"Asteroid Resolution\n(lower=faster battle loading)",10,5,50,"²"))
         self.AsteroidNoisePasses = self.addWidget(AGeInput.Int(self,"Asteroid Noise Passes\n(higher=more diverse asteroids\n but higher likelihood of 'negative volume')",3,0,5))
         self.AsteroidTexture = self.addWidget(AGeInput.Bool(self,"Use a randomly generated texture for asteroids\nIf disabled the individual faces are\n coloured which results in a retro look",False))
@@ -125,9 +123,29 @@ class GraphicsOptionsWidget(AGeWidgets.TightGridFrame):
         self.ShipTexture = self.addWidget(AGeInput.Bool(self,"Use a randomly generated texture for ships\nThis makes it look more interesting.",True))
         self.ShipShader = self.addWidget(AGeInput.Bool(self,"Apply shader to ship. WIP",False))
         self.RedrawEntireGridWhenHighlighting = self.addWidget(AGeInput.Bool(self,"Redraw entire grid when highlighting\n(Useful when changing hex colours)\n(Disable if selecting a unit is slow)",True))
+
+class SkyboxOptionsWidget(AGeWidgets.TightGridFrame):
+    def __init__(self, parent: typing.Optional['QtWidgets.QWidget'] = None) -> None:
+        super().__init__(parent)
+        self.Label = self.addWidget(QtWidgets.QLabel("Skybox",self))
+        self.HeadlineLine = self.addWidget(QtWidgets.QFrame(self))
+        self.HeadlineLine.setFrameShape(QtWidgets.QFrame.HLine)
+        self.HeadlineLine.setFrameShadow(QtWidgets.QFrame.Sunken)
+        self.ChangeSkyboxButton = self.addWidget(AGeWidgets.Button(self,"Generate new Skybox", lambda: self.newSkybox(False)))
+        self.PointStars = self.addWidget(AGeInput.Bool(self,"Show Small White Stars", True))
+        self.BrightStars = self.addWidget(AGeInput.Bool(self,"Show Larger Colourful Stars", True))
+        self.Nebulae = self.addWidget(AGeInput.Bool(self,"Show Nebulae", True))
+        self.NonBlackSpace = self.addWidget(AGeInput.Bool(self,"Boost Background Colour", False))
+        self.UseSeedButton = self.addWidget(AGeWidgets.Button(self,"Generate new Skybox using Seed", lambda: self.newSkybox(True)))
+        self.Seed = self.addWidget(AGeInput.Int(self,"Skybox Seed", 1, 1, 999999999))
+        self.SkyboxStatic = self.addWidget(AGeInput.Bool(self,"Use static Skybox\nUnchecked: Use pure shader Skybox (lower performance)\nChecked: Use static skybox (takes long to generate)", False))
+        self.SkyboxResolution = self.addWidget(AGeInput.Int(self,"Static Skybox Resolution (512·2ˣ)", 2, 0, 4))
     
-    def newSkybox(self):
-        get.scene().loadSkybox()
+    def newSkybox(self, useSeed=False):
+        if useSeed:
+            get.scene().loadSkybox(seed=self.Seed())
+        else:
+            get.scene().loadSkybox(True)
 
 class SoundOptionsWidget(AGeWidgets.TightGridFrame):
     def __init__(self, parent: typing.Optional['QtWidgets.QWidget'] = None) -> None:

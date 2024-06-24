@@ -100,13 +100,13 @@ vec3 star(vec2 p2, vec3 p) {
     uint Yv = getLastBits(rpcg.y + uint(nf*10000),8);
     uint Zv = getLastBits(rpcg.z + uint(nf*10000),8);
     
-    if(mod(((Yv-Xv)), 7) == 0 ){
+    if(mod(Xv, 3) != 0 || mod(Yv, 3) != 0 || mod(Zv, 3) != 0){
         starIntensity = 0.;
-    }
-    if(Xv+Yv+Zv < uint(pow(2,9)+(5-tf)*3) ){
+    }else if(mod(((Yv-Xv)), 7) == 0){
         starIntensity = 0.;
-    }
-    if(uint(Xv^Yv) < uint(pow(2,7)) ){
+    }else if(Xv+Yv+Zv < uint(pow(2,9)+(5-tf)*3) ){
+        starIntensity = 0.;
+    }else if(uint(Xv^Yv) < uint(pow(2,7))){
         starIntensity = 0.;
     }
     
