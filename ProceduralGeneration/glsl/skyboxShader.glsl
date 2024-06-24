@@ -108,6 +108,8 @@ vec3 star(vec2 p2, vec3 p) {
         starIntensity = 0.;
     }else if(uint(Xv^Yv) < uint(pow(2,7))){
         starIntensity = 0.;
+    }else if(mod(Xv&Yv,12) != 0){
+        starIntensity = 0.;
     }
     
     return starIntensity * (1-abs(h)*0.25);
