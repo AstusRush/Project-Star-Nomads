@@ -76,6 +76,9 @@ class EngineClass(ape.APE):
         get.app().S_NewTurnStarted.connect(lambda: self._handleNewTurn())
     
     def endTurn(self):
+        if not self.CurrentlyInBattle:
+            self.autoSave()
+        App().processEvents()
         get.app().S_TurnEnded.emit()
         get.unitManager().endTurn()
     
@@ -325,7 +328,10 @@ class EngineClass(ape.APE):
         else:
             raise Exception(f"{type_} is an unknown hex grid type! Only Campaign and Battle are valid options!")
     
-    def save(self, name=""):
+    def autoSave(self):
+        self.save("AutoSave", notify=False)
+    
+    def save(self, name="", notify=True):
         if self.CurrentlyInBattle:
             NC(2,"Currently, saving is only possible on the campaign map", DplStr="Could NOT Save!")
             return
@@ -336,7 +342,7 @@ class EngineClass(ape.APE):
             os.mkdir(saveFolder)
         
         if not name:
-            name = QtWidgets.QFileDialog.getSaveFileName(get.window(), "Save the game", saveFolder, "Save Files (*.save);;Python Files (*.py);;Any Files (*.*)", "Save Files (*.save)")[0]
+            name = QtWidgets.QFileDialog.getSaveFileName(get.window(), "Save the game", saveFolder, "Save Files(*.save);;Python Files(*.py);;Any Files(*.*)", "Save Files(*.save)")[0]
             if not name: return
         if not name.endswith(".save"):
             name += ".save"
@@ -353,7 +359,8 @@ class EngineClass(ape.APE):
             fleetList += team
         with open(os.path.join(saveFolder,name),"w") as file:
             file.write(AGeToPy.formatObject(fleetList))
-        NC(3,f"Save successful! Saved at {os.path.join(saveFolder,name)}", DplStr="Game Saved!")
+        if notify: NC(3,f"Save successful! Saved at {os.path.join(saveFolder,name)}", DplStr="Game Saved!")
+        print(f"Save successful! Saved at {os.path.join(saveFolder,name)}")
     
     def load(self):
         #if self._confirmNewOrLoad("loading"): # Option to abort already covered by the file selector
@@ -364,7 +371,7 @@ class EngineClass(ape.APE):
         
         wd = os.path.dirname(__file__).rsplit(os.path.sep,1)[0]
         saveFolder = os.path.join(wd,"SavedGames")
-        savePath = QtWidgets.QFileDialog.getOpenFileName(get.window(), "Select File to Load", saveFolder, "Save Files (*.save);;Python Files (*.py);;Any Files (*.*)", "Save Files (*.save)")[0]
+        savePath = QtWidgets.QFileDialog.getOpenFileName(get.window(), "Select File to Load", saveFolder, "Save Files(*.save);;Python Files(*.py);;Any Files(*.*)", "Save Files(*.save)")[0]
         
         if not savePath: return
         
