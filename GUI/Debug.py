@@ -69,6 +69,7 @@ class DebugWidget(AGeWidgets.TightGridFrame):
         self.HeadlineLine.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.ShowDevToolTabsButton = self.addWidget(AGeWidgets.Button(self,"Show Dev Tool Tabs", lambda: self.showDevToolTabs()))
         self.SpawnAsteroidButton = self.addWidget(AGeWidgets.Button(self,"Spawn Asteroid at selected hex", lambda: spawnAsteroidAtSelectedHex()))
+        self.SpawnSalvageButton = self.addWidget(AGeWidgets.Button(self,"Spawn 1 unit of salvage at selected hex", lambda: spawnSalvageAtSelectedHex(1.0)))
         self.RegenerateProceduralShipModelsButton = self.addWidget(AGeWidgets.Button(self,"Regenerate procedural ship models", lambda: regenerateProceduralShipModels()))
         self.RegenerateAllProceduralModelsButton = self.addWidget(AGeWidgets.Button(self,"Regenerate all procedural models", lambda: regenerateAllProceduralModels()))
         self.EndBattleButton = self.addWidget(AGeWidgets.Button(self,"End Battle",lambda: get.engine().endBattleScene()))
@@ -89,6 +90,8 @@ def spawnAsteroidAtSelectedHex():
     from BaseClasses import get
     from Environment import Environment, EnvironmentalObjects, EnvironmentalObjectGroups
     currentHex = get.hexGrid().SelectedHex
+    if not currentHex:
+        NC(2,"No Hex is selected")
     if currentHex.fleet:
         NC(2, "The Hex is already occupied", input=currentHex.fleet())
         return
@@ -99,6 +102,14 @@ def spawnAsteroidAtSelectedHex():
     objectGroup.Name = object.Name
     objectGroup.addShip(object)
     objectGroup.moveToHex(currentHex, False)
+
+def spawnSalvageAtSelectedHex(amount=1.0):
+    from BaseClasses import get
+    from Economy import Resources
+    if get.hexGrid().SelectedHex:
+        get.hexGrid().SelectedHex.ResourcesHarvestable.add(Resources.Salvage(amount))
+    else:
+        NC(2,"No Hex is selected")
 
 def regenerateProceduralShipModels():
     #TODO: This currently removes all non-procedural models, too, and replaces them with procedural ones

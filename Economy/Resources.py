@@ -240,7 +240,7 @@ class _ResourceDict(_typing.Dict['Resource_','Resource_']):
         super().__setitem__(__key, __value)
         if self.isOverCapacity():
             super().__setitem__(__key, prev)
-            raise _InsufficientCapacityException("Can not store that many resources") #TODO: More error info
+            raise _InsufficientCapacityException(f"Can not store that many resources. {self.Capacity = } , {prev = } , {__value = }") #TODO: More error info
     
     def _prepareKey(self, key):
         if not _AGeAux.isInstanceOrSubclass(key,Resource_):
@@ -290,7 +290,7 @@ class _ResourceDict(_typing.Dict['Resource_','Resource_']):
                 amount = v if -v < self[k] else -self[k]
             self.add(k(amount))
             r.subtract(k(amount))
-        if self.FreeCapacity > 0 and r.UsedCapacity > 0:
+        if self.FreeCapacity > 0 and r.UsedCapacity > 0 and _recursive:
             r = self.fillFrom(r, _recursive=False)
         return r
     
@@ -306,7 +306,7 @@ class _ResourceDict(_typing.Dict['Resource_','Resource_']):
                 amount = v if -v < self[k] else -self[k]
             self.add(k(amount))
             other.subtract(k(amount))
-        if self.FreeCapacity > 0 and other.UsedCapacity > 0:
+        if self.FreeCapacity > 0 and other.UsedCapacity > 0 and _recursive:
             other = self.transferMax(other, _recursive=False)
         return other
     

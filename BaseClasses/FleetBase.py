@@ -593,7 +593,7 @@ class FleetBase():
         ranges = self.getSensorRanges()
         return int(10000), int(ranges[1]), int(ranges[2]), int(ranges[3]), int(ranges[4])
     
-    def detectEnemies(self) -> typing.List[typing.Tuple[int,'FleetBase']]:
+    def detectEnemies(self, onlyPlayer=False) -> typing.List[typing.Tuple[int,'FleetBase']]:
         "Returns a list of tuples with the detection level of a fleet and the fleet in question. Only considers hostile fleets"
         ranges = list(self.getSensorRanges_Int())+[-1,]
         fleets:typing.List[typing.Tuple[int,'FleetBase']] = []
@@ -601,15 +601,18 @@ class FleetBase():
             if i == 0 or i == 5: continue
             if ranges[i+1] >= ranges[i]: continue
             potentialFleets = [h.fleet() for h in self.hex().getDisk(r,ranges[i+1]+1) if h.fleet]
-            fleets += [(f.detectCheck(i), f) for f in potentialFleets if f.detectCheck(i) and get.unitManager().isHostile(self.Team,f.Team)]
+            if onlyPlayer:
+                fleets += [(f.detectCheck(i), f) for f in potentialFleets if f.detectCheck(i) and (f.Team == 1)]
+            else:
+                fleets += [(f.detectCheck(i), f) for f in potentialFleets if f.detectCheck(i) and get.unitManager().isHostile(self.Team,f.Team)]
         return fleets
     
-    def findClosestEnemy(self) -> typing.Union['FleetBase',bool]:
+    def findClosestEnemy(self, onlyPlayer=False) -> typing.Union['FleetBase',bool]:
         "Returns the closest enemy fleet or False if none is detected"
         detectedEnemies = []
         for team in get.unitManager().getAllies(self.Team):
             for fleet in get.unitManager().Teams[team]:
-                detectedEnemies += fleet.detectEnemies()
+                detectedEnemies += fleet.detectEnemies(onlyPlayer=onlyPlayer)
         if not detectedEnemies:
             return False
         f = min([(self.hex().distance(f[1].hex()), f[1]) for f in detectedEnemies], key=lambda i:i[0])[1]
