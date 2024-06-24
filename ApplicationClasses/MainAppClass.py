@@ -181,6 +181,7 @@ class EngineClass(ape.APE):
             fleets = [h.fleet() for h in hexes if h.fleet]
             fleetsToAdd:'list[FleetBase.Fleet]' = []
             for fleet in fleets:
+                if fleet.team() < 1: continue
                 if fleet not in self.FleetsInBattle:
                     self.FleetsInBattle.append(fleet)
                     fleetsToAdd.append(fleet)
@@ -364,10 +365,6 @@ class EngineClass(ape.APE):
     
     def load(self):
         #if self._confirmNewOrLoad("loading"): # Option to abort already covered by the file selector
-        #TODO: It would be nice if the camera would zoom to an owned fleet or would even remember its position when the save was made
-        if self.CurrentlyInBattle:
-            NC(2,"Currently, loading is only possible on the campaign map")
-            return
         
         wd = os.path.dirname(__file__).rsplit(os.path.sep,1)[0]
         saveFolder = os.path.join(wd,"SavedGames")
@@ -375,11 +372,16 @@ class EngineClass(ape.APE):
         
         if not savePath: return
         
+        if self.CurrentlyInBattle:
+            self.endBattleScene()
+        
         self.clearAll()
         #from SavedGames import LastSave
         d = globals().copy()
         with open(savePath) as f:
             exec(f.read(), d, d)
+        
+        self.resetCameraAndSetUnitTab()
     
     def clearAll(self,exceptPlayer=False): #TODO: also clear any battle that is currently active and return to the campaign map
         fleetList:UnitManagerBase.UnitList = []

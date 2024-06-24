@@ -69,17 +69,18 @@ class ResourceAsteroid(HarvestableEnvironmentalObject):
         super().__init__()
         self.addModule(BaseModules.Asteroid_Hull())
         self.addModule(BaseEconomicModules.Asteroid_Resources())
+        resourceScale = 2
         resourceType = random.randint(0,100)
         if resourceType <= 50:
             self.ResourceTypeName = "Ore"
-            self.ResourceManager.addDirect(Resources.Ore(random.randint(1,10)*10))
+            self.ResourceManager.addDirect(Resources.Ore(random.randint(1,10)*resourceScale))
         elif resourceType <= 75:
             self.ResourceTypeName = "Crystals"
-            self.ResourceManager.addDirect(Resources.Crystals(random.randint(1,8)*10))
+            self.ResourceManager.addDirect(Resources.Crystals(random.randint(1,8)*resourceScale))
         else:
             self.ResourceTypeName = "RareOre"
-            self.ResourceManager.addDirect(Resources.Ore(random.randint(2,4)*10))
-            self.ResourceManager.addDirect(Resources.RareOre(random.randint(1,5)*10))
+            self.ResourceManager.addDirect(Resources.Ore(random.randint(2,4)*resourceScale))
+            self.ResourceManager.addDirect(Resources.RareOre(random.randint(1,5)*resourceScale))
         if generateModel:
             self.setModel(ProceduralModels.ProceduralModel_Asteroid(resourceTypeName=self.ResourceTypeName))
             if not self.Model.CouldLoadModel and self.Model.Model: self.Model.Model.setColor(ape.colour(QtGui.QColor(0x6d4207)))

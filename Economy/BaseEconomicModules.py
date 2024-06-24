@@ -475,22 +475,22 @@ class OreMiningModule(HarvestModule):
     Name = "Ore Mining Module"
     Buildable = True
     HarvestRange = 1
-    Input:'list[Resources.Resource_]' = [Resources.Ore(2)]
-    Output:'list[Resources.Resource_]' = [Resources.Ore(2)]
+    Input:'list[Resources.Resource_]' = [Resources.Ore(1)]
+    Output:'list[Resources.Resource_]' = [Resources.Ore(1)]
 
 class RareOreMiningModule(HarvestModule):
     Name = "Rare Ore Mining Module"
     Buildable = True
     HarvestRange = 1
-    Input:'list[Resources.Resource_]' = [Resources.RareOre(0.5)]
-    Output:'list[Resources.Resource_]' = [Resources.RareOre(0.5)]
+    Input:'list[Resources.Resource_]' = [Resources.RareOre(0.25)]
+    Output:'list[Resources.Resource_]' = [Resources.RareOre(0.25)]
 
 class CrystalMiningModule(HarvestModule):
     Name = "Crystal Mining Module"
     Buildable = True
     HarvestRange = 1
-    Input:'list[Resources.Resource_]' = [Resources.Crystals(1.5)]
-    Output:'list[Resources.Resource_]' = [Resources.Crystals(1.5)]
+    Input:'list[Resources.Resource_]' = [Resources.Crystals(0.75)]
+    Output:'list[Resources.Resource_]' = [Resources.Crystals(0.75)]
 
 class Asteroid_Resources(Cargo):
     Name = "Resource Rich Asteroid"

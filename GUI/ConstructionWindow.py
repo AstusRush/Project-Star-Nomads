@@ -645,7 +645,7 @@ class ModuleEditor(AGeWidgets.TightGridFrame):
             self._applyStats()
             if self.parent().lifeEditing():
                 #CRITICAL: VALIDATE Resource spending: Does this work now?
-                if self.parent().constructionModule().canSpend(self.ActiveModule.resourceCost() - costBefore):
+                if not self.parent().constructionModule().canSpend(self.ActiveModule.resourceCost() - costBefore):
                     NC(2, f"Not enough resources to modify this module \n{(self.ActiveModule.resourceCost()-costBefore).text('Cost:')}\n\n{self.parent().constructionModule().availableResources().text('Available:')}")
                     for k,v in statsBefore.items():
                         setattr(self.ActiveModule,k,v)
