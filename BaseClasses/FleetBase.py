@@ -712,10 +712,11 @@ class Fleet(FleetBase):
     async def attack(self, target: 'HexBase._Hex', orders:AI_Base.Orders = None, performOutOfTurn = False):
         if self.Destroyed or (not performOutOfTurn and not self.isActiveTurn()):
             return False
-        if self.hex().distance(target) > 2:
+        if self.hex().distance(target) > 1:
             #REMINDER: The maximum attack distance should be 1 but since larger battles are more fun
             #           a distance of 2 should make it easier for the player to engage those.
             #           The AI, however, is still limited to 1 to not cause any confusion.
+            #NOTE: Set this to one again due to the reinforcement changes
             return False
         if self.MovementSequence and self.MovementSequence.isPlaying():
             try: await self.MovementSequence

@@ -58,31 +58,48 @@ from Environment import EnvironmentalObjects
 from Environment import EnvironmentalObjectGroups
 from Economy import HarvestableObjects
 
-class _EnvironmentCreator(): #TODO: Clusters should scale with map-size
-    ClusterNumberMin = 6
-    ClusterNumberMax = 40
+class _EnvironmentCreator():
+    ClusterNumberMin = 12
+    ClusterNumberMax = 45
     ClusterTypes:'list[type[_ClusterType]]' = None
     def __init__(self) -> None:
         pass#self.ClusterTypes = []
     
     def generate(self, hexGrid:HexBase.HexGrid, combat:bool):
         if not self.ClusterTypes: raise Exception("No cluster types were given")
-        clusterTotal = random.choice(range(self.ClusterNumberMin, self.ClusterNumberMax+1))
-        for clusterNum in range(clusterTotal):
-            for _ in range(20):
-                clusterCentre = random.choice(random.choice(hexGrid.Hexes))
-                if not clusterCentre.fleet: break
-            if clusterCentre.fleet: continue
-            self._createCluster(clusterCentre, combat, clusterTotal, clusterNum)
+        clusterTotal = int(np.prod(hexGrid.Size)/(2500/random.randint(self.ClusterNumberMin, self.ClusterNumberMax+1)))
+        edges = set(hexGrid.getEdgeHexes())
+        #cancelText = None # If a string is given instead of None then a cancel button appears
+        cancelText = "Abort Map Generation"
+        with get.engine().interactionsDisabled(True):
+            get.camera().resetCameraPosition()
+            get.camera().zoomCameraFullyOut()
+            pd =  QtWidgets.QProgressDialog("Generating...", cancelText, 0, clusterTotal*10)
+            pd.setWindowModality(QtCore.Qt.WindowModal)
+            App().processEvents()
+            base().graphicsEngine.renderFrame()
+            base().eventMgr.doEvents()
+            for clusterNum in range(clusterTotal):
+                for _ in range(20):
+                    clusterCentre = random.choice(random.choice(hexGrid.Hexes))
+                    if clusterCentre in edges: continue
+                    if not clusterCentre.fleet: break
+                if clusterCentre.fleet: continue
+                self._createCluster(clusterCentre, combat, clusterTotal, clusterNum, np.prod(hexGrid.Size), edges, pd)
+                if pd.wasCanceled(): break
+                base().graphicsEngine.renderFrame()
+                base().eventMgr.doEvents()
+            pd.setValue(int(clusterTotal*10))
     
-    def _createCluster(self, clusterCentre:HexBase._Hex, combat:bool, clusterTotal, clusterNum):
-        #TODO: It is currently possible that fleets are completely blocked in by obstacles. There needs to be a check that ensures that all tiles are reachable
+    def _createCluster(self, clusterCentre:HexBase._Hex, combat:bool, clusterTotal, clusterNum, numHexes, edges, pd:QtWidgets.QProgressDialog):
         clusterType:'_ClusterType' = random.choice(self.ClusterTypes)()
         currentHex = clusterCentre
-        entityTotal = clusterType.getClusterSize()
+        entityTotal = clusterType.getClusterSize(numHexes)
         for entityNum in range(entityTotal):
             #TODO: Use https://doc.qt.io/qtforpython-5/PySide2/QtWidgets/QProgressDialog.html#PySide2.QtWidgets.PySide2.QtWidgets.QProgressDialog
-            get.window().Statusbar.showMessage(f"Generating entity {entityNum}/{entityTotal} for environment cluster {clusterNum}/{clusterTotal}")
+            get.window().Statusbar.showMessage(f"Generating entity {entityNum+1}/{entityTotal} for environment cluster {clusterNum+1}/{clusterTotal}")
+            pd.setValue(int(clusterNum*10+(entityNum/entityTotal)*10))
+            pd.setLabelText(f"Generating entity {entityNum+1}/{entityTotal} for environment cluster {clusterNum+1}/{clusterTotal}")
             App().processEvents()
             object = clusterType.getObjectType()()
             if not combat: objectGroup = EnvironmentalObjectGroups.EnvironmentalObjectGroup_Campaign()
@@ -93,22 +110,25 @@ class _EnvironmentCreator(): #TODO: Clusters should scale with map-size
             nextHexCandidates:'list[HexBase._Hex]' = currentHex.getNeighbour()
             random.shuffle(nextHexCandidates)
             for candidate in nextHexCandidates:
-                if not candidate.fleet: break
-            if candidate.fleet: break
+                if not candidate.fleet and not candidate in edges: break
+            if candidate.fleet or candidate in edges: break
             currentHex = candidate
+            if pd.wasCanceled(): break
+            base().graphicsEngine.renderFrame()
+            base().eventMgr.doEvents()
 
 
 class EnvironmentCreator_Battle(_EnvironmentCreator):
-    ClusterNumberMin = 6
-    ClusterNumberMax = 40
+    ClusterNumberMin = 12
+    ClusterNumberMax = 45
     ClusterTypes:'list[type[_ClusterType]]' = None
     def __init__(self) -> None:
         self.ClusterTypes = [ClusterType_Asteroid_S, ClusterType_Asteroid_M, ClusterType_Asteroid_L]
 
 
 class EnvironmentCreator_Sector(_EnvironmentCreator):
-    ClusterNumberMin = 6
-    ClusterNumberMax = 40
+    ClusterNumberMin = 12
+    ClusterNumberMax = 45
     ClusterTypes:'list[type[_ClusterType]]' = None
     def __init__(self) -> None:
         self.ClusterTypes = [ClusterType_Asteroid_S, ClusterType_Asteroid_M, ClusterType_AsteroidHarvestable]
@@ -119,7 +139,8 @@ class _ClusterType:
     ClusterSizeMax = 20
     ObjectTypes:'list[type[EnvironmentalObjects.EnvironmentalObject]]' = None
     
-    def getClusterSize(self):
+    def getClusterSize(self, numHexes):
+        #return max(int(self.ClusterSizeMin*0.75), int(numHexes/(2500/random.randint(self.ClusterSizeMin, self.ClusterSizeMax))) + 1)
         return random.randint(self.ClusterSizeMin, self.ClusterSizeMax)
     
     def getObjectType(self) -> 'type[EnvironmentalObjects.EnvironmentalObject]':
@@ -154,3 +175,23 @@ class ClusterType_AsteroidHarvestable(_ClusterType):
     ObjectTypes:'list[type[EnvironmentalObjects.EnvironmentalObject]]' = None
     def __init__(self) -> None:
         self.ObjectTypes = [EnvironmentalObjects.Asteroid, HarvestableObjects.ResourceAsteroid]
+
+
+""" AGeIDE Code to experiment with the formulas for cluster
+display()
+for d in (200,500,1000,2000,2500):
+	dpl("#",d,end="\n\n")
+	for i in (25,35,50,75):
+		
+		s = (i,i)
+		a =     int(np.prod(s)/(d/12 ) )
+		a = (a, int(np.prod(s)/(d/45) ))
+		
+		dpl(i,a) # num clusters
+		
+		a =     int(np.prod(s)/(d/3) +1)
+		a = (a, int(np.prod(s)/(d/20)+1 ))
+		
+		dpl(i,a) # size clusters
+		dpl()
+"""

@@ -365,7 +365,7 @@ class StrategyCamera(DirectObject):
         self._enforceLimits()
         return task.cont
     
-    def zoomCamera(self, sign): #TODO: Support zoom-to-cursor and use it as a standard as it feels way more intuitive. Add toggle to options menu
+    def zoomCamera(self, sign):
         if not self.Active:
             return
         
@@ -415,6 +415,12 @@ class StrategyCamera(DirectObject):
                     render().getRelativePoint(ape.base().camera, farPoint)
                     ):
                 self.CameraCenter.setPos(self.CameraCenter.getPos()+(pos3d_org-pos3d))
+    
+    def zoomCameraFullyOut(self):
+        if not self.Active:
+            return
+        ape.base().camera.setY(-130)
+        ape.base().camera.lookAt(self.CameraCenter)
     
     def setCamMouseControl(self, active, rotate, smooth):
         if not self.Active:

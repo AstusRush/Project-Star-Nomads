@@ -261,6 +261,15 @@ class HexGrid(DirectObject):
         else:
             raise Exception(f"corner must be 0, 1, 2, or 3 but it is {corner}")
     
+    def getAll4CornerHexes(self) -> typing.List["_Hex"]:
+        """
+        Returns a list with the 4 hexes at corners of the grid.
+        """
+        return [self.getHex((0,0)),
+            self.getHex((self.Size[1]-1, 0)),
+            self.getHex((self.Size[1]-1,self.Size[0]-1)),
+            self.getHex((0,self.Size[0]-1))]
+    
     #TODO: write another method that works similarly to getCornerHexes but for the sides
     #TODO: Write a method that divides the map into 10 (or generalize to n if feasible) equal areas of similar size and returns them.
     #           This can then be used to place all the flotillas in the correct position in regard to the relative fleet positions on the campaign map
@@ -824,6 +833,7 @@ def findPath(start:_Hex, destination:_Hex, navigable = lambda hex: hex.Navigable
     """
     The hex path finder. \n
     Returns a list containing the hexes that form a shortest path between start and destination (including destination but excluding start). \n
+    Also returns the cost of the entire path. \n
     start       : Starting hex for path finding. \n
     destination : Destination hex for path finding. \n
     navigable   : A function that, given a _Hex, tells us whether we can move through this hex. \n

@@ -112,7 +112,7 @@ class BaseClass(ape.APEPandaBase):
 class BaseScene(ape.APEScene):
     _SCENE_TYPE_STR = "Unknown"
     SkyboxSeed = None
-    def start(self):
+    def start(self, size=(50,50)):
         self.Camera = Camera.StrategyCamera()
         ape.base().win.setClearColor(p3dc.Vec4(0,0,0,1))
         self.loadSkybox()
@@ -121,7 +121,7 @@ class BaseScene(ape.APEScene):
         self.perPixelEnabled = True
         self.shadowsEnabled = True
         
-        self.HexGrid = HexBase.HexGrid(name=f"{self._SCENE_TYPE_STR} Hex Grid number {get.engine()._increaseAndGetNumOfGridsOfType(self._SCENE_TYPE_STR)}")
+        self.HexGrid = HexBase.HexGrid(size=size, name=f"{self._SCENE_TYPE_STR} Hex Grid number {get.engine()._increaseAndGetNumOfGridsOfType(self._SCENE_TYPE_STR)}")
         self.HexGrid.generateHex()
         
         #CRITICAL: use self.Camera.setLimits
@@ -153,6 +153,14 @@ class BaseScene(ape.APEScene):
             self.HexGrid.Root.show()
         except AttributeError:
             pass
+    
+    def setDisabled(self, disable: bool, influenceCameraMovement:bool=False) -> None:
+        if disable:
+            if influenceCameraMovement: self.Camera.unbindEvents()
+            self.HexGrid.unbindEvents()
+        else:
+            if influenceCameraMovement: self.Camera.bindEvents()
+            self.HexGrid.bindEvents()
     
     def pause(self):
         self.HexGrid.Root.hide()

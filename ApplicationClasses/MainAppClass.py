@@ -75,6 +75,9 @@ class EngineClass(ape.APE):
         self.newGame()
         get.app().S_NewTurnStarted.connect(lambda: self._handleNewTurn())
     
+    def interactionsDisabled(self, influenceCameraMovement:bool=False) -> 'InteractionDisabler':
+        return InteractionDisabler(influenceCameraMovement)
+    
     def endTurn(self):
         if not self.CurrentlyInBattle:
             self.autoSave()
@@ -120,6 +123,7 @@ class EngineClass(ape.APE):
         if self.CurrentlyInBattle: raise Exception("A battle is already happening")
         #TODO: What happens when no player fleet is involved?!
         #self._CameraPositionBeforeBattle = self.Scene.Camera.CameraCenter.getPos()
+        size = self.queryPlayerForBattleMapSize()
         self.CurrentBattleTurn = 1
         self._HexToLookAtAfterBattle = defenderHex
         self.setHexInteractionFunctions()
@@ -133,14 +137,48 @@ class EngineClass(ape.APE):
         self.Scene.pause()
         self.BattleUnitManager = UnitManagerBase.CombatUnitManager()
         self.BattleScene = Scene.BattleScene()
-        self.BattleScene.start()
-        self.transferFleetsToBattle(fleets, battleType)
+        self.BattleScene.start(size=size)
         environmentCreator = Environment.EnvironmentCreator_Battle()
         environmentCreator.generate(self.BattleScene.HexGrid, combat=True)
+        self.transferFleetsToBattle(fleets, battleType)
         #self.BattleScene.Camera.moveToHex(random.choice(self.BattleUnitManager.Teams[1]).hex())
-        self.BattleScene.Camera.focusRandomFleet(team=1)
+        #self.BattleScene.Camera.focusRandomFleet(team=1)
+        self.resetCameraAndSetUnitTab()
+    
+    def queryPlayerForBattleMapSize(self) -> 'typing.Tuple[float,float]':
+        msgBox = QtWidgets.QMessageBox(get.window())
+        msgBox.setText(f"Select Battle Size")
+        msgBox.setInformativeText(f"How large should the battle map be??")
+        T_Button,T_BN = msgBox.addButton("Tiny",msgBox.ButtonRole.ActionRole)   , 0
+        S_Button,S_BN = msgBox.addButton("Small",msgBox.ButtonRole.ActionRole)  , 1
+        M_Button,M_BN = msgBox.addButton("Medium",msgBox.ButtonRole.ActionRole) , 2
+        L_Button,L_BN = msgBox.addButton("Large",msgBox.ButtonRole.ActionRole)  , 3
+        H_Button,H_BN = msgBox.addButton("Huge",msgBox.ButtonRole.ActionRole)   , 4
+        msgBox.setDefaultButton(M_Button)
+        selected = msgBox.exec()
+        size = 50
+        if   selected == T_BN:
+            size = 25
+        elif selected == S_BN:
+            size = 35
+        elif selected == M_BN:
+            size = 50
+        elif selected == L_BN:
+            size = 60
+        elif selected == H_BN:
+            size = 75
+        return (size, size)
     
     def transferFleetsToBattle(self, fleets:'list[FleetBase.Fleet]', battleType, reinforcements=False):
+        freeHex = None
+        dummyFlotilla = FleetBase.Flotilla(0)
+        for i in get.hexGrid().Hexes:
+            if freeHex: break
+            for h in i:
+                if dummyFlotilla._navigable(h):
+                    freeHex = h
+                    break
+        dummyFlotilla.destroy()
         for fleet in fleets:
             fleet_parts = self.splitFleetIntoFlotillas(fleet)
             for num, ships in enumerate(fleet_parts):
@@ -148,25 +186,35 @@ class EngineClass(ape.APE):
                 flotilla.Name = f"Flotilla {num} of {fleet.Name}"
                 for ship in ships:
                     flotilla.addShip(ship)
-                self.placeFlotillaInBattle(flotilla, fleet, battleType, reinforcements)
+                self.placeFlotillaInBattle(flotilla, fleet, battleType, reinforcements, freeHex)
     
-    def placeFlotillaInBattle(self, flotilla:FleetBase.Flotilla, fleet:FleetBase.Fleet, battleType, reinforcements):
+    def placeFlotillaInBattle(self, flotilla:FleetBase.Flotilla, fleet:FleetBase.Fleet, battleType, reinforcements, freeHex):
         #TODO: Implement battle types and have special positioning rules for things like ambushes or imprecise jump drives
         #MAYBE: It would be cool to have an FTL precision system without which ships jump to random positions
         #           and higher levels allow the player to pick initial positions and then maybe inhibitors that disallow the placement of ships right next to enemies...
         #           Well we are most certainly not at a point to make decisions about implementing that just yet.
         if 1 <= flotilla.Team <= 4:
             hexes = self.BattleScene.HexGrid.getCornerHexes(flotilla.Team-1,int(min(self.BattleScene.HexGrid.Size)/5))
-            while True: #TODO: What happens if we can't place a flotilla? We need an abort condition and a way to handle it...
+            random.shuffle(hexes)
+            for hex_ in hexes: #TODO: What happens if we can't place a flotilla? We need an abort condition and a way to handle it...
                 #TODO: This should be derived from the fleet positions
-                hex_ = random.choice(hexes)
-                if flotilla._navigable(hex_):
+                if flotilla._navigable(hex_) and HexBase.findPath(hex_,freeHex)[0]:
                     break
+            else:
+                NC(2,"Could not place Flotilla!!! Trying to place it just about anywhere now")
+                for _ in range(500): #TODO: What happens if we can't place a flotilla? We need an abort condition and a way to handle it...
+                    hex_ = random.choice(random.choice(self.BattleScene.HexGrid.Hexes))
+                    if flotilla._navigable(hex_) and HexBase.findPath(hex_,freeHex)[0]:
+                        break
+                else:
+                    NC(1,"Could not place Flotilla anywhere!!!")
         else:
-            while True: #TODO: What happens if we can't place a flotilla? We need an abort condition and a way to handle it...
+            for _ in range(500): #TODO: What happens if we can't place a flotilla? We need an abort condition and a way to handle it...
                 hex_ = random.choice(random.choice(self.BattleScene.HexGrid.Hexes))
-                if flotilla._navigable(hex_):
+                if flotilla._navigable(hex_) and HexBase.findPath(hex_,freeHex)[0]:
                     break
+            else:
+                NC(1,"Could not place Flotilla anywhere!!!")
         flotilla.moveToHex(hex_,animate=False)
     
     def handleReinforcement(self):
@@ -372,18 +420,21 @@ class EngineClass(ape.APE):
         
         if not savePath: return
         
+        with get.engine().interactionsDisabled(True):
+            if self.CurrentlyInBattle:
+                self.endBattleScene()
+            
+            self.clearAll()
+            #from SavedGames import LastSave
+            d = globals().copy()
+            with open(savePath) as f:
+                exec(f.read(), d, d)
+            
+            self.resetCameraAndSetUnitTab()
+    
+    def clearAll(self,exceptPlayer=False):
         if self.CurrentlyInBattle:
             self.endBattleScene()
-        
-        self.clearAll()
-        #from SavedGames import LastSave
-        d = globals().copy()
-        with open(savePath) as f:
-            exec(f.read(), d, d)
-        
-        self.resetCameraAndSetUnitTab()
-    
-    def clearAll(self,exceptPlayer=False): #TODO: also clear any battle that is currently active and return to the campaign map
         fleetList:UnitManagerBase.UnitList = []
         for team in self.getUnitManager().Teams.values():
             if exceptPlayer and team.ID == 1: continue
@@ -441,3 +492,17 @@ class AppClass(ape.APEApp):
     
     #def r_setTheme(self):
     #    pass #TODO
+
+class InteractionDisabler():
+    def __init__(self, influenceCameraMovement:bool=False) -> None:
+        self.InfluenceCameraMovement = influenceCameraMovement
+    
+    def __enter__(self):
+        get.window().setDisabled(True)
+        get.scene().setDisabled(True, self.InfluenceCameraMovement)
+        return self
+    
+    def __exit__(self, exc_type, exc_value, traceback):
+        get.window().setDisabled(False)
+        get.scene().setDisabled(False, self.InfluenceCameraMovement)
+        return False # False to not suppress further error handling
