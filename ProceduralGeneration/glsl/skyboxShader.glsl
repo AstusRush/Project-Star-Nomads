@@ -100,15 +100,15 @@ vec3 star(vec2 p2, vec3 p) {
     uint Yv = getLastBits(rpcg.y + uint(nf*10000),8);
     uint Zv = getLastBits(rpcg.z + uint(nf*10000),8);
     
-    if(mod(Xv, 3) != 0 || mod(Yv, 3) != 0 || mod(Zv, 3) != 0){
-        starIntensity = 0.;
-    }else if(mod(((Yv-Xv)), 7) == 0){
-        starIntensity = 0.;
-    }else if(Xv+Yv+Zv < uint(pow(2,9)+(5-tf)*3) ){
-        starIntensity = 0.;
-    }else if(uint(Xv^Yv) < uint(pow(2,7))){
-        starIntensity = 0.;
-    }else if(mod(Xv&Yv,12) != 0){
+    if( false
+        || ( mod(Xv, 3) != 0 )
+        || ( mod(Yv, 3) != 0 )
+        || ( mod(Zv, 3) != 0 )
+        || ( mod(((Yv-Xv)), 7) == 0 )
+        || ( Xv+Yv+Zv < uint(pow(2,9)+(5-tf)*3) )
+        || ( uint(Xv^Yv) < uint(pow(2,7)) )
+        || ( mod(Xv&Yv,12) != 0 )
+        ){
         starIntensity = 0.;
     }
     
@@ -170,16 +170,13 @@ vec4 star_bright(vec2 p2, vec3 p) { // WIP
     int Yv = int(getLastBits(rpcg.y + uint(nf*10000),8));
     int Zv = int(getLastBits(rpcg.z + uint(nf*10000),8));
     
-    if(mod((abs(Yv-Xv)), 7) == 0 ){
+    if( false
+        || ( mod((abs(Yv-Xv)), 7) == 0 )
+        || ( Xv+Yv+Zv < int(pow(2,9)+(5-tf)*3) )
+        || ( float(Xv^Yv) < float(pow(2,7)+47.046873092) )
+        ){
         starIntensity = 0.;
     }
-    if(Xv+Yv+Zv < int(pow(2,9)+(5-tf)*3) ){
-        starIntensity = 0.;
-    }
-    if(float(Xv^Yv) < float(pow(2,7)+47.046873092) ){
-        starIntensity = 0.;
-    }
-    
     
     vec3 c = vec3(0);
     if(starIntensity < 0.1){
