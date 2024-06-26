@@ -184,7 +184,7 @@ class Module():
     
     def copy(self) -> "Module": #VALIDATE: Does this work as intended?
         l = {}
-        exec(AGeToPy.formatObject(self,"moduleCopy"),globals(),l)
+        exec(AGeToPy.formatObject(self,"moduleCopy"),l,l)
         module:"Module" = l["moduleCopy"]
         module.resetCondition()
         return module

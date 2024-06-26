@@ -496,7 +496,8 @@ class ShipBase():
     
     def copy(self, resetCondition=False, removeModel=False) -> 'ShipBase': #VALIDATE: Does this work as intended?
         l = {}
-        exec(AGeToPy.formatObject(self,"shipCopy"),globals(),l)
+        #print(AGeToPy.formatObject(self,"shipCopy"))
+        exec(AGeToPy.formatObject(self,"shipCopy"),l,l)
         ship:'ShipBase' = l["shipCopy"]
         if resetCondition:
             for module in ship.Modules:

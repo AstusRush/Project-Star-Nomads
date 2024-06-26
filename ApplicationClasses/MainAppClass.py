@@ -445,7 +445,7 @@ class EngineClass(ape.APE):
             
             self.clearAll()
             #from SavedGames import LastSave
-            d = globals().copy()
+            d = {}
             with open(savePath) as f:
                 exec(f.read(), d, d)
             
