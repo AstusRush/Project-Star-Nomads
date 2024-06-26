@@ -93,7 +93,7 @@ class EngineClass(ape.APE):
     def startCampaignScene(self):
         self.UnitManager = UnitManagerBase.CampaignUnitManager()
         self.Scene = Scene.CampaignScene()
-        self.Scene.start()
+        self.Scene.start((70,70))
     
     def generateCampaignSector(self):
         environmentCreator = Environment.EnvironmentCreator_Sector()
@@ -101,22 +101,41 @@ class EngineClass(ape.APE):
     
     def transitionToNewCampaignSector(self):
         self.clearAll(exceptPlayer=True)
+        self.generateCampaignSector()
         
         #TODO: The following code is ugly but at least it handles all reasonable edge-cases
+        freeHex = None
+        dummyFleet = FleetBase.Fleet(0)
+        for i in get.hexGrid().Hexes:
+            if freeHex: break
+            for h in i:
+                if dummyFleet._navigable(h):
+                    freeHex = h
+                    break
+        dummyFleet.destroy()
         c = 2
         hexes = self.Scene.HexGrid.getCentreHexes(c)
         while len(hexes) < len(self.UnitManager.Teams[1])+1:
             c += 1
             hexes = self.Scene.HexGrid.getCentreHexes(c)
+        hexes = self.Scene.HexGrid.getCentreHexes(c+3)
+        random.shuffle(hexes)
         for fleet in self.UnitManager.Teams[1]:
             for h in hexes:
-                if not h.fleet:
+                if not HexBase.findPath(h,freeHex)[0]: continue
+                if not h.fleet and fleet._navigable(h):
                     fleet.moveToHex(h, animate=False)
                     break
-                elif h.fleet() is fleet:
+                elif h.fleet and h.fleet() is fleet:
                     break
+            else:
+                NC(2,"Could not place Fleet!!! Trying to place it just about anywhere now")
+                for _ in range(500): #TODO: What happens if we can't place a flotilla? We need an abort condition and a way to handle it...
+                    hex_ = random.choice(random.choice(get.hexGrid().Hexes))
+                    if fleet._navigable(hex_) and HexBase.findPath(hex_,freeHex)[0]:
+                        fleet.moveToHex(hex_, animate=False)
+                        break
         
-        self.generateCampaignSector()
         self.resetCameraAndSetUnitTab()
     
     def startBattleScene(self, fleets:'list[FleetBase.Fleet]', aggressorHex:'HexBase._Hex', defenderHex:'HexBase._Hex', battleType=0):

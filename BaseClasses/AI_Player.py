@@ -69,6 +69,10 @@ class PlayerAI_Campaign(PlayerAI):
         orders = AI_Base.Orders()
         for i in self.unitList():
             await i.AI.executeTurn(orders)
+        for i in self.unitList():
+            if i.MovementSequence and i.MovementSequence.isPlaying():
+                try: await i.MovementSequence
+                except: i.MovementSequence.finish()
     
     def spawnFleets(self):
         self.spawnFleets_Value()

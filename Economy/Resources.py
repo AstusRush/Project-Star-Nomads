@@ -44,6 +44,9 @@ class Resource_(metaclass=_Resource_Metaclass):
     def __init__(self, quantity:float=0) -> None:
         self.Quantity = float(quantity)
     
+    def __call__(self, quantity:float=0) -> 'Resource_':
+        return self.new(quantity)
+    
     @property
     def Name(self) -> str:
         return self._Name
@@ -239,8 +242,9 @@ class _ResourceDict(_typing.Dict['Resource_','Resource_']):
             prev = 0
         super().__setitem__(__key, __value)
         if self.isOverCapacity():
+            f = self.FreeCapacity
             super().__setitem__(__key, prev)
-            raise _InsufficientCapacityException(f"Can not store that many resources. {self.Capacity = } , {prev = } , {__value = }") #TODO: More error info
+            raise _InsufficientCapacityException(f"Can not store that many resources. {self.Capacity = } , {self.UsedCapacity = } , {self.FreeCapacity = } , {prev = } , {__value = } , {__value-prev = } , Free Capacity if added = {f}")
     
     def _prepareKey(self, key):
         if not _AGeAux.isInstanceOrSubclass(key,Resource_):
@@ -256,7 +260,7 @@ class _ResourceDict(_typing.Dict['Resource_','Resource_']):
     #MAYBE: Implement __iter__ to directly iterate over a list
     
     def isOverCapacity(self) -> bool:
-        return self.FreeCapacity < 0
+        return self.FreeCapacity < -1e-14 # -1e-14 instead of 0 to ignore errors due to floating point imprecision
     
     def anyNegative(self) -> bool:
         for i in self.values():

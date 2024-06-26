@@ -76,10 +76,10 @@ class FleetAI(BaseFleetAI):
         attackableHexes:typing.List[HexBase._Hex] = []
         moved, isClose = False, False
         onlyPlayer = get.unitManager().isHostile(self.fleet().Team,1) and not any([(i.fleet().Team == 1) for i in self.fleet().hex().getDisk(8) if i.fleet])
-        if (closestEnemy:=self.fleet().findClosestEnemy(onlyPlayer=onlyPlayer)):
+        if (closestEnemy:=self.fleet().findClosestEnemy(onlyPlayer=onlyPlayer, shareIntel=bool(random.randint(0,2)))):
             isClose, moved = self.fleet().moveClose(closestEnemy.hex(), 1)
             if get.engine().DebugPrintsEnabled: print(f"{self.fleet().Name} tries to move to a close enemy {isClose=} {moved=}")
-            if not isClose and (closestEnemy:=self.fleet().findClosestEnemy(onlyPlayer=onlyPlayer)):
+            if not isClose and (closestEnemy:=self.fleet().findClosestEnemy(onlyPlayer=onlyPlayer, shareIntel=bool(random.randint(0,2)))):
                 isClose, moved = self.fleet().moveClose(closestEnemy.hex(), 5)
                 if get.engine().DebugPrintsEnabled: print(f"{self.fleet().Name} tries to move to a close enemy {isClose=} {moved=}")
         if self.fleet().MovePoints >= 1 and not moved and (not isClose or (closestEnemy and closestEnemy.Team != 1)):

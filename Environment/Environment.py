@@ -59,8 +59,8 @@ from Environment import EnvironmentalObjectGroups
 from Economy import HarvestableObjects
 
 class _EnvironmentCreator():
-    ClusterNumberMin = 12
-    ClusterNumberMax = 45
+    ClusterNumberMin = 30
+    ClusterNumberMax = 50
     ClusterTypes:'list[type[_ClusterType]]' = None
     def __init__(self) -> None:
         pass#self.ClusterTypes = []
@@ -74,11 +74,10 @@ class _EnvironmentCreator():
         with get.engine().interactionsDisabled(True):
             get.camera().resetCameraPosition()
             get.camera().zoomCameraFullyOut()
-            pd =  QtWidgets.QProgressDialog("Generating...", cancelText, 0, clusterTotal*10)
+            pd = QtWidgets.QProgressDialog("Generating...", cancelText, 0, clusterTotal*10)
+            pd.setWindowTitle("Generating Map...")
             pd.setWindowModality(QtCore.Qt.WindowModal)
-            App().processEvents()
-            base().graphicsEngine.renderFrame()
-            base().eventMgr.doEvents()
+            get.engine().processAndRender()
             for clusterNum in range(clusterTotal):
                 for _ in range(20):
                     clusterCentre = random.choice(random.choice(hexGrid.Hexes))
@@ -87,8 +86,7 @@ class _EnvironmentCreator():
                 if clusterCentre.fleet: continue
                 self._createCluster(clusterCentre, combat, clusterTotal, clusterNum, np.prod(hexGrid.Size), edges, pd)
                 if pd.wasCanceled(): break
-                base().graphicsEngine.renderFrame()
-                base().eventMgr.doEvents()
+            get.engine().fastRender()
             pd.setValue(int(clusterTotal*10))
     
     def _createCluster(self, clusterCentre:HexBase._Hex, combat:bool, clusterTotal, clusterNum, numHexes, edges, pd:QtWidgets.QProgressDialog):
@@ -99,7 +97,8 @@ class _EnvironmentCreator():
             #TODO: Use https://doc.qt.io/qtforpython-5/PySide2/QtWidgets/QProgressDialog.html#PySide2.QtWidgets.PySide2.QtWidgets.QProgressDialog
             get.window().Statusbar.showMessage(f"Generating entity {entityNum+1}/{entityTotal} for environment cluster {clusterNum+1}/{clusterTotal}")
             pd.setValue(int(clusterNum*10+(entityNum/entityTotal)*10))
-            pd.setLabelText(f"Generating entity {entityNum+1}/{entityTotal} for environment cluster {clusterNum+1}/{clusterTotal}")
+            #NOTE: The if else in the next line ensures that the dialogue is a bit wider when it opens so that it does not snap wider for double digits etc
+            pd.setLabelText(f"Generating entity {entityNum+1}/{entityTotal} for environment cluster {clusterNum+1}/{clusterTotal}"+("        " if clusterNum==0 and entityNum<2 else ""))
             App().processEvents()
             object = clusterType.getObjectType()()
             if not combat: objectGroup = EnvironmentalObjectGroups.EnvironmentalObjectGroup_Campaign()
@@ -114,21 +113,20 @@ class _EnvironmentCreator():
             if candidate.fleet or candidate in edges: break
             currentHex = candidate
             if pd.wasCanceled(): break
-            base().graphicsEngine.renderFrame()
-            base().eventMgr.doEvents()
+            get.engine().fastRender()
 
 
 class EnvironmentCreator_Battle(_EnvironmentCreator):
-    ClusterNumberMin = 12
-    ClusterNumberMax = 45
+    #ClusterNumberMin = 12
+    #ClusterNumberMax = 45
     ClusterTypes:'list[type[_ClusterType]]' = None
     def __init__(self) -> None:
         self.ClusterTypes = [ClusterType_Asteroid_S, ClusterType_Asteroid_M, ClusterType_Asteroid_L]
 
 
 class EnvironmentCreator_Sector(_EnvironmentCreator):
-    ClusterNumberMin = 12
-    ClusterNumberMax = 45
+    #ClusterNumberMin = 12
+    #ClusterNumberMax = 45
     ClusterTypes:'list[type[_ClusterType]]' = None
     def __init__(self) -> None:
         self.ClusterTypes = [ClusterType_Asteroid_S, ClusterType_Asteroid_M, ClusterType_AsteroidHarvestable]

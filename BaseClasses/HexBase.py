@@ -452,6 +452,18 @@ class _Hex():
             # -DONE- A Hexagonal ring to highlight the edges of all hexes
             # -PART- These two meshes must be as simple as possible but must be able to be visible, blink, and be hidden independently of one another
             #
+            
+            # We will use this list to store all objects that occupy this hexagon
+            self.content = [] # type: 'list[weakref.ref[FleetBase.FleetBase]]' #TODO: Fleets can not be the content but what will be the content?
+            self.fleet = None # type: 'weakref.ref[FleetBase.FleetBase]'
+            self.Navigable = True
+            
+            self.Selected = False
+            self.Highlighted = False
+            self.HighlightedEdge = False
+            self.HighlightedInner = False
+            self.HighlightedFace = False
+            
             self.Name = name
             self.Colour = self.COLOUR_NORMAL
             self.CurrentColour_Edge = self.COLOUR_NORMAL
@@ -506,17 +518,6 @@ class _Hex():
                 self.InnerRing.setTransparency(p3dc.TransparencyAttrib.MAlpha)
             self._setColorInnerRing(self.Colour)
             self.InnerRing.hide()
-            
-            # We will use this list to store all objects that occupy this hexagon
-            self.content = [] # type: 'list[weakref.ref[FleetBase.FleetBase]]' #TODO: Fleets can not be the content but what will be the content?
-            self.fleet = None # type: 'weakref.ref[FleetBase.FleetBase]'
-            self.Navigable = True
-            
-            self.Selected = False
-            self.Highlighted = False
-            self.HighlightedEdge = False
-            self.HighlightedInner = False
-            self.HighlightedFace = False
         except:
             NC(1,f"Error while creating {name}",exc=True) #MAYBE: Since we re-raise the exception after cleanup we might as well remove the notification
             nodes = "InnerRing,Face,Model,Node".split(",")
@@ -531,7 +532,7 @@ class _Hex():
         self.Face.removeNode()
         self.Model.removeNode()
         self.Node.removeNode()
-        
+    
     def isHighlighted(self):
         return self is self.grid().HighlightedHex
     
@@ -565,13 +566,33 @@ class _Hex():
     def hideContent(self):
         if self.fleet:
             self.fleet().hide()
+            if self.CurrentColour_Edge == self.getNormalEdgeColour():
+                Highlighted = self.Highlighted
+                HighlightedEdge = self.HighlightedEdge
+                self.highlight(edge=self.COLOUR_NORMAL, clearFirst=False)
+                self.Highlighted = Highlighted
+                self.HighlightedEdge = HighlightedEdge
     
     def showContent(self):
         if self.fleet:
             self.fleet().show()
+            if self.CurrentColour_Edge == self.COLOUR_NORMAL:
+                Highlighted = self.Highlighted
+                HighlightedEdge = self.HighlightedEdge
+                self.highlight(edge=self.getNormalEdgeColour(), clearFirst=False)
+                self.Highlighted = Highlighted
+                self.HighlightedEdge = HighlightedEdge
   #endregion Content
     
   #region Colour
+    
+    def getNormalEdgeColour(self):
+        if self.fleet:
+            s = "Team "+str(self.fleet().Team)
+            if s in App().Theme["Star Nomads"]:
+                return s
+        return self.COLOUR_NORMAL
+    
     def _setColor(self, colour, alpha = 0.2):
         """
         TODO: This information is outdated. We now use the "Star Nomads" colour dictionary. \n

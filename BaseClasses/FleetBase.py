@@ -583,7 +583,7 @@ class FleetBase():
         """
         ranges = np.asarray([i.Stats.SensorRanges for i in self.Ships]) if self.Ships else np.zeros((1,5))
         return float("inf"), max(ranges[:,1]), max(ranges[:,2]), max(ranges[:,3]), max(ranges[:,4])
-        
+    
     def getSensorRanges_Int(self) -> typing.Tuple[int,int,int,int,int]: #TODO: The sensors of the ships in the fleet should enhance each other
         """
         Sensor ranges: no resolution, low resolution, medium resolution, high resolution, perfect resolution \n
@@ -607,12 +607,15 @@ class FleetBase():
                 fleets += [(f.detectCheck(i), f) for f in potentialFleets if f.detectCheck(i) and get.unitManager().isHostile(self.Team,f.Team)]
         return fleets
     
-    def findClosestEnemy(self, onlyPlayer=False) -> typing.Union['FleetBase',bool]:
+    def findClosestEnemy(self, onlyPlayer=False, shareIntel=True) -> typing.Union['FleetBase',bool]:
         "Returns the closest enemy fleet or False if none is detected"
         detectedEnemies = []
-        for team in get.unitManager().getAllies(self.Team):
-            for fleet in get.unitManager().Teams[team]:
-                detectedEnemies += fleet.detectEnemies(onlyPlayer=onlyPlayer)
+        if shareIntel:
+            for team in get.unitManager().getAllies(self.Team):
+                for fleet in get.unitManager().Teams[team]:
+                    detectedEnemies += fleet.detectEnemies(onlyPlayer=onlyPlayer)
+        else:
+            detectedEnemies += self.detectEnemies(onlyPlayer=onlyPlayer)
         if not detectedEnemies:
             return False
         f = min([(self.hex().distance(f[1].hex()), f[1]) for f in detectedEnemies], key=lambda i:i[0])[1]
