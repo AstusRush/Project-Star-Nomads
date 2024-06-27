@@ -260,7 +260,7 @@ class _ResourceDict(_typing.Dict['Resource_','Resource_']):
     #MAYBE: Implement __iter__ to directly iterate over a list
     
     def isOverCapacity(self) -> bool:
-        return self.FreeCapacity < -1e-14 # -1e-14 instead of 0 to ignore errors due to floating point imprecision
+        return self.FreeCapacity < 0
     
     def anyNegative(self) -> bool:
         for i in self.values():
@@ -285,16 +285,17 @@ class _ResourceDict(_typing.Dict['Resource_','Resource_']):
         Try to put as many resources from `other` into this _ResourceDict and returns everything that did not fit as a new _ResourceDict\n
         `other` is not altered!
         """
+        # the -1e-13 and 1e-10 are used instead of 0 to avoid errors due to floating point imprecision
         r = other.copy(keepRestrictions=False)
         for k,v in r.items():
             if not r: return r # When the r is empty we just return it
             if v > 0:
-                amount = v if v < self.FreeCapacity else self.FreeCapacity
+                amount = v if v < self.FreeCapacity-1e-13 else self.FreeCapacity-1e-13
             else:
                 amount = v if -v < self[k] else -self[k]
             self.add(k(amount))
             r.subtract(k(amount))
-        if self.FreeCapacity > 0 and r.UsedCapacity > 0 and _recursive:
+        if self.FreeCapacity > 1e-10 and r.UsedCapacity > 0 and _recursive:
             r = self.fillFrom(r, _recursive=False)
         return r
     
@@ -302,15 +303,16 @@ class _ResourceDict(_typing.Dict['Resource_','Resource_']):
         """
         Try to take as many resources out of `other` and put them into self as the capacity of self allows.
         """
+        # the -1e-13 and 1e-10 are used instead of 0 to avoid errors due to floating point imprecision
         for k,v in other.items():
             if not other: return other # When the other dict is empty we just return it
             if v > 0:
-                amount = v if v < self.FreeCapacity else self.FreeCapacity
+                amount = v if v < self.FreeCapacity-1e-13 else self.FreeCapacity-1e-13
             else:
                 amount = v if -v < self[k] else -self[k]
             self.add(k(amount))
             other.subtract(k(amount))
-        if self.FreeCapacity > 0 and other.UsedCapacity > 0 and _recursive:
+        if self.FreeCapacity > 1e-10 and other.UsedCapacity > 0 and _recursive:
             other = self.transferMax(other, _recursive=False)
         return other
     

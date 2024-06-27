@@ -141,7 +141,7 @@ class ShipResourceManager(_BaseResourceManager):
         try:
             d.setCapacity(self.capacity())
         except:
-            NC(2,f"The ship {self.ship().Name} seems to store more resources than it should be able to!", exc=True)
+            NC(2,f"The ship {self.ship().Name} seems to store more resources than it should be able to!\nBuild more storage modules!\n(Sorry but this warning will popup quite often until you build more storage...)", exc=True)
         return d
     
     def capacity(self) -> float:

@@ -341,47 +341,65 @@ class EngineClass(ape.APE):
     def splitFleetIntoFlotillas(self, fleet:'FleetBase.FleetBase') -> typing.List[typing.List['ShipBase.ShipBase']]:
         #TODO: It would be great if we were to group the ships according to their types and movement ###DONE (at least the movement part) but would benefit from more fine-tuning
         try:
-            #speedGroups = []
-            #for ship in fleet.Ships:
-            #    speed = math.floor(ship.Stats.Movement_Sublight[1])
-            #    if speed not in speedGroups: speedGroups.append(speed)
-            flotillasDict:'dict[int,list[ShipBase.ShipBase]]' = {}
-            for ship in fleet.Ships:
-                speed = math.floor(ship.Stats.Movement_Sublight[1])
-                if speed not in flotillasDict: flotillasDict[speed] = [ship]
-                else: flotillasDict[speed].append(ship)
-            ships_speed_groups = list(flotillasDict.values())
-            
-            # Ensure that flotillas do not have more than 4 ships and separate them is necessary
-            ships = []
-            for group in ships_speed_groups:
-                if len(group) >= 6:
-                    sNum = len(group) // 3
-                    sRem = len(group) % 3
-                    ships = []
+            try:
+                #speedGroups = []
+                #for ship in fleet.Ships:
+                #    speed = math.floor(ship.Stats.Movement_Sublight[1])
+                #    if speed not in speedGroups: speedGroups.append(speed)
+                flotillasDict:'dict[int,list[ShipBase.ShipBase]]' = {}
+                for ship in fleet.Ships:
+                    speed = math.floor(ship.Stats.Movement_Sublight[1])
+                    if speed not in flotillasDict: flotillasDict[speed] = [ship]
+                    else: flotillasDict[speed].append(ship)
+                ships_speed_groups = list(flotillasDict.values())
+                
+                print("Flotilla split for", fleet.Name)
+                print(f"{len(fleet.Ships)}")
+                print(f"{len(ships_speed_groups)}")
+                print(f"{sum([len(i) for i in ships_speed_groups])}")
+                
+                # Ensure that flotillas do not have more than 5 ships and separate them is necessary
+                flotilla_groups:'typing.List[typing.List[ShipBase.ShipBase]]' = []
+                for group in ships_speed_groups:
+                    if len(group) >= 6:
+                        sNum = len(group) // 3
+                        sRem = len(group) % 3
+                        for i in range(sNum):
+                            flotilla_groups.append(group[i::sNum])
+                    else:
+                        flotilla_groups.append(group)
+            except:
+                NC(2,"Could not split fleet into flotillas in the usual way. Splitting the ships by number instead.", exc=True)
+                if fleet.Team != 1 and len(fleet.Ships) >= 6:
+                    sNum = len(fleet.Ships) // 3
+                    sRem = len(fleet.Ships) % 3
+                    flotilla_groups:'typing.List[typing.List[ShipBase.ShipBase]]' = []
                     for i in range(sNum):
-                        ships.append(group[i::sNum])
+                        flotilla_groups.append(fleet.Ships[i::sNum])
                 else:
-                    ships.append(group)
-        except:
-            NC(2,"Could not split fleet into flotillas in the usual way. Splitting the ships by number instead.", exc=True)
-            if fleet.Team != 1 and len(fleet.Ships) >= 6:
-                sNum = len(fleet.Ships) // 3
-                sRem = len(fleet.Ships) % 3
-                ships = []
-                for i in range(sNum):
-                    ships.append(fleet.Ships[i::sNum])
-            else:
-                return [fleet.Ships.copy()]
-        for i in ships:
-            for j in i:
-                if j not in fleet.Ships:
-                    NC(2,"One ship would not be in the fleet.Ships! Putting all ships into one flotilla instead!", input=f"{fleet = }\n{fleet.Ships = }\n{ships = }")
+                    return [fleet.Ships.copy()]
+            
+            # Checks if all ships are in exactly one flotilla
+            for i in flotilla_groups: #TODO: This check seems somewhat superfluous
+                for j in i:
+                    if j not in fleet.Ships:
+                        NC(2,"At least one ship would not be in the fleet.Ships! Putting all ships into one flotilla instead!", input=f"{fleet = }\n{fleet.Ships = }\n{flotilla_groups = }")
+                        return [fleet.Ships]
+            for ship in fleet.Ships:
+                for flotilla in flotilla_groups:
+                    if ship in flotilla:
+                        break
+                else:
+                    NC(2,"At least one ship would not be in a flotilla! Putting all ships into one flotilla instead!", input=f"{fleet = }\n{fleet.Ships = }\n{flotilla_groups = }")
                     return [fleet.Ships]
-        if sum([len(i) for i in ships]) != len(fleet.Ships):
-            NC(2,"One ship would be in two flotillas! Putting all ships into one flotilla instead!", input=f"{fleet = }\n{fleet.Ships = }\n{ships = }")
-            return [fleet.Ships]
-        return ships
+            if sum([len(i) for i in flotilla_groups]) != len(fleet.Ships): #TODO: the method for this check is questionable
+                NC(2,"At least one ship would be in two flotillas! Putting all ships into one flotilla instead!", input=f"{fleet = }\n{fleet.Ships = }\n{flotilla_groups = }")
+                return [fleet.Ships.copy()]
+            
+            return flotilla_groups
+        except:
+            NC(2,"Could not split fleet into flotillas! Putting all ships into the same flotilla instead.", input=f"{fleet = }", exc=True)
+            return [fleet.Ships.copy()]
     
     def _getNumOfGridsFormatted(self):
         return f"There have been a total of {self._NumHexGridsCampaign} campaign grids and {self._NumHexGridsBattle} battle grids since this application started."

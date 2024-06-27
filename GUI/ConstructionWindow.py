@@ -319,7 +319,8 @@ class ShipStats(AGeWidgets.TightGridFrame):
             if not self.parent().lifeEditing():
                 text += self.ship().resourceCost().text("Cost:") + "\n"
             try:
-                text += self.parent().constructionModule().availableResources().text("Available Resources:")
+                text += self.parent().constructionModule().availableResources().text("Available Resources:") + "\n"
+                text += (self.parent().constructionModule().availableResources()-self.ship().resourceCost()).text("Difference:")
                 if not self.parent().lifeEditing():
                     if self.parent().constructionModule().canSpend(self.ship().resourceCost()):
                         text += "\nCan afford"
@@ -688,5 +689,5 @@ class ModuleEditor(AGeWidgets.TightGridFrame):
             f"Value: {round(self.ActiveModule.Value,5)}{f' (-> {round(module.Value,5)})' if (module and round(module.Value-self.ActiveModule.Value,5)) else ''}\n"
             f"Threat {round(self.ActiveModule.Threat,5)}{f' (-> {round(module.Threat,5)})' if (module and round(module.Threat-self.ActiveModule.Threat,5)) else ''}\n"
             f"Mass {round(self.ActiveModule.Mass,5)}{f' (-> {round(module.Mass,5)})' if (module and round(module.Mass-self.ActiveModule.Mass,5)) else ''}\n"
-            f"{costToChange.text(headline='Expected cost to change:') if costToChange else ''}"
+            f"{costToChange.text(headline='Expected cost to change:') if costToChange else self.ActiveModule.resourceCost().text(headline='Current cost of module:')}"
             )

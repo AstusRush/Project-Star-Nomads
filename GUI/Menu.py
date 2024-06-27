@@ -87,7 +87,7 @@ class DifficultyOptionsWidget(AGeWidgets.TightGridFrame):
         self.HeadlineLine.setFrameShape(QtWidgets.QFrame.HLine)
         self.HeadlineLine.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.EnemyTotalStrength = self.addWidget(AGeInput.Float(self,"Enemy Total Strength",5.0,1.0,40.0))
-        self.EnemyStrengthPerFleet = self.addWidget(AGeInput.Float(self,"Enemy Strength per Fleet",0.7,0.2,10.0))
+        self.EnemyStrengthPerFleet = self.addWidget(AGeInput.Float(self,"Enemy Strength per Fleet",1.0,0.2,10.0))
 
 class HighlightOptionsWidget(AGeWidgets.TightGridFrame):
     def __init__(self, parent: typing.Optional['QtWidgets.QWidget'] = None) -> None:

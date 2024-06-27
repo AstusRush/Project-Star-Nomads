@@ -83,6 +83,7 @@ class MainWindowClass(AWWF):#APEWindow):
         #self.genCB.setText("Use seed 6")
         #genLayout.addWidget(self.genCB)
         self.EndTurnButton = AGeWidgets.Button(self,"End Turn",lambda: get.engine().endTurn())
+        self.EndTurnButton.setToolTip("End your current turn\nHotkeys: Ctrl+Space, Ctrl+Enter\n(Hotkeys only work when the cursor is in the 3D\n part of the window to not interfere with menus.)")
         base().accept("control-enter",lambda: get.engine().endTurn()) # ctrl + Enter
         base().accept("control-space",lambda: get.engine().endTurn()) # ctrl + Space
         genLayout.addWidget(self.EndTurnButton)

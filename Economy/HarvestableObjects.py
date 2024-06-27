@@ -69,7 +69,7 @@ class ResourceAsteroid(HarvestableEnvironmentalObject):
         super().__init__()
         self.addModule(BaseModules.Asteroid_Hull())
         self.addModule(BaseEconomicModules.Asteroid_Resources())
-        resourceScale = 2
+        resourceScale = 4
         resourceType = random.randint(0,100)
         if resourceType <= 50:
             self.ResourceTypeName = "Ore"
