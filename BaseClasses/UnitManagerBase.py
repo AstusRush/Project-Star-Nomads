@@ -86,6 +86,10 @@ class UnitManager():
         for team in list(self.Teams.values()):
             team.destroy()
     
+    def __iter__(self):
+        for team in self.Teams.values():
+            yield from team
+    
     def unselectAll(self):
         if self.selectedUnit:
             self.selectedUnit().unselect()
