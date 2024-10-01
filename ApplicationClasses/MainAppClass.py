@@ -86,6 +86,8 @@ class EngineClass(ape.APE):
         get.unitManager().endTurn()
     
     def _handleNewTurn(self):
+        for fleet in get.unitManager():
+            fleet.arrangeShips()
         if self.CurrentlyInBattle:
             self.CurrentBattleTurn += 1
             self.handleReinforcement()
@@ -458,6 +460,7 @@ class EngineClass(ape.APE):
         if not savePath: return
         
         with get.engine().interactionsDisabled(True):
+            App().processEvents()
             if self.CurrentlyInBattle:
                 self.endBattleScene()
             

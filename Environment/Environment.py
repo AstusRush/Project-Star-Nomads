@@ -88,6 +88,9 @@ class _EnvironmentCreator():
                 if pd.wasCanceled(): break
             get.engine().fastRender()
             pd.setValue(int(clusterTotal*10))
+        if platform.system() == 'Windows':
+            get.window().activateWindow() # ensures that wasd-navigation and other shortcuts work on windows after loading new map
+            #VALIDATE: This might work but it is also possible that for wasd-navigation to work the panda3d window needs to get focus instead
     
     def _createCluster(self, clusterCentre:HexBase._Hex, combat:bool, clusterTotal, clusterNum, numHexes, edges, pd:QtWidgets.QProgressDialog):
         clusterType:'_ClusterType' = random.choice(self.ClusterTypes)()

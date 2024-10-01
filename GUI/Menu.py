@@ -106,7 +106,7 @@ class ControlsOptionsWidget(AGeWidgets.TightGridFrame):
         self.HeadlineLine = self.addWidget(QtWidgets.QFrame(self))
         self.HeadlineLine.setFrameShape(QtWidgets.QFrame.HLine)
         self.HeadlineLine.setFrameShadow(QtWidgets.QFrame.Sunken)
-        self.BindMouseWhileCamControl = self.addWidget(AGeInput.Bool(self,"Keep the mouse in place while controlling the camera\n(Not supported on Windows)",(platform.system() != 'Windows')))
+        self.BindMouseWhileCamControl = self.addWidget(AGeInput.Bool(self,"Keep the mouse in place while controlling the camera\n(May not always work correctly)",True))
         self.ZoomToCursor = self.addWidget(AGeInput.Bool(self,"Zoom to cursor", True))
 
 class GraphicsOptionsWidget(AGeWidgets.TightGridFrame):
@@ -138,8 +138,8 @@ class SkyboxOptionsWidget(AGeWidgets.TightGridFrame):
         self.NonBlackSpace = self.addWidget(AGeInput.Bool(self,"Boost Background Colour", False))
         self.UseSeedButton = self.addWidget(AGeWidgets.Button(self,"Generate new Skybox using Seed", lambda: self.newSkybox(True)))
         self.Seed = self.addWidget(AGeInput.Int(self,"Skybox Seed", 1, 1, 999999999))
-        self.SkyboxStatic = self.addWidget(AGeInput.Bool(self,"Use static Skybox\nUnchecked: Use pure shader Skybox (lower performance)\nChecked: Use static skybox (takes long to generate)", False))
-        self.SkyboxResolution = self.addWidget(AGeInput.Int(self,"Static Skybox Resolution (512·2ˣ)", 2, 0, 4))
+        self.SkyboxStatic = self.addWidget(AGeInput.Bool(self,"Use static Skybox\nUnchecked: Use pure shader Skybox (lower performance)\nChecked: Use static skybox (longer initial loading)", True))
+        self.SkyboxResolution = self.addWidget(AGeInput.Int(self,"Static Skybox Resolution (512·2ˣ)", 3, 0, 4))
     
     def newSkybox(self, useSeed=False):
         if useSeed:

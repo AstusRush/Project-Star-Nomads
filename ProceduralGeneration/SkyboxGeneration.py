@@ -121,61 +121,20 @@ params = {
 """
 
 class SkyboxGenerator:
-    #NSTARS= 100000
     NSTARS = 100000
     def getSkybox(self,params:"typing.Dict[str,typing.Any]") -> 'p3dc.NodePath':
-        self.render(params, False)
+        tex = self.render(params)
         self.cleanUp()
-        #skybox = ape.loadModel('Models/Skyboxes/LastGenerated/RandomSpace.egg')
         skyShader = ShaderTools.loadShader("skybox.glsl")
         skybox = self.buildBox(1, skyShader)
         
-        # The following may look weird but this double loading and clearing is necessary to load the new skybox.
-        lo = p3dc.LoaderOptions(p3dc.LoaderOptions.LFNoCache)
-        #lo.setFlags(lo.LF_no_cache)# | lo.LF_no_disk_cache | lo.LF_no_ram_cache)
-        tex = loader().loadCubeMap("Models/Skyboxes/LastGenerated/Skybox_#.jpeg",loaderOptions=lo)
-        tex.clearImage()
-        tex = loader().loadCubeMap("Models/Skyboxes/LastGenerated/Skybox_#.jpeg",loaderOptions=lo)
-        
-        
-        #ts = p3dc.TextureStage('SkyboxTextureStage')
-        #ts.setMode(ts.MDecal)
-        #ts.setMode(ts.MNormal)
-        #skybox.setTexGen(p3dc.TextureStage.getDefault(), p3dc.TexGenAttrib.MEyeCubeMap)
         skybox.setTexGen(p3dc.TextureStage.getDefault(), p3dc.TexGenAttrib.MWorldCubeMap)
-        #skybox.setTexGen(p3dc.TextureStage.getDefault(), p3dc.TexGenAttrib.M)
-        #skybox.setTexGen(ts, p3dc.TexGenAttrib.MWorldNormal)
-        #skybox.setTexProjector(ts, render(), skybox)
-        #skybox
-        #tex.wrap
-        #tex.generateRamMipmapImages()
-        #tex.set_minfilter(p3dc.SamplerState.FT_linear)
-        #tex.set_magfilter(p3dc.SamplerState.FT_linear)
-        #tex.set_wrap_u(p3dc.SamplerState.WM_clamp)
-        #tex.set_wrap_v(p3dc.SamplerState.WM_clamp)
+        
         skybox.setTexture(tex)
         self.updateUniforms(skybox,{"skybox":tex})
         return skybox
     
-    def makeSkybox(self,params:"typing.Dict[str,typing.Any]") -> 'None':
-        self.render(params)
-        self.cleanUp()
-        #skybox = ape.loadModel('Models/Skyboxes/LastGenerated/RandomSpace.egg')
-        ##skybox = self.buildBox(1, None, False)
-        ##tex = loader().loadCubeMap("Models/Skyboxes/LastGenerated/Skybox_#.jpeg")
-        ###skybox.setTexGen(p3dc.TextureStage.getDefault(), p3dc.TexGenAttrib.MEyeCubeMap)
-        ##skybox.setTexGen(p3dc.TextureStage.getDefault(), p3dc.TexGenAttrib.MWorldCubeMap)
-        ###skybox.setTexGen(p3dc.TextureStage.getDefault(), p3dc.TexGenAttrib.M)
-        ##skybox.setTexture(tex)
-        #return skybox
-    
-    def getSkybox_OLD(self,params:"typing.Dict[str,typing.Any]") -> 'p3dc.NodePath':
-        textures = self.render(params)
-        #self.rPointStars.remove_node()
-        #self.rNebula.remove_node()
-        #self.rSun.remove_node()
-        #self.rStar.remove_node()
-        return self.Scene
+    #MAYBE: Add a method that uses the shader skybox but turns it into a screenshot to as with the static skybox
     
     def __init__(self) -> None:
         self.Skybox = p3dc.NodePath(p3dc.PandaNode("SpaceSkyBox"))
@@ -355,139 +314,82 @@ class SkyboxGenerator:
             base().graphicsEngine.removeWindow(self.TheBuffer)
             self.TheBuffer = None
     
-    def render(self, params:"typing.Dict[str,typing.Any]", makeTextureWithBuffer=False):
+    def render(self, params:"typing.Dict[str,typing.Any]"):
         self.cleanUp()
-        makeCubeMap = True
-        showCubeDisplay = False
-        # We'll be returning a map of direction to texture.
-        textures = {}
         
         # Render the scene.
-        directions = ['positive_x']#, 'negative_x', 'positive_y', 'negative_y', 'positive_z', 'negative_z']
-        for direction in directions:
-            backgroundColor = params["backgroundColor"]
-            backgroundColorVec = p3dc.Vec4F(backgroundColor[0]/255.0, backgroundColor[1]/255.0, backgroundColor[2]/255.0, 1.0)
-            base().win.setClearColor(backgroundColorVec)
-            base().win.setClearColorActive(True)
-            if makeTextureWithBuffer:
-                if makeCubeMap:
-                    if hasattr(self,"TheBuffer"):
-                        if self.TheBuffer:
-                            try:
-                                base().graphicsEngine.removeWindow(self.TheBuffer)
-                            except:
-                                NC(exc=True)
-                    #oldRig = self.Scene.find('rig')
-                    #if oldRig: oldRig.removeNode()
-                    rig = p3dc.NodePath('rig')
-                    rig.reparentTo(self.Scene)
-                    rig.setPos(0,0,0)
-                    buffer = base().win.make_cube_map('texBuff', params['resolution'], rig, to_ram=True)
-                    for child in rig.getChildren():
-                        #child.node().setCameraMask(p3dc.BitMask32.bit(1))
-                        child.node().setScene(self.Scene)
-                    lens = rig.find('**/+Camera').node().getLens()
-                    lens.setNearFar(0.01, 2000)
-                else:
-                    buffer = base().win.makeTextureBuffer('texBuff', params['resolution'], params['resolution'], to_ram=True)
-                
-                self.TheBuffer = buffer
-                
-                buffer.setClearColor(backgroundColorVec)
-                buffer.setClearColorActive(True)
-                
-                buffer.setSort(-100)
-                if not makeCubeMap:
-                    cam = base().makeCamera(buffer)
-                    cam.reparentTo(self.Scene)
-                    cam.setPos(0, -1, 0)
-                    cam.lookAt(0,  1, 0)
-                    
-                    region = buffer.make_display_region()
-                    region.set_camera(cam)
-                    region.setActive(True)
-                    
-                    # Set the appropriate lens for the camera
-                    cam.node()
-                    lens = p3dc.PerspectiveLens()
-                    lens.setFilmSize(params['resolution'], params['resolution'])
-                    cam.node().setLens(lens)
-                    base().graphicsEngine.renderFrame()
+        backgroundColor = params["backgroundColor"]
+        backgroundColorVec = p3dc.Vec4F(backgroundColor[0]/255.0, backgroundColor[1]/255.0, backgroundColor[2]/255.0, 1.0)
+        base().win.setClearColor(backgroundColorVec)
+        base().win.setClearColorActive(True)
+        
+        if True:
+            view = p3dc.LMatrix4()
+            projection = p3dc.LMatrix4(math.pi / 2, 1.0, 0.1, 256)
             
-            if True:
-                view = p3dc.LMatrix4()
-                projection = p3dc.LMatrix4(math.pi / 2, 1.0, 0.1, 256)
-                
-                if params["pointStars"]:
-                    self.makePointStars(params, view, projection)
-                if params["stars"]:
-                    self.makeBrightStars(params, view, projection)
-                if params["sun"]:
-                    self.makeSun(params, view, projection)
-                if params["nebulae"]:
-                    self.makeNebulae(params, view, projection)
-            
-            if makeTextureWithBuffer:
-                try:
-                    if True:
-                        buffer.set_active(True)
-                        tex_org = p3dc.Texture("Original SkyboxTexture")
-                        tex_org.setXSize(params['resolution'])
-                        tex_org.setYSize(params['resolution'])
-                        buffer.addRenderTexture(tex_org, p3dc.GraphicsOutput.RTMNone)
-                        base().graphicsEngine.renderFrame()
-                        #base().graphicsEngine.renderFrame()
-                        print("Shot Was",buffer.saveScreenshot("TestImageShot.png"))
-                        #tex_org = buffer.getScreenshot()
-                        #tex_org = buffer.getTexture()
-                        tex = tex_org.makeCopy()
-                        tex.setName("SkyboxTexture")
-                        print(f"{tex = }")
-                        print(f"{type(tex) = }")
-                        print(f"{tex.border_color = }")
-                        print(f"{tex.get_num_pages() = }")
-                        print(f"{tex.get_texture_type() = }")
-                        base().graphicsEngine.renderFrame()
-                        tex.makeRamMipmapImage(0)
-                        base().graphicsEngine.renderFrame()
-                        buffer.set_active(False)
-                        if makeCubeMap and showCubeDisplay:
-                            self.CubeDisplay.clearTexGen(p3dc.TextureStage.getDefault())
-                            self.CubeDisplay.clearTexture(p3dc.TextureStage.getDefault())
-                            #self.CubeDisplay.setTexGen(p3dc.TextureStage.getDefault(), p3dc.TexGenAttrib.MWorldCubeMap)
-                            self.CubeDisplay.setTexGen(p3dc.TextureStage.getDefault(), p3dc.TexGenAttrib.MWorldCubeMap)
-                            self.CubeDisplay.setTexture(tex)
-                        
-                        textures[direction] = tex
-                        if makeCubeMap:
-                            tex.write("Models/Skyboxes/LastGenerated/Skybox_#.jpeg", 0, 0, True, False)
-                        else:
-                            tex.write("testImage_" + direction + ".png")
-                        print("Saved Image")
-                        if makeCubeMap and showCubeDisplay:
-                            self.CubeDisplay.show()
-                        else:
-                            self.CubeDisplay.hide()
-                        #base().graphicsEngine.removeWindow(buffer)
-                        #self.TheBuffer = None
-                    else:
-                        buffer = base().win.makeTextureBuffer('tex', params['resolution'], params['resolution'])
-                        #buffer.make_cube_map
-                        cam = base().makeCamera(buffer)
-                        base().graphicsEngine.renderFrame()
-                        tex = buffer.get_texture()
-                        textures[direction] = tex
-                        tex.makeRamMipmapImage(0)
-                        tex.write("testImage_"+direction+".png")
-                        base().graphicsEngine.removeWindow(buffer)
-                except:
-                    NC(exc=True)
-            else:
-                base().graphicsEngine.renderFrame()
-                base().saveCubeMap("Models/Skyboxes/LastGenerated/Skybox_#.jpeg",size=params['resolution'])#,0,buffer)
-                #CRITICAL: the source code of saveCubeMap is actually in python and should be useable to remove the need for saving which could make this method viable!!
+            if params["pointStars"]:
+                self.makePointStars(params, view, projection)
+            if params["stars"]:
+                self.makeBrightStars(params, view, projection)
+            if params["sun"]:
+                self.makeSun(params, view, projection)
+            if params["nebulae"]:
+                self.makeNebulae(params, view, projection)
+        
+        base().graphicsEngine.renderFrame()
+        textures = self.makeCubeMap("Models/Skyboxes/LastGenerated/Skybox_#.jpeg",size=params['resolution'])#,0,buffer)
         
         return textures
+    
+    def makeCubeMap(self, namePrefix = 'cube_map_#.png',
+                    defaultFilename = 0, source:"p3dc.GraphicsOutput" = None,
+                    camera:"p3dc.Camera" = None, size = 128,
+                    cameraMask = p3dc.PandaNode.getAllCameraMask(),
+                    sourceLens:"p3dc.Lens" = None,
+                    save = False):
+        
+        if source is None:
+            source = base().win
+        
+        if camera is None:
+            if hasattr(source, "getCamera"):
+                camera = source.getCamera()
+            if camera is None:
+                camera = base().camera
+        
+        if sourceLens is None:
+            sourceLens = base().camLens
+        
+        if hasattr(source, "getWindow"):
+            source = source.getWindow()
+        
+        rig = p3dc.NodePath(namePrefix)
+        buffer = source.makeCubeMap(namePrefix, size, rig, cameraMask, 1)
+        if buffer is None:
+            raise Exception("Could not make cube map.")
+        
+        # Set the near and far planes from the default lens.
+        lens:"p3dc.Lens" = rig.find('**/+Camera').node().getLens()
+        
+        lens.setNearFar(sourceLens.getNear(), sourceLens.getFar())
+        
+        # Now render a frame to fill up the texture.
+        rig.reparentTo(camera)
+        base().graphicsEngine.openWindows()
+        base().graphicsEngine.renderFrame()
+        base().graphicsEngine.renderFrame()
+        base().graphicsEngine.syncFrame()
+        
+        tex = buffer.getTexture()
+        if save:
+            saved = base().screenshot(namePrefix = namePrefix,
+                                    defaultFilename = defaultFilename,
+                                    source = tex)
+        
+        base().graphicsEngine.removeWindow(buffer)
+        rig.removeNode()
+        
+        return tex # saved
     
     def makePointStars(self, params, view, projection):
         #num_stars = 200
@@ -546,7 +448,7 @@ class SkyboxGenerator:
         color = np.zeros(18 * self.NSTARS)
         for i in range(self.NSTARS):
             size = 0.05
-            pos = p3dc.Vec3(random.random(),random.random(),random.random())
+            pos = p3dc.Vec3(rand.random(),rand.random(),rand.random())
             star = self.buildStar(size, pos, 128.0, rand)
             position[i*18:(i+1)*18] = star['position']
             color[i*18:(i+1)*18] = star['color']
@@ -560,7 +462,7 @@ class SkyboxGenerator:
         pStarParams = []
         model = p3dc.LMatrix4()
         while params['pointStars']:
-            model = model * p3dc.LMatrix4.rotateMat(random.random() * 360, p3dc.LVector3(rand.random(), rand.random(), rand.random()))
+            model = model * p3dc.LMatrix4.rotateMat(rand.random() * 360, p3dc.LVector3(rand.random(), rand.random(), rand.random()))
             pStarParams.append({
                 'uView': view,
                 'uProjection': projection,
@@ -587,7 +489,7 @@ class SkyboxGenerator:
             
             self.rStars.append(rStar)
             colours = [1, rand.uniform(0.4,0.8), rand.uniform(0.4,0.8)]
-            random.shuffle(colours)
+            rand.shuffle(colours)
             cl = p3dc.LVector3(colours[0], colours[1], colours[2])
             #pos = p3dc.LVector3(rand.random(), rand.random(), rand.random())
             pos = self.randomPointOnSphere(rand, 14, 20)
