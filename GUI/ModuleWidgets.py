@@ -406,11 +406,13 @@ class RefineryWidget(EconomicWidget):
     
     def updateInterface(self):
         self.Label.setText( f"{self.module().Name}"
+                            f"\n\tInput: "+", ".join([i.S for i in self.module().Input])+""
+                            f"\n\tOutput: "+", ".join([i.S for i in self.module().Output])+""
                             )
 
 class HarvestWidget(EconomicWidget):
-    module: 'weakref.ref[BaseEconomicModules.Refinery]' = None
-    def __init__(self, module:typing.Optional['BaseEconomicModules.Refinery'] = None) -> None:
+    module: 'weakref.ref[BaseEconomicModules.HarvestModule]' = None
+    def __init__(self, module:typing.Optional['BaseEconomicModules.HarvestModule'] = None) -> None:
         super().__init__(module=module)
         #CRITICAL:HARVEST WIDGET
         self.Label = self.addWidget(QtWidgets.QLabel(self))
@@ -420,4 +422,7 @@ class HarvestWidget(EconomicWidget):
     
     def updateInterface(self):
         self.Label.setText( f"{self.module().Name}"
+                            f"\n\tHarvest Range: {round(self.module().HarvestRange,3)}"
+                            f"\n\tInput: "+", ".join([i.S for i in self.module().Input])+""
+                            f"\n\tOutput: "+", ".join([i.S for i in self.module().Output])+""
                             )
