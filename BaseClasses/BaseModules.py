@@ -136,6 +136,15 @@ class Module():
         self.FullWidget = ModuleWidgets.ModuleWidget(self)
         return self.FullWidget
     
+    def getQuickFullInterfaceString(self):
+        s = (
+            f"{self.Name}"
+            f"\n\tMass: {round(self.Mass,3)}"
+            f"\n\tValue: {round(self.Value,3)}"
+            f"\n\tThreat: {round(self.Threat,3)}"
+        )
+        return s
+    
     def tocode_AGeLib(self, name="", indent=0, indentstr="    ", ignoreNotImplemented = False) -> typing.Tuple[str,dict]:
         ret, imp = "", {}
         imp.update(IMP_BASEMODULES)

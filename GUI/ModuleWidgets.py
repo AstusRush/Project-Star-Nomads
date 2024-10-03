@@ -92,12 +92,7 @@ class ModuleWidget(AGeWidgets.TightGridWidget):
     def updateFullInterface(self):
         if not hasattr(self,"Label"):
             self.Label = self.addWidget(QtWidgets.QLabel(self))
-        m:'BaseModules.Module' = self.module()
-        self.Label.setText(f"{m.Name}"
-                            f"\n\tMass: {round(m.Mass,3)}"
-                            f"\n\tValue: {round(m.Value,3)}"
-                            f"\n\tThreat: {round(m.Threat,3)}"
-                            )
+        self.Label.setText(self.module().getQuickFullInterfaceString())
 
 class HullWidget(ModuleWidget):
     module: 'weakref.ref[BaseModules.Hull]' = None
@@ -129,7 +124,16 @@ class EngineWidget(ModuleWidget):
         self.Label = self.addWidget(QtWidgets.QLabel(self))
     
     def updateFullInterface(self):
-        self.updateInterface()
+        c,m = self.module().ship().Stats.Movement_FTL
+        c,m = round(c,3),round(m,3)
+        self.Label.setText( f"{self.module().Name} (FLT Engine):"
+                            f"\n\tMovement: {c}/{m}"
+                            f"\n\tThrust: {round(self.module().RemainingThrust,3)}/{round(self.module().Thrust,3)}"
+                            f"\n\tShip Mass: {round(self.module().ship().Stats.Mass,3)}"
+                            f"\n\tMass: {round(self.module().Mass,3)}"
+                            f"\n\tValue: {round(self.module().Value,3)}"
+                            f"\n\tThreat: {round(self.module().Threat,3)}"
+                            )
     
     def updateInterface(self):
         c,m = self.module().ship().Stats.Movement_FTL
@@ -147,7 +151,16 @@ class ThrusterWidget(ModuleWidget):
         self.Label = self.addWidget(QtWidgets.QLabel(self))
     
     def updateFullInterface(self):
-        self.updateInterface()
+        c,m = self.module().ship().Stats.Movement_Sublight
+        c,m = round(c,3),round(m,3)
+        self.Label.setText( f"{self.module().Name} (Sublight Thruster):"
+                            f"\n\tMovement: {c}/{m}"
+                            f"\n\tThrust: {round(self.module().RemainingThrust,3)}/{round(self.module().Thrust,3)}"
+                            f"\n\tShip Mass: {round(self.module().ship().Stats.Mass,3)}"
+                            f"\n\tMass: {round(self.module().Mass,3)}"
+                            f"\n\tValue: {round(self.module().Value,3)}"
+                            f"\n\tThreat: {round(self.module().Threat,3)}"
+                            )
     
     def updateInterface(self):
         c,m = self.module().ship().Stats.Movement_Sublight
@@ -165,7 +178,13 @@ class ShieldWidget(ModuleWidget):
         self.Label = self.addWidget(QtWidgets.QLabel(self))
     
     def updateFullInterface(self):
-        self.updateInterface()
+        self.Label.setText( f"{self.module().Name} (Shield):"
+                            f"\n\tHP: {round(self.module().HP_Shields,3)}/{round(self.module().HP_Shields_max,3)}"
+                            f"\n\tRegeneration per turn: {round(self.module().HP_Shields_Regeneration,3)} (Halved if damaged last turn)\n\t(It takes one turn to reactivate the shields if their HP reaches 0)"
+                            f"\n\tMass: {round(self.module().Mass,3)}"
+                            f"\n\tValue: {round(self.module().Value,3)}"
+                            f"\n\tThreat: {round(self.module().Threat,3)}"
+                            )
     
     def updateInterface(self):
         self.Label.setText( f"{self.module().Name} (Shield):"
@@ -253,7 +272,15 @@ class SensorWidget(ModuleWidget):
         self.Label = self.addWidget(QtWidgets.QLabel(self))
     
     def updateFullInterface(self):
-        self.updateInterface()
+        self.Label.setText( f"{self.module().Name} (Sensors):"
+                            f"\n\tLow Resolution: {round(self.module().LowRange,3)}"
+                            f"\n\tMedium Resolution: {round(self.module().MediumRange,3)}"
+                            f"\n\tHigh Resolution: {round(self.module().HighRange,3)}"
+                            f"\n\tPerfect Resolution: {round(self.module().PerfectRange,3)}"
+                            f"\n\tMass: {round(self.module().Mass,3)}"
+                            f"\n\tValue: {round(self.module().Value,3)}"
+                            f"\n\tThreat: {round(self.module().Threat,3)}"
+                            )
     
     def updateInterface(self):
         self.Label.setText( f"{self.module().Name} (Sensors):"
@@ -283,7 +310,10 @@ class CargoWidget(ModuleWidget):
         self.updateInterface()
     
     def updateFullInterface(self):
-        self.updateInterface()
+        self.Label.setText( self.module().storedResources().text(f"{self.module().Name}:")+""
+                            f"\n\tMass: {round(self.module().Mass,3)}"
+                            f"\n\tValue: {round(self.module().Value,3)}"
+                        )
     
     def updateInterface(self):
         self.Label.setText( self.module().storedResources().text(f"{self.module().Name}:") )
@@ -319,7 +349,14 @@ class MicroJumpDriveWidget(SpecialWidget):
         return self.ButtonStandardTextReady if self.module().Charge >= 1 else self.ButtonStandardTextNotReady
     
     def updateFullInterface(self):
-        self.updateInterface()
+        self.Label.setText( f"{self.module().Name} is {'Ready' if self.module().Charge >= 1 else 'Charging'}"
+                            f"\n\tCharge: {round(self.module().Charge,3)}/{round(self.module().MaxCharges,3)} (+{1/round(self.module().Cooldown,3)} per Turn)"
+                            f"\n\tRange: {round(self.module().Range,3)}"
+                            f"\n\tMass: {round(self.module().Mass,3)}"
+                            f"\n\tValue: {round(self.module().Value,3)}"
+                            f"\n\tThreat: {round(self.module().Threat,3)}"
+                            )
+        if self.Button: self.Button.setText(self.buttonText())
     
     def updateInterface(self):
         self.Label.setText( f"{self.module().Name} is {'Ready' if self.module().Charge >= 1 else 'Charging'}"
@@ -353,7 +390,13 @@ class TeamJumpDriveWidget(SpecialWidget):
         return self.ButtonStandardTextReady if self.module().Charge >= 1 else self.ButtonStandardTextNotReady
     
     def updateFullInterface(self):
-        self.updateInterface()
+        self.Label.setText( f"{self.module().Name} is {'Ready' if self.module().Charge >= 1 else 'Charging'}"
+                            f"\n\tCharge: {round(self.module().Charge,3)}/{round(self.module().MaxCharges,3)} (+{1/round(self.module().Cooldown,3)} per Turn)"
+                            f"\n\tMass: {round(self.module().Mass,3)}"
+                            f"\n\tValue: {round(self.module().Value,3)}"
+                            f"\n\tThreat: {round(self.module().Threat,3)}"
+                            )
+        if self.Button: self.Button.setText(self.buttonText())
     
     def updateInterface(self):
         self.Label.setText( f"{self.module().Name} is {'Ready' if self.module().Charge >= 1 else 'Charging'}"
@@ -383,7 +426,16 @@ class WeaponWidget(ModuleWidget):
         self.Label = self.addWidget(QtWidgets.QLabel(self))
     
     def updateFullInterface(self):
-        self.updateInterface()
+        self.Label.setText( f"{self.module().Name} is {'Ready' if self.module().Ready else 'Used'}"
+                            f"\n\tRange: {round(self.module().Range,3)}"
+                            f"\n\tDamage: {round(self.module().Damage,3)}"
+                            f"\n\tAccuracy: {round(self.module().Accuracy,3)}"
+                            f"\n\tHullFactor: {round(self.module().HullFactor,3)}"
+                            f"\n\tShieldFactor: {round(self.module().ShieldFactor,3)}"
+                            f"\n\tMass: {round(self.module().Mass,3)}"
+                            f"\n\tValue: {round(self.module().Value,3)}"
+                            f"\n\tThreat: {round(self.module().Threat,3)}"
+                            )
     
     def updateInterface(self):
         self.Label.setText( f"{self.module().Name} is {'Ready' if self.module().Ready else 'Used'}"
@@ -398,11 +450,15 @@ class RefineryWidget(EconomicWidget):
     module: 'weakref.ref[BaseEconomicModules.Refinery]' = None
     def __init__(self, module:typing.Optional['BaseEconomicModules.Refinery'] = None) -> None:
         super().__init__(module=module)
-        #CRITICAL:REFINERY WIDGET
         self.Label = self.addWidget(QtWidgets.QLabel(self))
     
     def updateFullInterface(self):
-        self.updateInterface()
+        self.Label.setText( f"{self.module().Name}"
+                            f"\n\tInput: "+", ".join([i.S for i in self.module().Input])+""
+                            f"\n\tOutput: "+", ".join([i.S for i in self.module().Output])+""
+                            f"\n\tMass: {round(self.module().Mass,3)}"
+                            f"\n\tValue: {round(self.module().Value,3)}"
+                            )
     
     def updateInterface(self):
         self.Label.setText( f"{self.module().Name}"
@@ -414,11 +470,16 @@ class HarvestWidget(EconomicWidget):
     module: 'weakref.ref[BaseEconomicModules.HarvestModule]' = None
     def __init__(self, module:typing.Optional['BaseEconomicModules.HarvestModule'] = None) -> None:
         super().__init__(module=module)
-        #CRITICAL:HARVEST WIDGET
         self.Label = self.addWidget(QtWidgets.QLabel(self))
     
     def updateFullInterface(self):
-        self.updateInterface()
+        self.Label.setText( f"{self.module().Name}"
+                            f"\n\tHarvest Range: {round(self.module().HarvestRange,3)}"
+                            f"\n\tInput: "+", ".join([i.S for i in self.module().Input])+""
+                            f"\n\tOutput: "+", ".join([i.S for i in self.module().Output])+""
+                            f"\n\tMass: {round(self.module().Mass,3)}"
+                            f"\n\tValue: {round(self.module().Value,3)}"
+                            )
     
     def updateInterface(self):
         self.Label.setText( f"{self.module().Name}"
