@@ -24,9 +24,8 @@ uniform vec4 bgColor;
 
 uniform bool MakeSun;
 
-uniform int BrightStar_Count;
+uniform int BrightStar_Count; //TODO: Switch to system similar to PointStars
 uniform bool MakePointStars;
-uniform int Star_Count;
 
 uniform int PointStar_Size;
 uniform sampler2D PointStar_Data;
@@ -161,7 +160,7 @@ vec3 star_o(vec2 p2, vec3 p) { //CLEANUP: Old resource intensive version
     //return vec3(starIntensity);
 }
 
-vec4 star_bright(vec2 p2, vec3 p) { // WIP
+vec4 star_bright(vec2 p2, vec3 p) { // WIP  //TODO: Switch to system similar to PointStars
     float blinkIntensity = 0.25;
     int starMult = 12;
     float xFact = 1;
@@ -291,14 +290,14 @@ void main() {
     
     // Add Stars
     if(MakePointStars){
-        vec3 starIntensity = star(skybox_uv, view_dir); //TODO: bring in Star_Count
+        vec3 starIntensity = star(skybox_uv, view_dir);
         colour.rgb += starIntensity;
         colour.a = max(colour.a, maxComponent(starIntensity));
     }
     
     // Add Bright Stars
-    if(BrightStar_Count > 0){
-        vec4 starIntensity = star_bright(skybox_uv, view_dir); //TODO: bring in BrightStar_Count
+    if(BrightStar_Count > 0){ //TODO: Switch to system similar to PointStars
+        vec4 starIntensity = star_bright(skybox_uv, view_dir);
         colour.rgb += starIntensity.rgb;
         colour.a = max(colour.a, starIntensity.a);
     }
