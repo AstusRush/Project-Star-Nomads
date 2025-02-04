@@ -133,12 +133,14 @@ class SkyboxOptionsWidget(AGeWidgets.TightGridFrame):
         self.HeadlineLine.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.ChangeSkyboxButton = self.addWidget(AGeWidgets.Button(self,"Generate new Skybox", lambda: self.newSkybox(False)))
         self.PointStars = self.addWidget(AGeInput.Bool(self,"Show Small White Stars", True))
+        self.PointStarDensity = self.addWidget(AGeInput.Float(self,"Small White Star density", 0.00075, 0.0001, 1.0))
+        self.PointStarSize = self.addWidget(AGeInput.Int(self,"Small White Star size", 8, 1, 28))
         self.BrightStars = self.addWidget(AGeInput.Bool(self,"Show Larger Colourful Stars", True))
         self.Nebulae = self.addWidget(AGeInput.Bool(self,"Show Nebulae", True))
         self.NonBlackSpace = self.addWidget(AGeInput.Bool(self,"Boost Background Colour", False))
         self.UseSeedButton = self.addWidget(AGeWidgets.Button(self,"Generate new Skybox using Seed", lambda: self.newSkybox(True)))
         self.Seed = self.addWidget(AGeInput.Int(self,"Skybox Seed", 1, 1, 999999999))
-        self.SkyboxStatic = self.addWidget(AGeInput.Bool(self,"Use static Skybox\nUnchecked: Use pure shader Skybox (lower performance)\nChecked: Use static skybox (longer initial loading)", True))
+        self.SkyboxStatic = self.addWidget(AGeInput.Bool(self,"Use static Skybox (deprecated)", False))
         self.SkyboxResolution = self.addWidget(AGeInput.Int(self,"Static Skybox Resolution (512·2ˣ)", 3, 0, 4))
     
     def newSkybox(self, useSeed=False):

@@ -221,6 +221,8 @@ class StrategyCamera(DirectObject):
                 "seed": str(seed),
                 "backgroundColor": [pow(rand.random(),2)*bgBoost,pow(rand.random(),2)*bgBoost,pow(rand.random(),2)*bgBoost],
                 "pointStars": get.menu().SkyboxOptionsWidget.PointStars(),
+                "pointStarDensity": get.menu().SkyboxOptionsWidget.PointStarDensity(),
+                "pointStarSize": get.menu().SkyboxOptionsWidget.PointStarSize(),
                 "stars": 200*int(get.menu().SkyboxOptionsWidget.BrightStars()),
                 "sun": False, #TODO
                 "sunFalloff": 100,

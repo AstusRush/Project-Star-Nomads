@@ -28,6 +28,9 @@ uniform int BrightStar_Count;
 uniform bool MakePointStars;
 uniform int Star_Count;
 
+uniform int PointStar_Size;
+uniform sampler2D PointStar_Data;
+
 uniform int Nebula_Count;
 uniform vec3 Nebula_Color[6];
 uniform vec3 Nebula_Offset[6];
@@ -48,6 +51,47 @@ __util__
 //////////////////////////////////////////////////////////
 
 vec3 star(vec2 p2, vec3 p) {
+    float blinkIntensity = 0.15;
+    int starMult = 29-PointStar_Size;
+    float xFact = 1;
+    float yFact = 30;
+    xFact *= starMult;
+    yFact *= starMult;
+    
+    vec3 ps = cartesianToSpherical(p);
+    float theta = abs(0.5-abs((floor(ps.y*yFact)/yFact-pi/2)/pi));
+    float tf = floor(theta*900)/90+1;
+    
+    //vec3 pd = vec3(fract(ps.xy*2),ps.z);
+    if(theta<0.004){
+        tf = floor(theta*80)/8+0.45;
+    } else if(theta<0.008){
+        tf = floor(theta*80)/8+0.6;
+    } else if(theta<0.02){
+        tf = floor(theta*80)/8+0.8;
+    }
+    
+    ps.x += 0.5*(mod((floor(ps.y*yFact))+80,2));
+    
+    float TheX = ps.x*xFact*pow(tf,2);
+    float TheY = abs(ps.y*yFact);
+    
+    vec3 pc = sphericalToCartesian(vec3(abs(fract(TheX)), abs(fract(TheY)), ps.z));
+    float d = length(pc.xy-vec2(0.5,0.5));
+    vec3 cords = sphericalToCartesian(vec3(floor(TheX), floor(TheY), 1));
+    
+    float starIntensity = smoothstep(4.4/yFact*starMult, 3.8/yFact*starMult, d);
+    
+    //starIntensity *= maxComponent(texture2D(PointStar_Data, vec2(floor(TheX),floor(TheY))));
+    //starIntensity *= maxComponent(texture2D(PointStar_Data, vec2(floor(ps.x)+floor(ps.y),0)));
+    if(texture2D(PointStar_Data, cords.xy) == 0) return vec3(0,0,0);
+    
+    return starIntensity * (1-(texture2D(PointStar_Data, cords.xy).rgb)*0.25);
+    //return starIntensity * (1-(texture2D(PointStar_Data, cords.xy).rgb)*0.25) * (1 - blinkIntensity/2 + sin(osg_FrameTime*2+(mod(floor(noise_n(cords)*80),20)))*(blinkIntensity/2) );
+    //return vec3(starIntensity);
+}
+
+vec3 star_o(vec2 p2, vec3 p) { //CLEANUP: Old resource intensive version
     float blinkIntensity = 0.15;
     int starMult = 24;
     float xFact = 1;
