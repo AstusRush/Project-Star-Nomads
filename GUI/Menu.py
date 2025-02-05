@@ -136,6 +136,8 @@ class SkyboxOptionsWidget(AGeWidgets.TightGridFrame):
         self.PointStarDensity = self.addWidget(AGeInput.Float(self,"Small White Star density", 0.00075, 0.0001, 1.0))
         self.PointStarSize = self.addWidget(AGeInput.Int(self,"Small White Star size", 8, 1, 28))
         self.BrightStars = self.addWidget(AGeInput.Bool(self,"Show Larger Colourful Stars", True))
+        self.BrightStarDensity = self.addWidget(AGeInput.Float(self,"Large Star density", 0.00075, 0.0001, 1.0))
+        self.BrightStarSize = self.addWidget(AGeInput.Int(self,"Large Star size", 24, 1, 28))
         self.Nebulae = self.addWidget(AGeInput.Bool(self,"Show Nebulae", True))
         self.NonBlackSpace = self.addWidget(AGeInput.Bool(self,"Boost Background Colour", False))
         self.UseSeedButton = self.addWidget(AGeWidgets.Button(self,"Generate new Skybox using Seed", lambda: self.newSkybox(True)))

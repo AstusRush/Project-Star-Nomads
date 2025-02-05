@@ -223,6 +223,9 @@ class StrategyCamera(DirectObject):
                 "pointStars": get.menu().SkyboxOptionsWidget.PointStars(),
                 "pointStarDensity": get.menu().SkyboxOptionsWidget.PointStarDensity(),
                 "pointStarSize": get.menu().SkyboxOptionsWidget.PointStarSize(),
+                "brightStars": get.menu().SkyboxOptionsWidget.BrightStars(),
+                "brightStarDensity": get.menu().SkyboxOptionsWidget.BrightStarDensity(),
+                "brightStarSize": get.menu().SkyboxOptionsWidget.BrightStarSize(),
                 "stars": 200*int(get.menu().SkyboxOptionsWidget.BrightStars()),
                 "sun": False, #TODO
                 "sunFalloff": 100,

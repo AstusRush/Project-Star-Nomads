@@ -595,6 +595,16 @@ class SkyboxGenerator:
             except:
                 NC(1,exc=True,input=f"{key = }\n{value = }")
     
+    def texFromnp(self, a):
+        cMap = PIL.Image.fromarray(a,'RGBA')
+        cBuf = io.BytesIO()
+        cMap.save(cBuf, format="png")
+        ciMap = p3dc.PNMImage()
+        ciMap.read(p3dc.StringStream(cBuf.getvalue()),"t.png")
+        tex = p3dc.Texture()
+        tex.load(ciMap)
+        return tex
+    
     def makeWithShader(self, params:"typing.Dict[str,typing.Any]", size=20000.0):
         nMin = 2
         nMax = 6
@@ -635,28 +645,24 @@ class SkyboxGenerator:
         uniforms = {
             "Seed": rand.randint(7,10000),
             "bgColor": backgroundColorVec,
-            "Star_Count": self.NSTARS,
             "MakeSun": params["sun"],
-            "BrightStar_Count": params["stars"],
+            
             "MakePointStars": params["pointStars"],
+            "PointStar_Size": params["pointStarSize"],
+            "MakeBrightStars": params["brightStars"],
+            "BrightStar_Size": params["brightStarSize"],
         }
         
         g = np.random.Generator(np.random.PCG64(abs(hash(params['seed']))))
-        numPointStars = 100000
-        ps = g.random((numPointStars,3))
-        ps[:,:] *= g.choice(np.array(([0, 1])), size=(numPointStars,1), p=[1.-params["pointStarDensity"], params["pointStarDensity"]])
-        #ps[:,0] = g.choice(np.array(([0, 1]),dtype=np.uint8), size=numPointStars, p=[.0, 1.])
-        #ps[:,1] = g.choice(np.array(([0, 1]),dtype=np.uint8), size=numPointStars, p=[.9, .1])
-        #ps[:,2] = g.choice(np.array(([0, 1]),dtype=np.uint8), size=numPointStars, p=[.9, .1])
-        cMap = PIL.Image.fromarray(ps,'RGBA')
-        cBuf = io.BytesIO()
-        cMap.save(cBuf, format="png")
-        ciMap = p3dc.PNMImage()
-        ciMap.read(p3dc.StringStream(cBuf.getvalue()),"t.png")
-        tex = p3dc.Texture()
-        tex.load(ciMap)
-        uniforms["PointStar_Data"] = tex
-        uniforms["PointStar_Size"] = params["pointStarSize"]
+        StarDataSize = 50000
+        
+        ps = g.random((StarDataSize,3))
+        ps[:,:] *= g.choice(np.array(([0, 1])), size=(StarDataSize,1), p=[1.-params["pointStarDensity"], params["pointStarDensity"]])
+        uniforms["PointStar_Data"] = self.texFromnp(ps)
+        
+        ps = g.random((StarDataSize,3))
+        ps[:,:] *= g.choice(np.array(([0, 1])), size=(StarDataSize,1), p=[1.-params["brightStarDensity"], params["brightStarDensity"]])
+        uniforms["BrightStar_Data"] = self.texFromnp(ps)
         
         uniforms["Nebula_Color"] = p3dc.PTA_LVecBase3()
         uniforms["Nebula_Intensity"] = p3dc.PTA_float()
