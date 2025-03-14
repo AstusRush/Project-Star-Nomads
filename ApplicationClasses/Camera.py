@@ -232,6 +232,7 @@ class StrategyCamera(DirectObject):
                 "jpegQuality": 0.85,
                 "nebulaColorBegin": [rand.random()*255,rand.random()*255,rand.random()*255],
                 "nebulaColorEnd": [rand.random()*255,rand.random()*255,rand.random()*255],
+                "nebulaSteps": get.menu().SkyboxOptionsWidget.NebulaeDetails(),
                 "nebulae": get.menu().SkyboxOptionsWidget.Nebulae(),
                 "resolution": 512*pow(2, get.menu().SkyboxOptionsWidget.SkyboxResolution()), #1024*4,
                 "renderToTexture": True,

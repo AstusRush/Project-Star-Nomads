@@ -34,6 +34,7 @@ uniform sampler2D BrightStar_Data;
 uniform sampler2D PointStar_Data;
 
 uniform int Nebula_Count;
+uniform int Nebula_Steps;
 uniform vec3 Nebula_Color[6];
 uniform vec3 Nebula_Offset[6];
 uniform float Nebula_Intensity[6];
@@ -158,9 +159,8 @@ float drawCircle(vec3 pos, vec3 circlePos, float circleRadius) { //NOTE: Unused 
     return circle;
 }
 
-float nebula(vec3 p) {
+float nebula(vec3 p, const int steps) {
     // Nebula from https://github.com/wwwtyro/space-3d under the unlicense license
-    const int steps = 6;
     float scale = pow(2.0, float(steps));
     vec3 displace = vec3(0);
     for (int i = 0; i < steps; i++) {
@@ -194,7 +194,7 @@ void main() {
     // Add Nebulae
     float c = 0.0;
     for(int i = 0; i<Nebula_Count; i++){
-        c = min(1.0, nebula(view_dir + Nebula_Offset[i]) * Nebula_Intensity[i]);
+        c = min(1.0, nebula(view_dir + Nebula_Offset[i], Nebula_Steps) * Nebula_Intensity[i]);
         c = pow(c, Nebula_Falloff[i]);
         colour = mixInNebulaColor(colour, vec4(Nebula_Color[i], c));
     }

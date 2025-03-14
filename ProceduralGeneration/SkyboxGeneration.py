@@ -666,13 +666,16 @@ class SkyboxGenerator:
         
         uniforms["Nebula_Color"] = p3dc.PTA_LVecBase3()
         uniforms["Nebula_Intensity"] = p3dc.PTA_float()
+        uniforms["Nebula_Steps"] = p3dc.PTA_int()
         uniforms["Nebula_Falloff"] = p3dc.PTA_float()
         uniforms["Nebula_Offset"] = p3dc.PTA_LVecBase3()
+        uniforms["Nebula_Steps"] = 2
         if not params['nebulae']:
             uniforms["Nebula_Count"] = 0
         else:
             countNebulas = rand.choice(list(range(nMin,nMax+1)))
             uniforms["Nebula_Count"] = countNebulas
+            uniforms["Nebula_Steps"] = params["nebulaSteps"]
             beginColor = params['nebulaColorBegin']
             endColor = params['nebulaColorEnd']
             for ni in range(countNebulas):
