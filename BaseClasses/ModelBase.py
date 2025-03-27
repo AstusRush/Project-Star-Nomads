@@ -67,6 +67,7 @@ def createModel(IconPath,ModelPath):
 class ModelBase():
     IconPath = "" #TODO: we need a default icon for ships
     ModelPath = "Models/Simple Geometry/cube.ply"
+    LengthFactor = 1
     def __init__(self, loadImmediately=True, ship:'ShipBase.ShipBase'=None) -> None:
         self.Model:p3dc.NodePath = None
         self.Node:p3dc.NodePath = None
@@ -126,15 +127,20 @@ class ModelBase():
         self.Model.setPos(0,0,0)
         self.Model.setScale(1)
         self.Model.setH(180) # Required for .obj that I create with blender regardless of whether their front is x or -x (z is up)
+        #b = self.Model.getTightBounds()
+        #self.LengthFactor = (b[0].x-b[1].x)/(b[0].y-b[1].y)
+        #self.LengthFactor = ((b[0].x-b[1].x)*(b[0].y-b[1].y)*(b[0].z-b[1].z))
     
     def centreModel(self):
         self.resetModel()
-        #REMINDER: Use the next line to make shields (adjust the scale factor here accordingly so that the shields have a decend distance to the ship but are smaller than 1.0 to avoid clipping)
+        #REMINDER: Use the next line to make shields (adjust the scale factor here accordingly so that the shields have a decent distance to the ship but are smaller than 1.0 to avoid clipping)
         self.setScale(0.8/self.Model.getBounds().getRadius())
+        self._centreModel()
+    
+    def _centreModel(self):
         self.Model.setPos(-self.Model.getBounds().getApproxCenter())
     
     def setScale(self, value:float):
-        #TODO: Implement ship sizes somehow. I am not shure if this should be in conjunctions with the model or the ship nor where this should be applied...
         self.Model.setScale(value)
     
     def tocode_AGeLib(self, name="", indent=0, indentstr="    ", ignoreNotImplemented = False) -> typing.Tuple[str,dict]:

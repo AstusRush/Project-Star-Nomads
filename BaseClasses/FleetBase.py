@@ -554,25 +554,47 @@ class FleetBase():
     def arrangeShips(self): #TODO: OVERHAUL
         # https://github.com/topics/packing-algorithm?o=desc&s=forks
         # https://github.com/jerry800416/3D-bin-packing
+        massOfFleet = False
+        rootFac = 2#3 #REMINDER: Might want to set this to the realistic 3 in the future
         num = len(self.Ships)
         if not num:
             self.destroy()
             return
         for i,s in enumerate(self.Ships):
             s.Model.centreModel()
-        if num == 1:
-            self.Ships[0].setPos(0,0,0)
-        else:
-            maxSize = max([i.Model.Model.getBounds().getRadius() for i in self.Ships])
+        if num == 1: # Case for only one ship
+            s = self.Ships[0]
+            if self.Team > 0 and not massOfFleet:
+                #REMINDER: Might want to use ship volume instead of merely ship length for all these calculations
+                maxMass = max([max(((j.Stats.Mass,j) for j in s), default=(0,None), key=lambda a:a[0]) for s in [i.Ships for i in get.unitManager() if i.Team > 0]], default=(0,None), key=lambda a:a[0]) # mass of the heaviest ship on the map
+                maxMassCRoot = pow(maxMass[0],1/rootFac)/maxMass[1].Model.LengthFactor
+                s.Model.resetModel()
+                s.Model.setScale((1.5/3)/(s.Model.Model.getBounds().getRadius())*pow(s.Stats.Mass,1/rootFac)/maxMassCRoot/s.Model.LengthFactor)
+                s.Model._centreModel()
+                s.setPos(0,0,0)
+            else:
+                s.setPos(0,0,0)
+        else: # Case for fleets with multiple ships
+            #maxSize = max([i.Model.Model.getBounds().getRadius() for i in self.Ships])
             #maxSize = [0,0,0]
             #for i in self.Ships:
             #    bounds = i.Model.Model.getTightBounds()
             #    bounds = (bounds[1]-bounds[0])
             #    maxSize = [max(maxSize[i],bounds[i]) for i in range(3)]
-            for i,s in enumerate(self.Ships): #TODO: Invert the order in which the ships are displayed so that the first one in the list is the leftmost and so on
+            
+            #REMINDER: Might want to use ship volume instead of merely ship length for all these calculations
+            
+            if massOfFleet:
+                maxMass = max([(s.Stats.Mass, s) for s in self.Ships], key=lambda a:a[0])
+            else:
+                maxMass = max([max(((j.Stats.Mass,j) for j in s), default=(0,None), key=lambda a:a[0]) for s in [i.Ships for i in get.unitManager() if i.Team > 0]], default=(0,None), key=lambda a:a[0]) # mass of the heaviest ship
+            
+            maxMassCRoot = pow(maxMass[0],1/rootFac)/maxMass[1].Model.LengthFactor
+            for i,s in reversed(list(enumerate(self.Ships))):
                 s.Model.resetModel()
-                s.setPos((1/num)*((num-1)/2-i),0,0)
-                s.Model.setScale((0.8/num)/(s.Model.Model.getBounds().getRadius()))
+                s.Model.setScale((1.5/max(num,3))/(s.Model.Model.getBounds().getRadius())*pow(s.Stats.Mass,1/rootFac)/maxMassCRoot/s.Model.LengthFactor)
+                s.Model._centreModel()
+                s.setPos((1/num)*((num-1)/2-i),0,0) #REMINDER: Might want to change this to set the spacing relative to ship width to ensure that small ships are tighter/get less space than large ships in fleets
   #endregion model
     
   #region Detection #TODO: Should we distinguish between campaign and battle sensors? These are different scales but I can't think of a good gameplay reason...
