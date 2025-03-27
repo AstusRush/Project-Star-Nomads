@@ -40,6 +40,9 @@ uniform vec3 Nebula_Offset[6];
 uniform float Nebula_Intensity[6];
 uniform float Nebula_Falloff[6];
 
+uniform bool NebulaPrecomputed;
+uniform sampler3D NebulaNoise3D;
+
 //uniform float osg_FrameTime;
 
 in vec3 pos;
@@ -181,6 +184,66 @@ vec4 mixInNebulaColor(vec4 c1, vec4 c2){
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
+void main_g() {
+    vec3 view_dir = normalize(pos);
+    vec2 skybox_uv;
+    skybox_uv.x = (atan(view_dir.y, view_dir.x) + (0.5 * pi)) / (2.0 * pi);
+    skybox_uv.y = clamp(view_dir.z * 0.72 + 0.35, 0.0, 1.0);
+    
+    vec4 colour = vec4(0.0, 0.0, 0.0, 0.0);
+    
+    // --- Nebula Computation ---
+    vec3 nebulaEffect = vec3(0.0);
+    if (NebulaPrecomputed) {
+        if (Nebula_Count > 0) {
+            vec3 noiseCoordBase = (view_dir + vec3(1.0)) * 0.5;
+            for (int i = 0; i < Nebula_Count; i++) {
+                float sampleAccum = 0.0;
+                for (int s = 0; s < Nebula_Steps; s++) {
+                    float stepFactor = (Nebula_Steps > 1) ? float(s) / float(Nebula_Steps - 5) : 0.0;
+                    vec3 noiseCoord = noiseCoordBase + Nebula_Offset[i] * stepFactor;
+                    sampleAccum += texture(NebulaNoise3D, noiseCoord).r;
+                }
+                float noiseValue = sampleAccum / float(Nebula_Steps);
+                
+                // Adjust thresholds here if necessary.
+                float mask = smoothstep(0.55, 0.75, noiseValue) * Nebula_Intensity[i];
+                float falloff = smoothstep(0.0, 1.0, dot(view_dir, vec3(0.0, 0.3, 0.0))) * Nebula_Falloff[i];
+                nebulaEffect += Nebula_Color[i] * mask * falloff;
+                
+                float c = min(1.0, mask);
+                c = pow(c, Nebula_Falloff[i]);
+                colour = mixInNebulaColor(colour, vec4(Nebula_Color[i] * mask * falloff, c));
+            }
+            //colour.rgb += nebulaEffect;
+        }
+    } else {
+        for (int i = 0; i < Nebula_Count; i++) {
+            float c = min(1.0, nebula(view_dir + Nebula_Offset[i], Nebula_Steps) * Nebula_Intensity[i]);
+            c = pow(c, Nebula_Falloff[i]);
+            c = min(c, 1.0);
+            colour = mixInNebulaColor(colour, vec4(Nebula_Color[i], c));
+        }
+    }
+    
+    // --- Star Contributions ---
+    if (MakePointStars) {
+        vec3 starIntensity = star(skybox_uv, view_dir);
+        colour.rgb += starIntensity;
+        colour.a = max(colour.a, maxComponent(starIntensity));
+    }
+    
+    if (MakeBrightStars) {
+        vec4 starIntensity = star_bright(skybox_uv, view_dir);
+        colour.rgb += starIntensity.rgb;
+        colour.a = max(colour.a, starIntensity.a);
+    }
+    
+    // Instead of using alpha from 'colour' directly, use a fixed mix factor.
+    // For example, use mixFactor = 0.5 (or compute one based on the nebula contribution).
+    float mixFactor = 0.5;
+    color = vec4(mix(bgColor.rgb, colour.rgb, mixFactor), 1.0);
+}
 
 void main() {
     vec3 view_dir = normalize(pos);
@@ -193,10 +256,46 @@ void main() {
     
     // Add Nebulae
     float c = 0.0;
-    for(int i = 0; i<Nebula_Count; i++){
-        c = min(1.0, nebula(view_dir + Nebula_Offset[i], Nebula_Steps) * Nebula_Intensity[i]);
-        c = pow(c, Nebula_Falloff[i]);
-        colour = mixInNebulaColor(colour, vec4(Nebula_Color[i], c));
+    if(NebulaPrecomputed){
+        if (Nebula_Count > 0) {
+            // Nebula effect accumulation.
+            vec3 nebulaEffect = vec3(0.0);
+            // Map the direction from [-1, 1] to [0, 1] to get base coordinates for noise sampling.
+            vec3 noiseCoordBase = (view_dir + vec3(1.0)) * 0.5;
+            for (int i = 0; i < Nebula_Count; i++) {
+                float sampleAccum = 0.0;
+                
+                
+                for (int s = 0; s < Nebula_Steps; s++) {
+                    float stepFactor = (Nebula_Steps > 1) ? float(s) / float(Nebula_Steps - 5) : 0.0;
+                    vec3 noiseCoord = noiseCoordBase;// + Nebula_Offset[i] * stepFactor;
+                    sampleAccum += texture(NebulaNoise3D, noiseCoord).r / float(Nebula_Steps);
+                }
+                
+                //int s = 0;
+                //vec3 noiseCoord = noiseCoordBase + Nebula_Offset[i];
+                //sampleAccum += texture(NebulaNoise3D, noiseCoord).r;
+                
+                
+                float noiseValue = sampleAccum;
+                // Adjust thresholds here if necessary.
+                float mask = smoothstep(0.55, 0.65, noiseValue) * Nebula_Intensity[i];
+                float falloff = 1;//smoothstep(0.0, 1.0, dot(view_dir, vec3(0.0, Nebula_Intensity[i]/3, 0.0))) * Nebula_Falloff[i];
+                //float falloff = smoothstep(0.5, 1.0, (dot(view_dir, vec3(0.0, Nebula_Intensity[i]/2, 0.0)) + 1.0) * 0.5) * Nebula_Falloff[i];
+                nebulaEffect += Nebula_Color[i] * mask * falloff;
+                
+                float c = min(1.0, mask);
+                //c = pow(c, Nebula_Falloff[i]);
+                colour = mixInNebulaColor(colour, vec4(Nebula_Color[i] * mask * falloff, c));
+            }
+            //colour.rgb += nebulaEffect;
+        }
+    }else{
+        for(int i = 0; i<Nebula_Count; i++){
+            c = min(1.0, nebula(view_dir + Nebula_Offset[i], Nebula_Steps) * Nebula_Intensity[i]);
+            c = pow(c, Nebula_Falloff[i]);
+            colour = mixInNebulaColor(colour, vec4(Nebula_Color[i], c));
+        }
     }
     
     // Add Stars
@@ -223,5 +322,9 @@ void main() {
     //}else{
     //    color = vec4(colour.rgb + bgColor.rgb, 1.0);
     //}
-    color = vec4(colour.rgb*colour.a + bgColor.rgb*(1.0-colour.a), 1.0);
+    
+    //color = vec4(colour.rgb*colour.a + bgColor.rgb*(1.0-colour.a), 1.0);
+    
+    float mixFactor = 0.5;
+    color = vec4(mix(bgColor.rgb, colour.rgb, mixFactor), 1.0);
 }

@@ -143,7 +143,8 @@ class SkyboxOptionsWidget(AGeWidgets.TightGridFrame):
         self.NonBlackSpace = self.addWidget(AGeInput.Bool(self,"Boost Background Colour", False))
         self.UseSeedButton = self.addWidget(AGeWidgets.Button(self,"Generate new Skybox using Seed", lambda: self.newSkybox(True)))
         self.Seed = self.addWidget(AGeInput.Int(self,"Skybox Seed", 1, 1, 999999999))
-        self.SkyboxStatic = self.addWidget(AGeInput.Bool(self,"Use static Skybox (deprecated)", False))
+        self.Nebulae_preComp = self.addWidget(AGeInput.Bool(self,"Generate Nebulae on CPU once\n(instead of continuously on GPU)\nfor better performance\n(Experimental and WIP)", False))
+        self.SkyboxStatic = self.addWidget(AGeInput.Bool(self,"Use static Skybox\nfor better performance\n(Does not support all of\nthe above options)", False))
         self.SkyboxResolution = self.addWidget(AGeInput.Int(self,"Static Skybox Resolution (512·2ˣ)", 3, 0, 4))
     
     def newSkybox(self, useSeed=False):

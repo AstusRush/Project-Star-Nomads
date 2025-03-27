@@ -666,10 +666,19 @@ class SkyboxGenerator:
         
         uniforms["Nebula_Color"] = p3dc.PTA_LVecBase3()
         uniforms["Nebula_Intensity"] = p3dc.PTA_float()
-        uniforms["Nebula_Steps"] = p3dc.PTA_int()
         uniforms["Nebula_Falloff"] = p3dc.PTA_float()
         uniforms["Nebula_Offset"] = p3dc.PTA_LVecBase3()
         uniforms["Nebula_Steps"] = 2
+        uniforms["NebulaPrecomputed"] = params['nebulae_preComp']
+        
+        if not params['nebulae'] or not params['nebulae_preComp']:
+            resolution=128
+            tex = p3dc.Texture("NebulaNoise3D")
+            tex.setup_3d_texture(resolution, resolution, resolution,
+                                p3dc.Texture.T_unsigned_byte,
+                                p3dc.Texture.F_luminance)
+            uniforms["NebulaNoise3D"] = tex
+        
         if not params['nebulae']:
             uniforms["Nebula_Count"] = 0
         else:
@@ -691,9 +700,138 @@ class SkyboxGenerator:
                     rand.random() * 2000 - 1000,
                     rand.random() * 2000 - 1000
                 ))
+            
+            if params['nebulae_preComp']:
+                # For higher resolutions, increase the 'nebulaResolution' parameter.
+                
+                uniforms["NebulaNoise3D"] = self.makeNebulaNoiseTexture3D(resolution=128, rand=rand, countNebulas = rand.choice(list(range(nMin,nMax+1))))
+                #uniforms["NebulaNoiseCube"] = self.makeNebulaNoiseCubemap(resolution=128*4, rand=rand, countNebulas = rand.choice(list(range(nMin,nMax+1))))
+                #nebula_noise_tex = self.makeNebulaNoiseTexture3D(
+                #    resolution=params.get("nebulaResolution", 128),
+                #    frequency=params.get("noiseFrequency", (2.0,2.0,2.0)),
+                #    phase=params.get("noisePhase", (0,0,0)),
+                #    amplitude=params.get("noiseAmplitude", 1.0),
+                #    rand=rand
+                #)
         
         self.updateUniforms(self.Skybox, uniforms)
         
         self.Skybox.reparentTo(render())
         
         return self.Skybox
+    
+    def makeNebulaNoiseTexture3D_support(self, resolution=128,
+                                frequency=(1.0, 1.0, 1.0),
+                                phase=(0.0, 0.0, 0.0),
+                                amplitude=1.0,
+                                rand=random.Random()):
+        """
+        Generate a 3D Perlin noise texture using VTK's vtkPerlinNoise and vtkSampleFunction.
+        This texture is then loaded into a Panda3D 3D texture and returned.
+        
+        Parameters:
+        resolution: int
+            The number of samples along each axis (for high-res, increase this value).
+        frequency: tuple of 3 floats
+            Frequency of the noise in x, y, and z.
+        phase: tuple of 3 floats
+            Phase offset for the noise.
+        amplitude: float
+            Amplitude of the noise.
+        
+        Returns:
+        a numpy array
+        #A Panda3D Texture object configured as a 3D texture.
+        """
+        import vtk
+        from vtk.util import numpy_support
+        import numpy as np
+        import panda3d.core as p3dc
+        
+        frequency = (abs(rand.random()+2)*3, abs(rand.random()+2)*3, abs(rand.random()+2)*3)
+        phase = (0,0,0)#(rand.random(), rand.random(), rand.random())
+        amplitude = 1#rand.random()
+        
+        
+        # Create the Perlin noise function
+        noise = vtk.vtkPerlinNoise()
+        noise.SetFrequency(*frequency)
+        noise.SetPhase(*phase)
+        noise.SetAmplitude(amplitude)
+        
+        # Use vtkSampleFunction to sample the noise over a 3D grid.
+        sample = vtk.vtkSampleFunction()
+        sample.SetImplicitFunction(noise)
+        # Define the region over which to sample.
+        sample.SetModelBounds(-1, 1, -1, 1, -1, 1)
+        sample.SetSampleDimensions(resolution, resolution, resolution)
+        sample.ComputeNormalsOff()
+        sample.Update()
+        
+        # Retrieve the sampled noise data as a numpy array.
+        image_data = sample.GetOutput()
+        dims = image_data.GetDimensions()  # (nx, ny, nz)
+        vtk_array = image_data.GetPointData().GetScalars()
+        noise_np = numpy_support.vtk_to_numpy(vtk_array)
+        # The array is ordered as (z, y, x); transpose it to (x, y, z)
+        #noise_np = noise_np.reshape(dims[2], dims[1], dims[0])
+        #noise_np = np.transpose(noise_np, (2, 1, 0))
+        
+        return noise_np
+    
+    def makeNebulaNoiseTexture3D(self, resolution, rand, countNebulas):
+        import vtk
+        from vtk.util import numpy_support
+        import numpy as np
+        import panda3d.core as p3dc
+        
+        frequency = (abs(rand.random()+2)*3, abs(rand.random()+2)*3, abs(rand.random()+2)*3)
+        phase = (0,0,0)#(rand.random(), rand.random(), rand.random())
+        amplitude = 1#rand.random()
+        
+        
+        # Create the Perlin noise function
+        noise = vtk.vtkPerlinNoise()
+        noise.SetFrequency(*frequency)
+        noise.SetPhase(*phase)
+        noise.SetAmplitude(amplitude)
+        
+        # Use vtkSampleFunction to sample the noise over a 3D grid.
+        sample = vtk.vtkSampleFunction()
+        sample.SetImplicitFunction(noise)
+        # Define the region over which to sample.
+        sample.SetModelBounds(-1, 1, -1, 1, -1, 1)
+        sample.SetSampleDimensions(resolution, resolution, resolution)
+        sample.ComputeNormalsOff()
+        sample.Update()
+        
+        # Retrieve the sampled noise data as a numpy array.
+        image_data = sample.GetOutput()
+        dims = image_data.GetDimensions()  # (nx, ny, nz)
+        vtk_array = image_data.GetPointData().GetScalars()
+        noise_np = numpy_support.vtk_to_numpy(vtk_array)
+        # The array is ordered as (z, y, x); transpose it to (x, y, z)
+        #noise_np = noise_np.reshape(dims[2], dims[1], dims[0])
+        #noise_np = np.transpose(noise_np, (2, 1, 0))
+        
+        #noise_np = self.makeNebulaNoiseTexture3D_support(resolution=resolution, rand=rand)
+        #for _ in range(countNebulas*2):
+        #    noise_np += self.makeNebulaNoiseTexture3D_support(resolution=resolution, rand=rand)
+        # Normalize the noise to [0, 255] for an 8-bit texture.
+        min_val, max_val = noise_np.min(), noise_np.max()
+        noise_norm = (noise_np - min_val) / (max_val - min_val)
+        noise_uint8 = (noise_norm * 255).astype(np.uint8)
+        
+        # Create a Panda3D 3D texture.
+        tex = p3dc.Texture("NebulaNoise3D")
+        tex.setup_3d_texture(resolution, resolution, resolution,
+                            p3dc.Texture.T_unsigned_byte,
+                            p3dc.Texture.F_luminance)
+        tex.setRamImage(noise_uint8.tobytes())
+        tex.setMinfilter(p3dc.SamplerState.FT_linear)
+        tex.setMagfilter(p3dc.SamplerState.FT_linear)
+        tex.setWrapU(p3dc.SamplerState.WM_repeat)
+        tex.setWrapV(p3dc.SamplerState.WM_repeat)
+        tex.setWrapW(p3dc.SamplerState.WM_repeat)
+        
+        return tex
