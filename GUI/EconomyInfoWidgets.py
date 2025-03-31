@@ -86,13 +86,20 @@ class EconomyDisplay(QtWidgets.QSplitter):
             self.TEMP_HexResourceLabel.setText("")
             return
         text = f"{hex_.Name}"
-        if hex_.ResourcesFree: text += hex_.ResourcesFree.text("\n\nFree floating Resources:")
-        if hex_.ResourcesHarvestable: text += hex_.ResourcesHarvestable.text("\n\nHarvestable Resources:")
+        if hex_.ResourcesFree: text += hex_.ResourcesFree.text("\nFree floating Resources:")
+        if hex_.ResourcesHarvestable: text += hex_.ResourcesHarvestable.text("\nHarvestable Resources:")
         self.TEMP_HexResourceLabel.setText(text)
         
-        if not hex_.fleet:
-            return
-        fleet = hex_.fleet()
-        text = f"{fleet.Name}"
-        text +=  fleet.ResourceManager.storedResources().text("\n\nResources in the fleet:")
+        text = ""
+        if hex_.fleet:
+            fleet = hex_.fleet()
+            if text: text += "\n\n"
+            text += f"{fleet.Name}"
+            text +=  fleet.ResourceManager.storedResources().text("\nResources in the fleet:")
+        for i in hex_.content:
+            if not i: continue
+            fleet = i()
+            if text: text += "\n\n"
+            text += f"{fleet.Name}"
+            text +=  fleet.ResourceManager.storedResources().text("\nResources in the fleet:")
         self.TEMP_FleetResourceLabel.setText(text)

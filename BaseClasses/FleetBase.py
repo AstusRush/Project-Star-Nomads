@@ -240,6 +240,15 @@ class FleetBase():
     def threat(self) -> float:
         return sum([i.Stats.Threat for i in self.Ships])
     
+    def isBackgroundObject(self):
+        return all([i.IsBackgroundObject for i in self.Ships])
+    
+    def isBlockingTilePartially(self):
+        return any([i.IsBlockingTilePartially for i in self.Ships])
+    
+    def isBlockingTileCompletely(self):
+        return any([i.IsBlockingTileCompletely for i in self.Ships])
+    
   #endregion manage ship list
   #region Turn and Selection
     def startTurn(self):
@@ -293,7 +302,22 @@ class FleetBase():
   #region Movement
     def moveToHex(self, hex:'HexBase._Hex', animate=True):
         self.Coordinates = hex.Coordinates
-        if hex.fleet:
+        if self.isBackgroundObject():
+            if animate and self.hex:
+                self.Node.lookAt(hex.Pos)
+                #time = min(6, np.sqrt(sum([i**2 for i in list(self.Node.getPos()-hex.Pos)])) )/6
+                time = min(6, self.hex().distance(hex) )/6
+                self.Node.posInterval(time, hex.Pos).start()
+            else:
+                self.Node.setPos(hex.Pos)
+            hex.addContent(self)
+            #if not hex.fleet: #TODO: We have a serious problem when this occurs. What do we do in that case?
+            #    raise Exception("Could not assign unit to Hex")
+            #if hex.fleet() != self: #TODO: We have a serious problem when this occurs. What do we do in that case?
+            #    raise Exception(f"Could not assign unit to Hex. (The Hex has a different fleet assigned that is named {hex.fleet()})")
+            if self.hex: self.hex().fleet = None
+            self.hex = weakref.ref(hex)
+        elif hex.fleet:
             if hex.fleet() is not self:
                 raise HexBase.HexOccupiedException(hex)
         else:
@@ -313,7 +337,9 @@ class FleetBase():
             self.hex = weakref.ref(hex)
     
     def _navigable(self, hex:'HexBase._Hex'):
-        return (not bool(hex.fleet)) and hex.Navigable
+        #if self.isBackgroundObject(): return True
+        #return (not bool(hex.fleet)) and hex.Navigable
+        return hex.isNavigable(self.isBlockingTilePartially(), self.isBlockingTileCompletely(), self.isBackgroundObject())
     
     def _tileCost(self, hex:'HexBase._Hex'):
         return 1

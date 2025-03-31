@@ -158,7 +158,8 @@ self.Pawn2 = Unit((25,26),name="USS Galaxy",model="/Users/Robin/Desktop/Projects
 TEMP_CODE = """
 
 if True:
-    self.P1_Fleet1 = self.getHex((25,25)).fleet()
+    self.P1_Fleet1 = random.choice(get.unitManager().Teams[1])
+    #self.P1_Fleet1 = self.getHex((25,25)).fleet()
     ship1 = Ships.TestShips.MiningTest()
     self.P1_Fleet1.addShip(ship1)
     ship2 = Ships.TestShips.RefineryTest()

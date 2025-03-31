@@ -108,6 +108,9 @@ class _EnvironmentCreator():
             else: objectGroup = EnvironmentalObjectGroups.EnvironmentalObjectGroup_Battle()
             objectGroup.Name = object.Name
             objectGroup.addShip(object)
+            objectGroup.IsBlockingTilePartially  = object.IsBlockingTilePartially
+            objectGroup.IsBlockingTileCompletely = object.IsBlockingTileCompletely
+            objectGroup.IsBackgroundObject       = object.IsBackgroundObject
             objectGroup.moveToHex(currentHex, False)
             nextHexCandidates:'list[HexBase._Hex]' = currentHex.getNeighbour()
             random.shuffle(nextHexCandidates)

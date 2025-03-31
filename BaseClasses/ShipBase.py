@@ -57,7 +57,7 @@ from BaseClasses import ModelBase
 from GUI import BaseInfoWidgets
 from Economy import Resources
 
-
+#TODO: There maybe should be a loop to assign elements from the dictionary to make it less error prone to add new attributes
 IMP_SHIPBASE = [("PSN get","from BaseClasses import get"),("PSN ShipBase","from BaseClasses import ShipBase"),("PSN ShipBaseConstructor","""
 def createShip(d:dict):
     if "INTERNAL_NAME" in d:
@@ -71,6 +71,9 @@ def createShip(d:dict):
     ship.ShieldsWereOffline = d["ShieldsWereOffline"]
     ship.setModules(d["Modules"])
     ship.setModel(d["Model"])
+    ship.IsBlockingTilePartially = d["IsBlockingTilePartially"]
+    ship.IsBlockingTileCompletely = d["IsBlockingTileCompletely"]
+    ship.IsBackgroundObject = d["IsBackgroundObject"]
     
     ship.ExplosionSoundEffectPath = d["ExplosionSoundEffectPath"]
     ship.init_effects()
@@ -270,6 +273,10 @@ class ShipBase():
         self.Node = p3dc.NodePath(p3dc.PandaNode(f"Central node of ship {id(self)}"))
         self.Node.reparentTo(render())
         self.Modules:'typing.List[BaseModules.Module]' = []
+        
+        self.IsBlockingTilePartially  = True  #MAYBE: these could be attributes of the ship hull
+        self.IsBlockingTileCompletely = False #MAYBE: these could be attributes of the ship hull
+        self.IsBackgroundObject       = False #MAYBE: these could be attributes of the ship hull
         
         from Economy import EconomyManager
         self.EconomyManager = EconomyManager.ShipEconomyManager(self)
@@ -488,6 +495,9 @@ class ShipBase():
             "ExplosionSoundEffectPath" : self.ExplosionSoundEffectPath ,
             "WasHitLastTurn" : self.WasHitLastTurn ,
             "ShieldsWereOffline" : self.ShieldsWereOffline ,
+            "IsBlockingTilePartially" : self.IsBlockingTilePartially,
+            "IsBlockingTileCompletely" : self.IsBlockingTileCompletely,
+            "IsBackgroundObject" : self.IsBackgroundObject,
         }
         get.shipClasses() # This is called to ensure that all custom ship have the INTERNAL_NAME set
         if hasattr(self, "INTERNAL_NAME"):

@@ -59,12 +59,19 @@ from ProceduralGeneration import ProceduralModels
 class EnvironmentalObject(ShipBase.ShipBase):
     def __init__(self) -> None:
         super().__init__()
+        
+        self.IsBlockingTilePartially  = True
+        self.IsBlockingTileCompletely = False
+        self.IsBackgroundObject       = True
 
 class Asteroid(EnvironmentalObject):
     Name = "Asteroid"
     ClassName = "Asteroid"
     def __init__(self, generateModel=True) -> None:
         super().__init__()
+        self.IsBlockingTilePartially  = True
+        self.IsBlockingTileCompletely = False
+        self.IsBackgroundObject       = True
         if generateModel:
             #self.setModel(AsteroidModel())
             self.setModel(ProceduralModels.ProceduralModel_Asteroid())

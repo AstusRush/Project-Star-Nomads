@@ -456,7 +456,7 @@ class _Hex():
             # We will use this list to store all objects that occupy this hexagon
             self.content = [] # type: 'list[weakref.ref[FleetBase.FleetBase]]' #TODO: Fleets can not be the content but what will be the content?
             self.fleet = None # type: 'weakref.ref[FleetBase.FleetBase]'
-            self.Navigable = True
+            #self.Navigable = True
             
             self.Selected = False
             self.Highlighted = False
@@ -526,6 +526,21 @@ class _Hex():
                     getattr(self,node).removeNode()
             raise
     
+    @property
+    def Navigable(self):
+        for i in self.content:
+            if i and i().isBlockingTileCompletely(): return False
+        if self.fleet and self.fleet().isBlockingTileCompletely(): return False
+        return True
+    
+    def isNavigable(self, isBlockingTilePartially, isBlockingTileCompletely, isBackgroundObject):
+        if not isBackgroundObject and self.fleet: return False
+        if isBlockingTilePartially or isBlockingTileCompletely:
+            for i in self.content:
+                if i and i().isBlockingTilePartially(): return False
+            if self.fleet and self.fleet().isBlockingTilePartially(): return False
+        return self.Navigable
+    
     def __del__(self):
         del self.content
         self.InnerRing.removeNode()
@@ -558,12 +573,23 @@ class _Hex():
         else:
             get.unitManager().selectUnit(None)
     
+    def selectContent(self, select:bool = True):
+        return
+        #TODO: Show content in UI
+        #if select:
+        #    get.unitManager().selectUnit(self.fleet)
+        #else:
+        #    get.unitManager().selectUnit(None)
+    
     def addContent(self, content): #TODO:OVERHAUL
+        self.content.append(weakref.ref(content))
         #TODO: If the this is already selected while new content is added the new content should be informed about this and act accordingly (display/update movement range, add/update UI elements, etc).
         #       Furthermore the other content might need to be informed that there is new content which might require them to update their UI elements or highlighting
-        raise NotImplementedError("_Hex.addContent is not implemented yet")
     
     def hideContent(self):
+        for i in self.content:
+            if i:
+                i().hide()
         if self.fleet:
             self.fleet().hide()
             if self.CurrentColour_Edge == self.getNormalEdgeColour():
@@ -574,6 +600,9 @@ class _Hex():
                 self.HighlightedEdge = HighlightedEdge
     
     def showContent(self):
+        for i in self.content:
+            if i:
+                i().show()
         if self.fleet:
             self.fleet().show()
             if self.CurrentColour_Edge == self.COLOUR_NORMAL:
@@ -739,6 +768,7 @@ class _Hex():
     def _select(self, select:bool = True):
         self._select_highlighting(select)
         self.selectFleet(select)
+        self.selectContent(select)
     
     def _select_highlighting(self, select:bool = True):
         self.Selected = select
@@ -774,7 +804,7 @@ class _Hex():
     
   #endregion Highlighting
   #region Hex Math
-    def getNeighbour(self,direction=-1) -> typing.Union['_Hex',typing.List['_Hex']]:
+    def getNeighbour(self,direction:typing.Union[int,typing.Tuple[int,int,int]]=-1) -> typing.Union['_Hex',typing.List['_Hex']]:
         """
         Returns the specified neighbour in direction if 0<=direction<=5 or else all neighbours. \n
         Raises HexInvalidException if the specified neighbour does not exist (which can happen if this hex is at the edge of the map). \n
