@@ -82,8 +82,8 @@ class _EnvironmentCreator():
                 for _ in range(20):
                     clusterCentre = random.choice(random.choice(hexGrid.Hexes))
                     if clusterCentre in edges: continue
-                    if not clusterCentre.fleet: break
-                if clusterCentre.fleet: continue
+                    if not (clusterCentre.fleet or clusterCentre.content): break
+                if (clusterCentre.fleet or clusterCentre.content): continue
                 self._createCluster(clusterCentre, combat, clusterTotal, clusterNum, np.prod(hexGrid.Size), edges, pd)
                 if pd.wasCanceled(): break
             get.engine().fastRender()
@@ -115,8 +115,8 @@ class _EnvironmentCreator():
             nextHexCandidates:'list[HexBase._Hex]' = currentHex.getNeighbour()
             random.shuffle(nextHexCandidates)
             for candidate in nextHexCandidates:
-                if not candidate.fleet and not candidate in edges: break
-            if candidate.fleet or candidate in edges: break
+                if not (candidate.fleet or candidate.content) and not candidate in edges: break
+            if (candidate.fleet or candidate.content) or candidate in edges: break
             currentHex = candidate
             if pd.wasCanceled(): break
             get.engine().fastRender()

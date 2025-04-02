@@ -54,14 +54,15 @@ from BaseClasses import get
 #TODO: All widgets for ships and modules etc should be of a special class that resets the reference of the parent to itself to None when it gets destroyed
 #       (and can do other cleanup work like clearing the Hex interaction functions)
 
-class FleetStats(QtWidgets.QSplitter):
+class HexInfoDisplay(QtWidgets.QSplitter):
     #MAYBE: Currently all of this is operated by the fleet in displayStats, getInterface, and updateInterface.
     #       Maybe hte code populating the UI should be moved here instead and the fleet simply calls the appropriate methods when appropriate.
-    def __init__(self, parent: typing.Optional['QtWidgets.QWidget']) -> None:
+    def __init__(self, parent: typing.Optional['QtWidgets.QWidget']=None) -> None:
         super().__init__(parent=parent)
         self.setOrientation(QtCore.Qt.Orientation.Vertical)
         self.FleetScrollWidget = QtWidgets.QScrollArea(self)
         self.FleetScrollWidget.setWidgetResizable(True)
+        self.HexText = QtWidgets.QLabel()
         super().addWidget(self.FleetScrollWidget)
         self.FleetOverview = AGeWidgets.TightGridWidget(self)
         self.FleetScrollWidget.setWidget(self.FleetOverview)
@@ -73,6 +74,89 @@ class FleetStats(QtWidgets.QSplitter):
         self.DetailScrollWidget.setWidget(self.DetailView)
         
         self.LastDetailsWidget:QtWidgets.QWidget = None
+        get.app().S_HexSelectionChanged.connect(lambda: self.updateInfo())
+        self.HexText = QtWidgets.QLabel()
+        self.addWidget(self.HexText)
+    
+    def updateInfo(self):
+        if get.hexGrid().SelectedHex: self.HexText.setText(get.hexGrid().SelectedHex.Name)
+        else: self.HexText.setText("")
+        
+        self._clearOld()
+        self._addNew()
+        self._updateAll()
+    
+    def _clearOld(self):
+        hex_ = get.hexGrid().SelectedHex
+        if not hex_: return self.clearAll()
+        l = []
+        if hex_.fleet and hex_.fleet().widget and not hex_.fleet().Hidden: l.append(hex_.fleet().widget())
+        for backgroundFleet in hex_.content:
+            if backgroundFleet().widget and not backgroundFleet().Hidden: l.append(backgroundFleet().widget())
+        
+        for widget in self.FleetOverview:
+            if widget not in l and isinstance(widget, FleetStats):
+                if TYPE_CHECKING: widget:'FleetStats' = widget
+                if widget.fleet().IsMovingFrom:
+                    if get.hexGrid().SelectedHex:
+                        if widget.fleet().IsMovingFrom != get.hexGrid().SelectedHex.Coordinates:
+                            self.removeWidget(widget)
+                else:
+                    self.removeWidget(widget)
+        
+        # Clear details view if no fleets are being displayed
+        if not [widget for widget in self.FleetOverview if isinstance(widget, FleetStats)]:
+            self.DetailView = AGeWidgets.TightGridWidget(self)
+            self.DetailScrollWidget.setWidget(self.DetailView)
+    
+    def clearAll(self):
+        for widget in self.FleetOverview:
+            if isinstance(widget, FleetStats):
+                if TYPE_CHECKING: widget:'FleetStats' = widget
+                if widget.fleet().IsMovingFrom:
+                    if get.hexGrid().SelectedHex:
+                        if widget.fleet().IsMovingFrom != get.hexGrid().SelectedHex.Coordinates:
+                            self.removeWidget(widget)
+                else:
+                    self.removeWidget(widget)
+        
+        # Clear details view if no fleets are being displayed
+        if not [widget for widget in self.FleetOverview if isinstance(widget, FleetStats)]:
+            self.DetailView = AGeWidgets.TightGridWidget(self)
+            self.DetailScrollWidget.setWidget(self.DetailView)
+    
+    def _addNew(self):
+        hex_ = get.hexGrid().SelectedHex
+        if not hex_: return
+        l = []
+        if hex_.fleet and not hex_.fleet().widget: self._displayStats(hex_.fleet())
+        for backgroundFleet in hex_.content:
+            if not backgroundFleet().widget: self._displayStats(backgroundFleet())
+        
+        # Clear IsMoving flag. This is the main clearing point fo that flag. All others are merely backups for special situations
+        if hex_.fleet: hex_.fleet().clearIsMovingFlag()
+        for backgroundFleet in hex_.content:
+            backgroundFleet().clearIsMovingFlag()
+    
+    def _updateAll(self):
+        for widget in self.FleetOverview:
+            if isinstance(widget, FleetStats):
+                if TYPE_CHECKING: widget:'FleetStats' = widget
+                widget.updateInterface()
+    
+    def _displayStats(self, fleet:typing.Union['FleetBase.Fleet','FleetBase.Flotilla'], display=True, forceRebuild=False):
+        if display and not fleet.Hidden:
+            if forceRebuild or not fleet.widget:
+                w = FleetStats(self, fleet)
+                fleet.widget = weakref.ref(w)
+                self.addWidget(w)
+            fleet.widget().updateInterface()
+        else:
+            #get.window().UnitStatDisplay.Text.setText("No unit selected")
+            if fleet.widget:
+                self.removeWidget(fleet.widget())
+                #fleet.widget().deleteLater()
+            fleet.widget = None
     
     def addWidget(self, widget:'QtWidgets.QWidget'):
         #TODO: This should instead handle ShipQuickView widgets
@@ -80,15 +164,28 @@ class FleetStats(QtWidgets.QSplitter):
     
     def removeWidget(self, widget:'QtWidgets.QWidget'):
         if widget:
+            if isinstance(widget, FleetStats) and widget.fleet:
+                if TYPE_CHECKING: widget:'FleetStats' = widget
+                self.clearDetailView(widget.fleet())
+                widget.fleet().widget = None
             self.FleetOverview.layout().removeWidget(widget)
-        if widget:
             widget.deleteLater()
-        self.DetailView = AGeWidgets.TightGridWidget(self)
-        self.DetailScrollWidget.setWidget(self.DetailView)
+        
         #if self.LastDetailsWidget:
         #    self.DetailView.layout().removeWidget(self.FleetOverview)
         #    self.FleetOverview.deleteLater()
         #    self.LastDetailsWidget.deleteLater()
+    
+    def clearDetailView(self, fleet:typing.Union['FleetBase.Fleet','FleetBase.Flotilla']):
+        clear = False
+        for widget in self.DetailView:
+            if isinstance(widget, ShipQuickView) and widget.ship:
+                if TYPE_CHECKING: widget:'ShipQuickView' = widget
+                if widget.ship() in fleet.Ships:
+                    clear = True
+        if clear:
+            self.DetailView = AGeWidgets.TightGridWidget(self)
+            self.DetailScrollWidget.setWidget(self.DetailView)
     
     def showDetails(self, widget:'QtWidgets.QWidget'): #TODO: if the ship gets destroyed this should get cleared and the clearing mechanism is currently bad in general
         self.DetailView = AGeWidgets.TightGridWidget(self)
@@ -99,6 +196,63 @@ class FleetStats(QtWidgets.QSplitter):
         #    self.LastDetailsWidget.deleteLater()
         self.DetailView.layout().addWidget(widget)
         self.LastDetailsWidget = widget
+
+class FleetStats(AGeWidgets.TightGridFrame):
+    def __init__(self, parent: 'HexInfoDisplay', fleet: typing.Union['FleetBase.Fleet','FleetBase.Flotilla']) -> None:
+        self.parentInfoDisplay = weakref.ref(parent)
+        self.fleet = weakref.ref(fleet)
+        super().__init__(parent=parent)
+        fleet.widget = weakref.ref(self)
+        self.makeInterface()
+    
+    #def displayStats(self, display=True, forceRebuild=False): #TODO: Overhaul this! The displayed information should not be the combat interface but the campaign interface!
+    #    if display and not self.fleet().Hidden:
+    #        if forceRebuild or not self.Widget:
+    #            get.window().HexInfoDisplay.addWidget(self.getInterface())
+    #        self.updateInterface()
+    #    else:
+    #        #get.window().UnitStatDisplay.Text.setText("No unit selected")
+    #        if self.Widget:
+    #            get.window().HexInfoDisplay.removeWidget(self.Widget)
+    #            self.Widget.deleteLater()
+    #        self.Widget = None
+    
+    def makeInterface(self): #TODO: Overhaul this! The displayed information should not be the combat interface but the campaign interface!
+        self.NameInput = self.addWidget(AGeInput.Name(self,"Name",self.fleet(),"Name"))
+        self.Label = self.addWidget(QtWidgets.QLabel(self))
+        for i in self.fleet().Ships:
+            self.addWidget(i.getQuickView())
+    
+    def updateInterface(self):
+        for i in self.fleet().Ships:
+            i.updateInterface()
+        if self.fleet()._IsFleet:
+            text = textwrap.dedent(f"""
+            Team: {self.fleet().TeamName}
+            Positions: {self.fleet().hex().Coordinates}
+            Movement Points: {round(self.fleet().MovePoints,3)}/{round(self.fleet().MovePoints_max,3)}
+            """).strip()
+            # Hull HP: {[f"{i.Stats.HP_Hull}/{i.Stats.HP_Hull_max}" for i in self.Ships]}
+            # Shield HP: {[f"{i.Stats.HP_Shields}/{i.Stats.HP_Shields_max}" for i in self.Ships]}
+            #Hull: {self.HP_Hull}/{self.HP_Hull_max} (+{self.HP_Hull_Regeneration} per turn (halved if the ship took a single hit that dealt at least {self.NoticeableDamage} damage last turn))
+            #Shields: {self.HP_Shields}/{self.HP_Shields_max} (+{self.HP_Shields_Regeneration} per turn (halved if the ship took a single hit that dealt at least {self.NoticeableDamage} damage last turn))
+            #get.window().UnitStatDisplay.Text.setText(text)
+            self.Label.setText(text)
+        elif self.fleet()._IsFlotilla:
+            text = textwrap.dedent(f"""
+            Team: {self.fleet().Team}
+            Positions: {self.fleet().hex().Coordinates}
+            Movement Points: {round(self.fleet().MovePoints,3)}/{round(self.fleet().MovePoints_max,3)}
+            """).strip()
+            # Hull HP: {[f"{i.Stats.HP_Hull}/{i.Stats.HP_Hull_max}" for i in self.Ships]}
+            # Shield HP: {[f"{i.Stats.HP_Shields}/{i.Stats.HP_Shields_max}" for i in self.Ships]}
+            #Hull: {self.HP_Hull}/{self.HP_Hull_max} (+{self.HP_Hull_Regeneration} per turn (halved if the ship took a single hit that dealt at least {self.NoticeableDamage} damage last turn))
+            #Shields: {self.HP_Shields}/{self.HP_Shields_max} (+{self.HP_Shields_Regeneration} per turn (halved if the ship took a single hit that dealt at least {self.NoticeableDamage} damage last turn))
+            #get.window().UnitStatDisplay.Text.setText(text)
+            self.Label.setText(text)
+        
+        if len(self.fleet().Ships) == 1 and not self.fleet().isBackgroundObject():
+            get.window().HexInfoDisplay.showDetails(self.fleet().Ships[0].getInterface())
 
 class ShipQuickView(AGeWidgets.TightGridFrame): #TODO: Should This be part of the ShipInterface class?
     def __init__(self, ship: 'ShipBase.ShipBase') -> None:
@@ -144,9 +298,9 @@ class ShipQuickView(AGeWidgets.TightGridFrame): #TODO: Should This be part of th
     
     def showFullInterface(self):
         if not get.engine().CurrentlyInBattle:
-            get.window().UnitStatDisplay.showDetails(self.ship().Interface.getInterface())
+            get.window().HexInfoDisplay.showDetails(self.ship().Interface.getInterface())
         else:
-            get.window().UnitStatDisplay.showDetails(self.ship().Interface.getCombatInterface())
+            get.window().HexInfoDisplay.showDetails(self.ship().Interface.getCombatInterface())
 
 class ShipInterface:
     #TODO: There should be a way to show the FULL interface for all modules so that one can see the combat stats while on the Campaign map and vice versa.

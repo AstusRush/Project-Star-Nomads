@@ -316,7 +316,8 @@ class HexGrid(DirectObject):
     def clearAllSelections(self):
         for i in self.Hexes:
             for ii in i:
-                ii.select(False)
+                ii.select(False, False)
+        get.app().S_HexSelectionChanged.emit()
     
   #region Interaction
     def _mouseTask(self, task):
@@ -400,7 +401,7 @@ class HexGrid(DirectObject):
             pass #TODO: Clean up the interface since nothing is selected (it should already be cleaned up but better save than sorry)
             #unitManager().selectUnit(None)
     
-    def selectHex(self, hex_:"_Hex", select:bool = True):
+    def selectHex(self, hex_:"_Hex", select:bool = True, emit:bool = True):
         if not self.Active: return
         self.clearInteractionFunctions()
         if self.SelectedHex is not False:
@@ -418,7 +419,7 @@ class HexGrid(DirectObject):
             self.SelectedHex._select()
             if self.HighlightedHex is self.SelectedHex:
                 self.HighlightedHex = False
-        get.app().S_HexSelectionChanged.emit()
+        if emit: get.app().S_HexSelectionChanged.emit()
     
     def _interactWithHighlightedHex(self):
         if not self.Active: return
@@ -762,8 +763,8 @@ class _Hex():
                 self._setColourFace(self.CurrentColour_Face)
                 self.Face.show()
     
-    def select(self, select:bool = True):
-        self.grid().selectHex(self, select)
+    def select(self, select:bool = True, emit:bool = True):
+        self.grid().selectHex(self, select, emit)
     
     def _select(self, select:bool = True):
         self._select_highlighting(select)

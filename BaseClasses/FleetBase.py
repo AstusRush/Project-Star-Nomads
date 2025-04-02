@@ -50,6 +50,7 @@ else:
 if TYPE_CHECKING:
     from BaseClasses import ShipBase
     from Economy import EconomyManager
+    from GUI import BaseInfoWidgets
 from BaseClasses import get
 from BaseClasses import HexBase
 from BaseClasses import AI_Base
@@ -121,19 +122,20 @@ class FleetBase():
         self.Node.reparentTo(get.engine().getSceneRootNode())
         self.TeamRing = TeamRing(self, team, self.Node)
         
-        self.Widget = None
         self.MovementSequence:p3ddSequence = None
         
         self.Name = "name"
         self.Team = team
         self.Destroyed = False
-        self.IsMoving = False
+        self.IsMovingFrom:'typing.Union[bool,tuple[int,int]]' = False # Used to suppress clearing of UI when moving fleets
         self.Hidden = False
         
-        #TEMPORARY
+        self.widget: 'weakref.ref[BaseInfoWidgets.FleetStats]' = None
         self.hex: 'weakref.ref[HexBase._Hex]' = None
-        self.ActiveTurn = 1 == 1
         get.unitManager(self._IsFleet).Teams[self.Team].append(self)
+        
+        #TEMPORARY
+        self.ActiveTurn = 1 == 1
     
     def completelyDestroy(self):
         ships = self.Ships.copy()
@@ -154,6 +156,11 @@ class FleetBase():
             if self.hex().fleet:
                 if self.hex().fleet() is self:
                     self.hex().fleet = None
+            for i in self.hex().content:
+                if not i:
+                    self.hex().content.remove(i)
+                elif i() == self:
+                    self.hex().content.remove(i)
             self.hex = None
         if self.TeamRing:
             self.TeamRing.destroy()
@@ -161,6 +168,7 @@ class FleetBase():
         if self.Node:
             self.Node.removeNode()
             self.Node = None
+        get.window().HexInfoDisplay.updateInfo()
     
     def __del__(self):
         self.destroy()
@@ -235,10 +243,10 @@ class FleetBase():
         return self.Team == 1
     
     def value(self) -> float:
-        return sum([i.Stats.Value for i in self.Ships])
+        return sum([i.Stats.Value for i in self.Ships]) if self.Ships else 0
     
     def threat(self) -> float:
-        return sum([i.Stats.Threat for i in self.Ships])
+        return sum([i.Stats.Threat for i in self.Ships]) if self.Ships else 0
     
     def isBackgroundObject(self):
         return all([i.IsBackgroundObject for i in self.Ships])
@@ -260,7 +268,7 @@ class FleetBase():
             if get.engine().CurrentlyInBattle: i.handleNewCombatTurn()
             else: i.handleNewCampaignTurn()
         if self.isSelected():
-            self.displayStats(True)
+            pass #self.displayStats(True)
         
         #self.healAtTurnStart()
     
@@ -272,11 +280,13 @@ class FleetBase():
     
     def select(self):
         self.highlightRanges(True)
-        self.displayStats(True)
+        #self.displayStats(True)
+        self.clearIsMovingFlag()
     
     def unselect(self):
         self.highlightRanges(False)
-        self.displayStats(False)
+        #self.displayStats(False)
+        self.clearIsMovingFlag()
     
   #endregion Turn and Selection
   #region Interaction
@@ -369,8 +379,11 @@ class FleetBase():
     
     def moveTo_AI(self, hex:'HexBase._Hex'):
         select = self.moveTo(hex)
-        if select:
+        self.handleSensors() # To ensure the new hex does not get selected if enemies move out of sensor range
+        if select and not self.Hidden:
             hex.select(True)
+        if self.isSelected() and self.Hidden: # To clear the selection of the fleet
+            get.unitManager().unselectAll()
     
     def moveTo(self, hex:'HexBase._Hex'):
         if self.Destroyed or not self.isActiveTurn():
@@ -399,7 +412,7 @@ class FleetBase():
             else:
                 if self.isSelected():
                     self.highlightRanges(False)
-                    self.IsMoving = True
+                    self.IsMovingFrom = self.hex().Coordinates
                 seq = p3ddSequence(name = self.Name+" move")
                 lastPos = self.hex().Pos
                 lastAngle = self.Node.getHpr()[0]
@@ -419,6 +432,9 @@ class FleetBase():
                     seq.append( self.Node.posInterval(0.4, i.Pos) ) #, startPos=Point3(0, 10, 0)))
                     lastPos = i.Pos
                     lastAngle = angle
+                
+                from direct.interval.FunctionInterval import Func
+                seq.append(Func(self.clearIsMovingFlag))
                 seq.start()
                 self.hex().fleet = None
                 hex.fleet = weakref.ref(self)
@@ -433,6 +449,11 @@ class FleetBase():
                 if not hex.fleet() == self: #TODO: We have a serious problem when this occurs. What do we do in that case?
                     raise Exception("Could not assign unit to Hex")
                 return self.isSelected()
+    
+    def clearIsMovingFlag(self):
+        #NOTE: The IsMovingFrom flag is cleared in BaseInfoWidgets.HexInfoDisplay._addNew
+        #      All other calls to clearIsMovingFlag are merely backups for special situations
+        self.IsMovingFrom = False
     
     def moveClose(self, hex:'HexBase._Hex', distance:int = 3, tries:int = 8):
         """
@@ -697,12 +718,29 @@ class FleetBase():
             i[1].hex().showContent()
   #endregion Detection
     
+  #region interface
+    #def displayStats(self, display=True, forceRebuild=False):
+    #    if display and not self.Hidden:
+    #        if forceRebuild or not self.widget:
+    #            from GUI import BaseInfoWidgets
+    #            get.window().UnitStatDisplay.addWidget(self) #TODO
+    #        self.widget().updateInterface()
+    #    else:
+    #        #get.window().UnitStatDisplay.Text.setText("No unit selected")
+    #        if self.widget:
+    #            get.window().UnitStatDisplay.removeWidget(self.widget())
+    #            self.widget().deleteLater()
+    #        self.widget = None
+    def updateInterface(self):
+        if self.widget:
+            try:
+                self.widget().updateInterface()
+            except RuntimeError:
+                self.widget = None # This usually means that the widget is destroyed but I don't know of a better way to test for it...
+  #endregion interface
   #region overwrite
     async def attack(self, target: 'HexBase._Hex'):
         raise NotImplementedError("attack is only implemented for fleets and flotillas but not for the base fleet. How was a base fleet even created!?")
-    
-    def displayStats(self, display=True, forceRebuild=False):
-        raise NotImplementedError("displayStats is only implemented for fleets and flotillas but not for the base fleet. How was a base fleet even created!?")
     
     def getAttackableHexes(self, _hex:'HexBase._Hex'=None) -> typing.List['HexBase._Hex']:
         raise NotImplementedError("getAttackableHexes is only implemented for fleets and flotillas but not for the base fleet. How was a base fleet even created!?")
@@ -719,7 +757,7 @@ class Fleet(FleetBase):
     
     @property
     def MovePoints(self) -> float:
-        return min([i.Stats.Movement_FTL[0] for i in self.Ships])
+        return min([i.Stats.Movement_FTL[0] for i in self.Ships]) if self.Ships else 0
     
     def spendMovePoints(self, value:float):
         for i in self.Ships:
@@ -728,7 +766,7 @@ class Fleet(FleetBase):
     
     @property
     def MovePoints_max(self) -> float:
-        return min([i.Stats.Movement_FTL[1] for i in self.Ships])
+        return min([i.Stats.Movement_FTL[1] for i in self.Ships]) if self.Ships else 0
     
     def battleEnded(self) -> 'dict':
         """
@@ -797,48 +835,6 @@ class Fleet(FleetBase):
                     l.add(i)
         return list(l)
   #endregion Combat Offensive
-  #region Display Information
-    def displayStats(self, display=True, forceRebuild=False): #TODO: Overhaul this! The displayed information should not be the combat interface but the campaign interface!
-        if display and not self.Hidden:
-            if forceRebuild or not self.Widget:
-                get.window().UnitStatDisplay.addWidget(self.getInterface())
-            self.updateInterface()
-        else:
-            #get.window().UnitStatDisplay.Text.setText("No unit selected")
-            if self.Widget:
-                get.window().UnitStatDisplay.removeWidget(self.Widget)
-                self.Widget.deleteLater()
-            self.Widget = None
-    
-    def getInterface(self): #TODO: Overhaul this! The displayed information should not be the combat interface but the campaign interface!
-        self.Widget = AGeWidgets.TightGridFrame()
-        self.NameInput = self.Widget.addWidget(AGeInput.Name(self.Widget,"Name",self,"Name"))
-        self.Label = self.Widget.addWidget(QtWidgets.QLabel(self.Widget))
-        for i in self.Ships:
-            self.Widget.addWidget(i.getQuickView())
-        return self.Widget
-    
-    def updateInterface(self):
-        for i in self.Ships:
-            i.updateInterface()
-        if self.Widget:
-            try:
-                text = textwrap.dedent(f"""
-                Team: {self.TeamName}
-                Positions: {self.hex().Coordinates}
-                Movement Points: {round(self.MovePoints,3)}/{round(self.MovePoints_max,3)}
-                """).strip()
-                # Hull HP: {[f"{i.Stats.HP_Hull}/{i.Stats.HP_Hull_max}" for i in self.Ships]}
-                # Shield HP: {[f"{i.Stats.HP_Shields}/{i.Stats.HP_Shields_max}" for i in self.Ships]}
-                #Hull: {self.HP_Hull}/{self.HP_Hull_max} (+{self.HP_Hull_Regeneration} per turn (halved if the ship took a single hit that dealt at least {self.NoticeableDamage} damage last turn))
-                #Shields: {self.HP_Shields}/{self.HP_Shields_max} (+{self.HP_Shields_Regeneration} per turn (halved if the ship took a single hit that dealt at least {self.NoticeableDamage} damage last turn))
-                #get.window().UnitStatDisplay.Text.setText(text)
-                self.Label.setText(text)
-            except RuntimeError:
-                self.Widget = None # This usually means that the widget is destroyed but I don't know of a better way to test for it...
-            if len(self.Ships) == 1:
-                get.window().UnitStatDisplay.showDetails(self.Ships[0].getInterface())
-  #endregion Display Information
   #region Save/Load
     def tocode_AGeLib(self, name="", indent=0, indentstr="    ", ignoreNotImplemented = False) -> typing.Tuple[str,dict]:
         ret, imp = "", {}
@@ -879,7 +875,7 @@ class Flotilla(FleetBase):
     
     @property
     def MovePoints(self) -> float:
-        return min([i.Stats.Movement_Sublight[0] for i in self.Ships])
+        return min([i.Stats.Movement_Sublight[0] for i in self.Ships]) if self.Ships else 0
     
     def spendMovePoints(self, value:float):
         for i in self.Ships:
@@ -888,7 +884,7 @@ class Flotilla(FleetBase):
     
     @property
     def MovePoints_max(self) -> float:
-        return min([i.Stats.Movement_Sublight[1] for i in self.Ships])
+        return min([i.Stats.Movement_Sublight[1] for i in self.Ships]) if self.Ships else 0
     
   #region Combat Offensive
     async def attack(self, target: 'HexBase._Hex', orders:AI_Base.Orders = None):
@@ -931,7 +927,7 @@ class Flotilla(FleetBase):
             for weapon in ship.Weapons:
                 ranges.append(weapon.Range)
         return int(min(ranges)), int(np.median(ranges)), int(max(ranges))
-        # min([min([j.Range for j in i.Weapons]) for i in self.Ships])
+        # min([min([j.Range for j in i.Weapons]) for i in self.Ships]) if self.Ships else 0
     
     def getAttackableHexes(self, _hex:'HexBase._Hex'=None) -> typing.List['HexBase._Hex']:
         if not _hex:
@@ -944,49 +940,6 @@ class Flotilla(FleetBase):
         return list(l)
   #endregion Combat Offensive
     
-  #region Display Information
-    def displayStats(self, display=True, forceRebuild=False):
-        if display and not self.Hidden:
-            if forceRebuild or not self.Widget:
-                get.window().UnitStatDisplay.addWidget(self.getInterface())
-            self.updateInterface()
-        else:
-            #get.window().UnitStatDisplay.Text.setText("No unit selected")
-            if self.Widget:
-                get.window().UnitStatDisplay.removeWidget(self.Widget)
-                self.Widget.deleteLater()
-            self.Widget = None
-    
-    def getInterface(self):
-        self.Widget = AGeWidgets.TightGridFrame()
-        self.NameInput = self.Widget.addWidget(AGeInput.Name(self.Widget,"Name",self,"Name"))
-        self.Label = self.Widget.addWidget(QtWidgets.QLabel(self.Widget))
-        for i in self.Ships:
-            self.Widget.addWidget(i.getQuickView())
-        return self.Widget
-    
-    def updateInterface(self):
-        for i in self.Ships:
-            i.updateInterface()
-        if self.Widget:
-            try:
-                text = textwrap.dedent(f"""
-                Team: {self.Team}
-                Positions: {self.hex().Coordinates}
-                Movement Points: {round(self.MovePoints,3)}/{round(self.MovePoints_max,3)}
-                """).strip()
-                # Hull HP: {[f"{i.Stats.HP_Hull}/{i.Stats.HP_Hull_max}" for i in self.Ships]}
-                # Shield HP: {[f"{i.Stats.HP_Shields}/{i.Stats.HP_Shields_max}" for i in self.Ships]}
-                #Hull: {self.HP_Hull}/{self.HP_Hull_max} (+{self.HP_Hull_Regeneration} per turn (halved if the ship took a single hit that dealt at least {self.NoticeableDamage} damage last turn))
-                #Shields: {self.HP_Shields}/{self.HP_Shields_max} (+{self.HP_Shields_Regeneration} per turn (halved if the ship took a single hit that dealt at least {self.NoticeableDamage} damage last turn))
-                #get.window().UnitStatDisplay.Text.setText(text)
-                self.Label.setText(text)
-            except RuntimeError:
-                self.Widget = None # This usually means that the widget is destroyed but I don't know of a better way to test for it...
-            if len(self.Ships) == 1:
-                get.window().UnitStatDisplay.showDetails(self.Ships[0].getInterface())
-    
-  #endregion Display Information
   #region Highlighting
     def highlightRanges(self, highlight=True):
         """

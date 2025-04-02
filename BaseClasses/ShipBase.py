@@ -303,7 +303,7 @@ class ShipBase():
     def destroy(self, task=None):
         self.Destroyed = True
         try:
-            self.Interface.destroy()
+            self.Interface.destroy() #TODO: Check if this is doing everything correctly
         except:
             ExceptionOutput()
         #try:

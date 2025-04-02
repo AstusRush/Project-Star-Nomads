@@ -96,8 +96,8 @@ class MainWindowClass(AWWF):#APEWindow):
         self.DebugMenu = Debug.DebugMenu(self)
         self.TabWidget.addTab(self.DebugMenu, "Debug Menu")
         
-        self.UnitStatDisplay = BaseInfoWidgets.FleetStats(self)
-        self.TabWidget.addTab(self.UnitStatDisplay, "Unit Stats")
+        self.HexInfoDisplay = BaseInfoWidgets.HexInfoDisplay(self)
+        self.TabWidget.addTab(self.HexInfoDisplay, "Unit Stats")
         
         self.EconomyDisplay = EconomyInfoWidgets.EconomyDisplay(self)
         self.TabWidget.addTab(self.EconomyDisplay, "Economy")

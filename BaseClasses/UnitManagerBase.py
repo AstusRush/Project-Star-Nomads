@@ -94,6 +94,7 @@ class UnitManager():
         if self.selectedUnit:
             self.selectedUnit().unselect()
             self.selectedUnit = None
+        get.window().HexInfoDisplay.clearAll()
     
     def selectUnit(self, fleet):
         if isinstance(fleet, weakref.ref):
@@ -101,14 +102,15 @@ class UnitManager():
         if self.selectedUnit:
             if self.selectedUnit() is fleet:
                 self.selectedUnit().highlightRanges(True)
-            elif not fleet and self.selectedUnit().IsMoving:
-                self.selectedUnit().IsMoving = False
+            elif not fleet and self.selectedUnit().IsMovingFrom:
+                pass
             else:
                 self.selectedUnit().unselect()
                 self.selectedUnit = None
         elif fleet:
             self.selectedUnit =  weakref.ref(fleet)
             self.selectedUnit().select()
+        get.window().HexInfoDisplay.updateInfo()
     
     def isSelectedUnit(self, unit):
         if isinstance(self.selectedUnit, weakref.ref):
@@ -170,7 +172,7 @@ class UnitManager():
         if self.selectedUnit:
             self.selectedUnit().highlightRanges(False)
             self.selectedUnit().highlightRanges(True)
-            self.selectedUnit().displayStats(True)
+            get.window().HexInfoDisplay.updateInfo()
         self.checkAndHandleTeamDefeat()
         self.CurrentlyHandlingTurn = False
         print("Start of player turn")

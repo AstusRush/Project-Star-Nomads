@@ -150,8 +150,8 @@ class EngineClass(ape.APE):
         self.setHexInteractionFunctions()
         self.CurrentlyInBattle = True
         self.BattleType = battleType
-        self.Scene.HexGrid.clearAllSelections()
         self.UnitManager.unselectAll()
+        self.Scene.HexGrid.clearAllSelections()
         self.FleetsInBattle = fleets
         self.CurrentBattleAggressorHex = aggressorHex
         self.CurrentBattleDefenderHex = defenderHex
@@ -278,6 +278,7 @@ class EngineClass(ape.APE):
         if self._HexToLookAtAfterBattle: self.Scene.Camera.moveToHex(self._HexToLookAtAfterBattle)
         else: NC(2,"Can not recentre camera due to unspecified _HexToLookAtAfterBattle")
         NC(3, self.makeBattleLog(fleetLogs), DplStr="Battle Ended") #TODO: Give more information about the battle
+        self.UnitManager.unselectAll()
         if self.UnitManager.CurrentlyHandlingTurn:
             base().taskMgr.add(self.UnitManager._endTurn_handleAICombat())
     
@@ -512,7 +513,7 @@ class EngineClass(ape.APE):
     
     def resetCameraAndSetUnitTab(self):
         get.hexGrid().clearAllSelections()
-        get.window().TabWidget.setCurrentWidget(get.window().UnitStatDisplay)
+        get.window().TabWidget.setCurrentWidget(get.window().HexInfoDisplay)
         get.scene().Camera.resetCameraPosition()
         fleet = get.camera().focusRandomFleet(team=1)
         if fleet:
