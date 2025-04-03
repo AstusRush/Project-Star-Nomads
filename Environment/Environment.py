@@ -84,7 +84,7 @@ class _EnvironmentCreator():
                     if clusterCentre in edges: continue
                     if not (clusterCentre.fleet or clusterCentre.content): break
                 if (clusterCentre.fleet or clusterCentre.content): continue
-                self._createCluster(clusterCentre, combat, clusterTotal, clusterNum, np.prod(hexGrid.Size), edges, pd)
+                self._createCluster(clusterCentre, combat, clusterTotal, clusterNum, np.prod(hexGrid.Size), edges, pd, updateBarForEachEntity=False)
                 if pd.wasCanceled(): break
             get.engine().fastRender()
             pd.setValue(int(clusterTotal*10))
@@ -92,17 +92,29 @@ class _EnvironmentCreator():
             get.window().activateWindow() # ensures that wasd-navigation and other shortcuts work on windows after loading new map
             #VALIDATE: This might work but it is also possible that for wasd-navigation to work the panda3d window needs to get focus instead
     
-    def _createCluster(self, clusterCentre:HexBase._Hex, combat:bool, clusterTotal, clusterNum, numHexes, edges, pd:QtWidgets.QProgressDialog):
+    def _createCluster(self, clusterCentre:HexBase._Hex, combat:bool, clusterTotal, clusterNum, numHexes, edges, pd:QtWidgets.QProgressDialog, updateBarForEachEntity):
+        """
+        Creates a new cluster
+        if updateBarForEachEntity is false it only updates the progressbar every 5 clusters for massively increased performance
+        """
+        #NOTE: updateBarForEachEntity should be False as otherwise rendering the new screen every time slows down the process way too much
         clusterType:'_ClusterType' = random.choice(self.ClusterTypes)()
         currentHex = clusterCentre
         entityTotal = clusterType.getClusterSize(numHexes)
+        if not updateBarForEachEntity and (clusterNum%5==1):
+            get.window().Statusbar.showMessage(f"Generating environment cluster {clusterNum+1}/{clusterTotal}")
+            pd.setValue(int(clusterNum*10))
+            pd.setLabelText(f"Generating environment cluster {clusterNum+1}/{clusterTotal}"+("        " if clusterNum==0 else ""))
+            App().processEvents()
+            get.engine().fastRender()
         for entityNum in range(entityTotal):
             #TODO: Use https://doc.qt.io/qtforpython-5/PySide2/QtWidgets/QProgressDialog.html#PySide2.QtWidgets.PySide2.QtWidgets.QProgressDialog
-            get.window().Statusbar.showMessage(f"Generating entity {entityNum+1}/{entityTotal} for environment cluster {clusterNum+1}/{clusterTotal}")
-            pd.setValue(int(clusterNum*10+(entityNum/entityTotal)*10))
-            #NOTE: The if else in the next line ensures that the dialogue is a bit wider when it opens so that it does not snap wider for double digits etc
-            pd.setLabelText(f"Generating entity {entityNum+1}/{entityTotal} for environment cluster {clusterNum+1}/{clusterTotal}"+("        " if clusterNum==0 and entityNum<2 else ""))
-            App().processEvents()
+            if updateBarForEachEntity:
+                get.window().Statusbar.showMessage(f"Generating entity {entityNum+1}/{entityTotal} for environment cluster {clusterNum+1}/{clusterTotal}")
+                pd.setValue(int(clusterNum*10+(entityNum/entityTotal)*10))
+                #NOTE: The if else in the next line ensures that the dialogue is a bit wider when it opens so that it does not snap wider for double digits etc
+                pd.setLabelText(f"Generating entity {entityNum+1}/{entityTotal} for environment cluster {clusterNum+1}/{clusterTotal}"+("        " if clusterNum==0 and entityNum<2 else ""))
+                App().processEvents()
             object = clusterType.getObjectType()()
             if not combat: objectGroup = EnvironmentalObjectGroups.EnvironmentalObjectGroup_Campaign()
             else: objectGroup = EnvironmentalObjectGroups.EnvironmentalObjectGroup_Battle()
@@ -119,7 +131,7 @@ class _EnvironmentCreator():
             if (candidate.fleet or candidate.content) or candidate in edges: break
             currentHex = candidate
             if pd.wasCanceled(): break
-            get.engine().fastRender()
+            if updateBarForEachEntity: get.engine().fastRender()
 
 
 class EnvironmentCreator_Battle(_EnvironmentCreator):
