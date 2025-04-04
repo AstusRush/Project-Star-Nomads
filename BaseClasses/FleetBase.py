@@ -199,11 +199,13 @@ class FleetBase():
     def addShip(self, ship:'ShipBase.ShipBase'):
         self._addShip(ship)
         self.arrangeShips()
+        self.updateInterface()
     
     def addShips(self, ships:typing.List['ShipBase.ShipBase']):
         for ship in ships:
             self._addShip(ship)
         self.arrangeShips()
+        self.updateInterface()
     
     def removeShip(self, ship:'ShipBase.ShipBase', arrange:bool=True, notifyIfNotContained:bool=True) -> bool:
         """
@@ -212,6 +214,7 @@ class FleetBase():
         """
         if ship in self.Ships:
             self.Ships.remove(ship)
+            self.updateInterface()
             if self.Ships and arrange: self.arrangeShips()
         else:
             if notifyIfNotContained: NC(2,f"SHIP WAS NOT IN SHIP LIST\nFleet name: {self.Name}\nShip name: {ship.Name}", tb=True) #TODO: give more info

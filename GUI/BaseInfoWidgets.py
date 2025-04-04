@@ -220,12 +220,26 @@ class FleetStats(AGeWidgets.TightGridFrame):
     def makeInterface(self): #TODO: Overhaul this! The displayed information should not be the combat interface but the campaign interface!
         self.NameInput = self.addWidget(AGeInput.Name(self,"Name",self.fleet(),"Name"))
         self.Label = self.addWidget(QtWidgets.QLabel(self))
-        for i in self.fleet().Ships:
-            self.addWidget(i.getQuickView())
+        for ship in self.fleet().Ships:
+            self.addWidget(ship.getQuickView())
     
     def updateInterface(self):
-        for i in self.fleet().Ships:
-            i.updateInterface()
+        for ship in self.fleet().Ships:
+            ship.updateInterface()
+        for widget in self:
+            if isinstance(widget, ShipQuickView):
+                if TYPE_CHECKING: widget:'ShipQuickView' = widget
+                if (not widget.ship) or (widget.ship() not in self.fleet().Ships):
+                    self.layout().removeWidget(widget)
+        for ship in self.fleet().Ships:
+            found = False
+            for widget in self:
+                if isinstance(widget, ShipQuickView):
+                    if TYPE_CHECKING: widget:'ShipQuickView' = widget
+                    if widget.ship and widget.ship() == ship:
+                        found = True
+                        break
+            if not found: self.addWidget(ship.getQuickView())
         if self.fleet()._IsFleet:
             text = textwrap.dedent(f"""
             Team: {self.fleet().TeamName}
@@ -317,7 +331,7 @@ class ShipInterface:
     def destroy(self):
         pass
     
-    def getQuickView(self) -> QtWidgets.QWidget:
+    def getQuickView(self) -> 'ShipQuickView':
         self.QuickView = ShipQuickView(self.ship())
         return self.QuickView
     

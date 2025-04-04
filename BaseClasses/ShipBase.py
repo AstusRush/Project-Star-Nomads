@@ -301,6 +301,10 @@ class ShipBase():
         self.ShieldsWereOffline = False
     
     def destroy(self, task=None):
+        if self.Interface.QuickView:
+            try:
+                self.Interface.QuickView.ship = None
+            except: pass
         self.Destroyed = True
         try:
             self.Interface.destroy() #TODO: Check if this is doing everything correctly
@@ -517,7 +521,7 @@ class ShipBase():
         return ship
   #endregion Save/Load
   #region Interface
-    def getQuickView(self) -> QtWidgets.QWidget:
+    def getQuickView(self):
         return self.Interface.getQuickView()
     
     def getInterface(self) -> QtWidgets.QWidget:
