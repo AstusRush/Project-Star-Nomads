@@ -306,7 +306,7 @@ class EngineClass(ape.APE):
         # else:
         #     return self.Scene.HexGrid
     
-    def getScene(self, campaign = None) -> 'Scene.BaseScene':
+    def getScene(self, campaign:bool = None) -> 'Scene.BaseScene':
         if campaign is None:
             campaign = not bool(self.BattleScene)
         if campaign:

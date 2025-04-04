@@ -67,6 +67,9 @@ class ResourceAsteroid(HarvestableEnvironmentalObject):
     ClassName = "Asteroid"
     def __init__(self, generateModel=True) -> None:
         super().__init__()
+        self.IsBlockingTilePartially  = True
+        self.IsBlockingTileCompletely = False
+        self.IsBackgroundObject       = True
         self.addModule(BaseModules.Asteroid_Hull())
         self.addModule(BaseEconomicModules.Asteroid_Resources())
         resourceScale = 4
@@ -89,3 +92,33 @@ class ResourceAsteroid(HarvestableEnvironmentalObject):
         if model is None:
             model = ProceduralModels.ProceduralModel_Asteroid(resourceTypeName=self.ResourceTypeName)
         return super().setModel(model)
+
+class Debris(HarvestableEnvironmentalObject):
+    Name = "Debris"
+    ClassName = "Debris"
+    def __init__(self, generateModel=True) -> None:
+        super().__init__()
+        self.IsBlockingTilePartially  = False
+        self.IsBlockingTileCompletely = False
+        self.IsBackgroundObject       = True
+        self.addModule(BaseModules.Hull())
+        self.addModule(BaseEconomicModules.Debris_Resources())
+        if generateModel:
+            #self.setModel(ProceduralModels.ProceduralModel_Debris())
+            self.setModel(ProceduralModels.ProceduralModel_Asteroid())
+            if not self.Model.CouldLoadModel and self.Model.Model: self.Model.Model.setColor(ape.colour(QtGui.QColor(0x6d4207)))
+    
+    def setModel(self, model: 'typing.Union[ModelBase.ModelBase,None]'):
+        if model is None:
+            #model = ProceduralModels.ProceduralModel_Debris()
+            model = ProceduralModels.ProceduralModel_Asteroid()
+        return super().setModel(model)
+    
+    def handleNewCampaignTurn(self):
+        #TODO: Instead of checking this in the turn of team -1 it should be checked after harvesting resources
+        #       but I am currently hesitant to implement that in the harvesting method as this could lead to a whole bunch of Problems later on
+        #       so, for the moment, I am going to leave the code for that here as this is, while not the prettiest from the players perspective
+        #       at least completely future-proof and robust
+        super().handleNewCampaignTurn()
+        if not bool(self.ResourceManager.storedResources()):
+            self.destroy()

@@ -105,6 +105,7 @@ def spawnAsteroidAtSelectedHex():
 
 def spawnSalvageAtSelectedHex(amount=1.0):
     from Economy import Resources
+    #TODO: This should instead spawn a debris "fleet"
     if get.hexGrid().SelectedHex:
         get.hexGrid().SelectedHex.ResourcesHarvestable.add(Resources.Salvage(amount))
     else:

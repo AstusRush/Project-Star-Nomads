@@ -220,6 +220,10 @@ class ProceduralModel_Nebula(_ProceduralModel):
     def generateModel(self):
         raise NotImplementedError("#TODO: Procedurally generate nebulas")
 
+class ProceduralModel_Debris(_ProceduralModel):
+    def generateModel(self):
+        raise NotImplementedError("#TODO: Procedurally generate debris")
+
 class ProceduralModel_Sphere(_ProceduralModel):
     def generateModel(self):
         gb = GeomBuilder.GeomBuilder('sphere')

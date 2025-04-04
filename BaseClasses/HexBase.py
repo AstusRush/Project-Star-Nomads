@@ -576,7 +576,6 @@ class _Hex():
     
     def selectContent(self, select:bool = True):
         return
-        #TODO: Show content in UI
         #if select:
         #    get.unitManager().selectUnit(self.fleet)
         #else:
@@ -590,7 +589,12 @@ class _Hex():
     def hideContent(self):
         for i in self.content:
             if i:
-                i().hide()
+                try:
+                    i().hide()
+                except:
+                    NC(2,exc=True)
+            else:
+                self.content.remove(i)
         if self.fleet:
             self.fleet().hide()
             if self.CurrentColour_Edge == self.getNormalEdgeColour():
@@ -603,7 +607,12 @@ class _Hex():
     def showContent(self):
         for i in self.content:
             if i:
-                i().show()
+                try:
+                    i().show()
+                except:
+                    NC(2,exc=True)
+            else:
+                self.content.remove(i)
         if self.fleet:
             self.fleet().show()
             if self.CurrentColour_Edge == self.COLOUR_NORMAL:

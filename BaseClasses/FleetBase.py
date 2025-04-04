@@ -119,7 +119,9 @@ class FleetBase():
         
         self.Node = p3dc.NodePath(p3dc.PandaNode(f"Central node of fleet {id(self)}"))
         #self.Node.reparentTo(render())
-        self.Node.reparentTo(get.engine().getSceneRootNode())
+        #self.Node.reparentTo(get.engine().getSceneRootNode())
+        self.Node.reparentTo(get.engine().getScene(self._IsFleet).HexGrid.Root)
+        
         self.TeamRing = TeamRing(self, team, self.Node)
         
         self.MovementSequence:p3ddSequence = None
@@ -314,8 +316,8 @@ class FleetBase():
   #endregion Interaction
   #region Movement
     def moveToHex(self, hex:'HexBase._Hex', animate=True):
-        self.Coordinates = hex.Coordinates
         if self.isBackgroundObject():
+            self.Coordinates = hex.Coordinates
             if animate and self.hex:
                 self.Node.lookAt(hex.Pos)
                 #time = min(6, np.sqrt(sum([i**2 for i in list(self.Node.getPos()-hex.Pos)])) )/6
@@ -328,12 +330,13 @@ class FleetBase():
             #    raise Exception("Could not assign unit to Hex")
             #if hex.fleet() != self: #TODO: We have a serious problem when this occurs. What do we do in that case?
             #    raise Exception(f"Could not assign unit to Hex. (The Hex has a different fleet assigned that is named {hex.fleet()})")
-            if self.hex: self.hex().fleet = None
+            if self.hex: self.hex().content.remove(self)
             self.hex = weakref.ref(hex)
         elif hex.fleet:
             if hex.fleet() is not self:
                 raise HexBase.HexOccupiedException(hex)
         else:
+            self.Coordinates = hex.Coordinates
             if animate and self.hex:
                 self.Node.lookAt(hex.Pos)
                 #time = min(6, np.sqrt(sum([i**2 for i in list(self.Node.getPos()-hex.Pos)])) )/6
@@ -791,7 +794,19 @@ class Fleet(FleetBase):
             salvage += ship.Stats.Value/8
             self.removeShip(ship,arrange=False)
         if get.engine().DebugPrintsEnabled: print("Ships in fleet after cleanup:", len(self.Ships))
-        hex_.ResourcesHarvestable.add(salvage)
+        
+        #hex_.ResourcesHarvestable.add(salvage)
+        if salvage != 0:
+            print("salvage:",salvage)
+            from Environment import EnvironmentalObjectGroups
+            debrisFleet = EnvironmentalObjectGroups.EnvironmentalObjectGroup_Campaign()
+            debrisFleet.Name = "Debris of Fleet: "+self.Name
+            from Economy import HarvestableObjects
+            debris = HarvestableObjects.Debris()
+            debris.ResourceManager.addDirect(salvage)
+            debrisFleet.addShip(debris)
+            debrisFleet.moveToHex(hex_, False)
+        
         if self.Destroyed:
             return {"salvage":Resources._ResourceDict.new(salvage)}
         else:

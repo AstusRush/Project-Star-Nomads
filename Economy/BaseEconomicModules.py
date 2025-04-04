@@ -496,4 +496,9 @@ class CrystalMiningModule(HarvestModule):
 class Asteroid_Resources(Cargo):
     Name = "Resource Rich Asteroid"
     Buildable = False
-    _Capacity = 200
+    _Capacity = float("inf")
+
+class Debris_Resources(Cargo):
+    Name = "Salvageable Debris"
+    Buildable = False
+    _Capacity = float("inf")
