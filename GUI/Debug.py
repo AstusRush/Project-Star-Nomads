@@ -104,10 +104,17 @@ def spawnAsteroidAtSelectedHex():
     objectGroup.moveToHex(currentHex, False)
 
 def spawnSalvageAtSelectedHex(amount=1.0):
-    from Economy import Resources
-    #TODO: This should instead spawn a debris "fleet"
     if get.hexGrid().SelectedHex:
-        get.hexGrid().SelectedHex.ResourcesHarvestable.add(Resources.Salvage(amount))
+        #get.hexGrid().SelectedHex.ResourcesHarvestable.add(Resources.Salvage(amount))
+        from Environment import EnvironmentalObjectGroups
+        debrisFleet = EnvironmentalObjectGroups.EnvironmentalObjectGroup_Campaign()
+        debrisFleet.Name = "Spontaneous Debris"
+        from Economy import HarvestableObjects
+        debris = HarvestableObjects.Debris()
+        from Economy import Resources
+        debris.ResourceManager.addDirect(Resources.Salvage(amount))
+        debrisFleet.addShip(debris)
+        debrisFleet.moveToHex(get.hexGrid().SelectedHex, False)
     else:
         NC(2,"No Hex is selected")
 

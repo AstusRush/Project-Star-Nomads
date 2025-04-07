@@ -797,7 +797,6 @@ class Fleet(FleetBase):
         
         #hex_.ResourcesHarvestable.add(salvage)
         if salvage != 0:
-            print("salvage:",salvage)
             from Environment import EnvironmentalObjectGroups
             debrisFleet = EnvironmentalObjectGroups.EnvironmentalObjectGroup_Campaign()
             debrisFleet.Name = "Debris of Fleet: "+self.Name
