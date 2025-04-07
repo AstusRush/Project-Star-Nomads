@@ -475,10 +475,7 @@ class _Hex():
             self.grid = weakref.ref(grid)
             self.ResourcesFree = Resources._ResourceDict()
             self.ResourcesHarvestable = Resources._ResourceDict()
-            #CRITICAL: The resources must be saved!
-            #CRITICAL: When a hex contains resources it should be marked as such (at least colour the face brown...)
-            #CRITICAL: There needs to be something that shows the player which resources are on a tile
-            #CRITICAL: There needs to be a way to pick up resources (and to drop them if desired)
+            #TODO: The resources should either be saved or we should get rid of this system and just create container Background Objects!
             
             # Save cube coordinates
             self.CubeCoordinates = grid.coordToCube(coordinates)

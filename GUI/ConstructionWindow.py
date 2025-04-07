@@ -514,7 +514,7 @@ class ModuleList(QtWidgets.QListWidget):
             NC(2, f"You can not remove essential modules. You can, however, replace them.")
             return
         if self.lifeEditing() and isinstance(item.data(100),(BaseEconomicModules.Cargo)):
-            NC(2, f"You can currently not remove cargo modules o ships as this could lead to a loss of resources.")
+            NC(2, f"You can currently not remove cargo modules of ships as this could lead to a loss of resources.")
             return #CRITICAL: Removing cargo modules while life editing should be allowed if the cargo can be transferred to other cargo modules in the fleet
         if item.data(100) is self.constructionWidget().constructionModule():
             NC(2, f"Can not remove active construction module")
@@ -637,7 +637,7 @@ class ModuleEditor(AGeWidgets.TightGridFrame):
                 NC(2, f"Can not edit active construction module")
                 return
             if self.parent().lifeEditing() and isinstance(self.ActiveModule,(BaseEconomicModules.Cargo)):
-                NC(2, f"You can currently not edit cargo modules o ships as this could lead to a loss of resources.")
+                NC(2, f"You can currently not edit cargo modules of ships as this could lead to a loss of resources.")
                 return #CRITICAL: Editing cargo modules while life editing should be allowed if the cargo can be transferred to other cargo modules in the fleet or if the size is simply increased
             costBefore = self.ActiveModule.resourceCost()
             statsBefore = self.ActiveModule.tocode_AGeLib_GetDict()
