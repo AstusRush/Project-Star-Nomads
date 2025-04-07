@@ -90,7 +90,7 @@ vec3 star(vec2 p2, vec3 p) {
     
     //starIntensity *= maxComponent(texture2D(PointStar_Data, vec2(floor(TheX),floor(TheY))));
     //starIntensity *= maxComponent(texture2D(PointStar_Data, vec2(floor(ps.x)+floor(ps.y),0)));
-    if(texture2D(PointStar_Data, cords.xy) == 0) return vec3(0,0,0);
+    if(texture2D(PointStar_Data, cords.xy) == vec4(0)) return vec3(0,0,0);
     
     return starIntensity * (1-(texture2D(PointStar_Data, cords.xy).rgb)*0.25);
     //return starIntensity * (1-(texture2D(PointStar_Data, cords.xy).rgb)*0.25) * (1 - blinkIntensity/2 + sin(osg_FrameTime*2+(mod(floor(noise_n(cords)*80),20)))*(blinkIntensity/2) );
@@ -134,7 +134,7 @@ vec4 star_bright(vec2 p2, vec3 p) {
     
     vec3 c = vec3(0);
     
-    if(starIntensity < 0.1 || texture2D(BrightStar_Data, cords.xy) == 0){
+    if(starIntensity < 0.1 || texture2D(BrightStar_Data, cords.xy) == vec4(0)){
         starIntensity = 0;
     }else if(starIntensity < 0.8){
         c = texture2D(BrightStar_Data, cords.xy).rgb;
