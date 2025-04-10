@@ -575,3 +575,32 @@ class GeomBuilder(GeomBuilder_base.GeomBuilder):
             self._commit_polygon(Polygon(vertices), c, uv)#c)
         
         return self
+    
+    def add_debris(self,
+                center: 'tuple[float, float, float]' = (0, 0, 0),
+                inner_radius: float = 8.0,
+                outer_radius: float = 10.0,
+                num_debris_min: int = 30,
+                num_debris_max: int = 50,
+                debris_size_range: 'tuple[float, float]' = (0.2, 1.0),
+                color: 'tuple[float, float, float, float]' = (0.5, 0.5, 0.5, 1),
+                rng: 'np.random.Generator' = None):
+        if rng is None:
+            rng = self.rng
+        
+        for _ in range(rng.integers(num_debris_min,num_debris_max)):
+            # Generate a random position within the circular ring
+            angle = rng.uniform(0, 2 * math.pi)
+            radius = rng.uniform(inner_radius, outer_radius)
+            x = center[0] + radius * math.cos(angle)
+            y = center[1] + radius * math.sin(angle)
+            z = center[2] + rng.uniform(-1.0, 1.0)  # Add some vertical variation
+            debris_center = (x, y, z)
+            # Generate a random size for the debris
+            debris_size = (rng.uniform(*debris_size_range), rng.uniform(*debris_size_range), rng.uniform(*debris_size_range))
+            # Add some rotation to make it look less boring
+            rotation = p3dc.LRotationf(rng.uniform(0,90),rng.uniform(0,90),rng.uniform(0,90))
+            # Add a block as debris #MAYBE: randomly select between block and other shapes to give some variation
+            self.add_block(center=debris_center, size=debris_size, rot=rotation, color=color)
+        
+        return self

@@ -222,7 +222,17 @@ class ProceduralModel_Nebula(_ProceduralModel):
 
 class ProceduralModel_Debris(_ProceduralModel):
     def generateModel(self):
-        raise NotImplementedError("#TODO: Procedurally generate debris")
+        gb = GeomBuilder.GeomBuilder('Debris')
+        gb.add_debris()
+        node = p3dc.NodePath(gb.get_geom_node())
+        return node
+    
+    def tocode_AGeLib(self, name="", indent=0, indentstr="    ", ignoreNotImplemented = False) -> typing.Tuple[str,dict]:
+        ret, imp = f"ProceduralModels.ProceduralModel_Debris(seed={self.Seed})", {}
+        if name:
+            ret += name + " = "
+        imp.update(IMP_PROCMODEL)
+        return ret, imp
 
 class ProceduralModel_Sphere(_ProceduralModel):
     def generateModel(self):

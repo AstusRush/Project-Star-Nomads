@@ -103,15 +103,14 @@ class Debris(HarvestableEnvironmentalObject):
         self.IsBackgroundObject       = True
         self.addModule(BaseModules.Hull())
         self.addModule(BaseEconomicModules.Debris_Resources())
+        #TODO: Make number of debris blocks dependent on amount of salvage
         if generateModel:
-            #self.setModel(ProceduralModels.ProceduralModel_Debris())
-            self.setModel(ProceduralModels.ProceduralModel_Asteroid())
+            self.setModel(ProceduralModels.ProceduralModel_Debris())
             if not self.Model.CouldLoadModel and self.Model.Model: self.Model.Model.setColor(ape.colour(QtGui.QColor(0x6d4207)))
     
     def setModel(self, model: 'typing.Union[ModelBase.ModelBase,None]'):
         if model is None:
-            #model = ProceduralModels.ProceduralModel_Debris()
-            model = ProceduralModels.ProceduralModel_Asteroid()
+            model = ProceduralModels.ProceduralModel_Debris()
         return super().setModel(model)
     
     def handleNewCampaignTurn(self):

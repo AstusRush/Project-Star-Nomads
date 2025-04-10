@@ -79,6 +79,8 @@ class HexInfoDisplay(QtWidgets.QSplitter):
         self.addWidget(self.HexText)
     
     def updateInfo(self):
+        #MAYBE: Instead of updating immediately, this could trigger a 0.05 second timer which triggers the update to avoid repeated update calls in loops or similar situations
+        #           Each new update call would then be ignored if the timer is already running or reset the time of the timer.
         if get.hexGrid().SelectedHex: self.HexText.setText(get.hexGrid().SelectedHex.Name)
         else: self.HexText.setText("")
         

@@ -625,8 +625,10 @@ class FleetBase():
                 s.Model.setScale((1.5/3)/(s.Model.Model.getBounds().getRadius())*pow(s.Stats.Mass,1/rootFac)/maxMassCRoot/s.Model.LengthFactor)
                 s.Model._centreModel()
                 s.setPos(0,0,0)
+                #MAYBE: If the ship is a Background Object, maybe it would be good to lower the position to ensure that fleets are better visible when occupying the same tile (so setPos(0,0,-1) or something like that)
             else:
                 s.setPos(0,0,0)
+                #MAYBE: If the ship is a Background Object, maybe it would be good to lower the position to ensure that fleets are better visible when occupying the same tile (so setPos(0,0,-1) or something like that)
         else: # Case for fleets with multiple ships
             #maxSize = max([i.Model.Model.getBounds().getRadius() for i in self.Ships])
             #maxSize = [0,0,0]
@@ -648,6 +650,7 @@ class FleetBase():
                 s.Model.setScale((1.5/max(num,3))/(s.Model.Model.getBounds().getRadius())*pow(s.Stats.Mass,1/rootFac)/maxMassCRoot/s.Model.LengthFactor)
                 s.Model._centreModel()
                 s.setPos((1/num)*((num-1)/2-i),0,0) #REMINDER: Might want to change this to set the spacing relative to ship width to ensure that small ships are tighter/get less space than large ships in fleets
+                #MAYBE: If the ship is a Background Object, maybe it would be good to lower the position to ensure that fleets are better visible when occupying the same tile (so setPos((1/num)*((num-1)/2-i),0,-1) or something like that)
   #endregion model
     
   #region Detection #TODO: Should we distinguish between campaign and battle sensors? These are different scales but I can't think of a good gameplay reason...
