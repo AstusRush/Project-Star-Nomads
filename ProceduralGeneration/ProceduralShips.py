@@ -135,11 +135,11 @@ class ModuleTypes:
     class FrontSection(ModuleType):
         @classmethod
         def wedge(cls, gb:'GeomBuilder_Ships.ShipBuilder',module:'ShipModule') -> 'GeomBuilder_Ships.ShipBuilder':
-            return gb.add_frontSection_wedge(module, connection=p3dc.Point3(0,0,0), connection_size=2, width=4, length=8, height=2.5, color=module.ship().TeamColour) #(0.6,0.4,1,1))
+            return gb.add_frontSection(module, connection=p3dc.Point3(0,0,0), connection_size=2, width=4, length=8, height=2.5, shape=module.ship().getFrontsectionStyle(), color=module.ship().TeamColour) #(0.6,0.4,1,1))
     class MidSection(ModuleType):
         @classmethod
         def block(cls, gb:'GeomBuilder_Ships.ShipBuilder',module:'ShipModule') -> 'GeomBuilder_Ships.ShipBuilder':
-            return gb.add_midSection_block(module, connection_front=p3dc.Point3(0,0,0), connection_front_size=2, connection_rear=p3dc.Point3(0,-3,0), connection_rear_size=2, width=4, height=2.5, color=module.ship().TeamColour)
+            return gb.add_midSection(module, connection_front=p3dc.Point3(0,0,0), connection_front_size=2, connection_rear=p3dc.Point3(0,-3,0), connection_rear_size=2, width=4, height=2.5, shape=module.ship().getMidsectionStyle(),color=module.ship().TeamColour)
     class AftSection(ModuleType):
         @classmethod
         def cone(cls, gb:'GeomBuilder_Ships.ShipBuilder',module:'ShipModule') -> 'GeomBuilder_Ships.ShipBuilder':
@@ -154,11 +154,11 @@ class ModuleTypes:
     class ConstructionBay(ModuleType):
         @classmethod
         def block(cls, gb:'GeomBuilder_Ships.ShipBuilder',module:'ShipModule') -> 'GeomBuilder_Ships.ShipBuilder':
-            return gb.add_midSection_block(module, connection_front=p3dc.Point3(0,0,0), connection_front_size=2, connection_rear=p3dc.Point3(0,-10,0), connection_rear_size=2, width=8, height=4, color=module.ship().TeamColour) #(1,0.3,1,1))
+            return gb.add_midSection(module, connection_front=p3dc.Point3(0,0,0), connection_front_size=2, connection_rear=p3dc.Point3(0,-10,0), connection_rear_size=2, width=8, height=4, shape=module.ship().getMidsectionStyle(),color=module.ship().TeamColour) #(1,0.3,1,1))
     class ShieldGenerator(ModuleType):
         @classmethod
         def block(cls, gb:'GeomBuilder_Ships.ShipBuilder',module:'ShipModule') -> 'GeomBuilder_Ships.ShipBuilder':
-            return gb.add_midSection_block(module, connection_front=p3dc.Point3(0,0,0), connection_front_size=2, connection_rear=p3dc.Point3(0,-module.logicalModule().HP_Shields_max/100,0), connection_rear_size=2, width=4, height=2.5, color=(0.7,0.2,1,1))
+            return gb.add_midSection(module, connection_front=p3dc.Point3(0,0,0), connection_front_size=2, connection_rear=p3dc.Point3(0,-module.logicalModule().HP_Shields_max/100,0), connection_rear_size=2, width=4, height=2.5, shape=module.ship().getMidsectionStyle(),color=(0.7,0.2,1,1))
     class HardpointSection(ModuleType):
         @classmethod
         def block(cls, gb:'GeomBuilder_Ships.ShipBuilder',module:'ShipModule') -> 'GeomBuilder_Ships.ShipBuilder':
@@ -177,6 +177,11 @@ class ProceduralShip(ProceduralModels._ProceduralModel):
         if ship and ship.fleet:
             self.TeamColour = ape.colour(App().Theme["Star Nomads"][f"Team {ship.fleet().Team}"])
         super().__init__(loadImmediately=loadImmediately,seed=seed,ship=ship)
+    
+    def getFrontsectionStyle(self):
+        return "" #TODO: Styles
+    def getMidsectionStyle(self):
+        return "" #TODO: Styles
     
     def tocode_AGeLib(self, name="", indent=0, indentstr="    ", ignoreNotImplemented = False) -> typing.Tuple[str,dict]:
         # We save the models by not saving them since this tells the ships to autogenerate new procedural models which is exactly what we want

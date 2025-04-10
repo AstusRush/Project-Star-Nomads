@@ -79,7 +79,7 @@ else:
     from GUI import BaseInfoWidgets, Windows, WidgetsBase
     from Economy import Resources
     import Ships
-    from ProceduralGeneration import SkyboxGeneration
+    from ProceduralGeneration import SkyboxGeneration, GeomBuilder_Ships
     
     if __name__ == '__main__':
         ape.start(WindowTitle, MainAppClass.EngineClass, Scene.BaseClass, MainAppClass.AppClass, Windows.MainWindowClass, WidgetsBase.PandaWidget, True, SupportsRenderPipeline)

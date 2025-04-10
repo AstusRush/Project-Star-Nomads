@@ -51,8 +51,8 @@ class ShipBuilder(GeomBuilder.GeomBuilder):
     def genShip(self):
         try:
             connection_size = 2
-            self.add_frontSection_wedge(color=(0.6,0.4,1,1), connection=p3dc.Point3(0,0,0), connection_size=connection_size, width=4, length=8, height=2.5)
-            self.add_midSection_block(color=(1,0.3,1,1), connection_front=p3dc.Point3(0,0,0), connection_front_size=connection_size, connection_rear=p3dc.Point3(0,-10,0), connection_rear_size=connection_size, width=4, height=2.5)
+            self.add_frontSection(color=(0.6,0.4,1,1), connection=p3dc.Point3(0,0,0), connection_size=connection_size, width=4, length=8, height=2.5)
+            self.add_midSection(color=(1,0.3,1,1), connection_front=p3dc.Point3(0,0,0), connection_front_size=connection_size, connection_rear=p3dc.Point3(0,-10,0), connection_rear_size=connection_size, width=4, height=2.5)
             return self
         except:
             NC(1,exc=True)
@@ -86,7 +86,7 @@ class ShipBuilder(GeomBuilder.GeomBuilder):
         #else: NC(2,f"{direction = } is invalid!",tb=True,func="ShipBuilder.add_connection")
         return self
     
-    def add_frontSection_wedge(self,
+    def add_frontSection_wedge_old(self,
                 module:'ProceduralShips.ShipModule',
                 connection:'typing.Union[p3dc.Point3,typing.Iterable[float,float,float]]',
                 connection_size:float,
@@ -101,7 +101,22 @@ class ShipBuilder(GeomBuilder.GeomBuilder):
         self.add_wedge(base=connection+p3dc.Point3(0,length,0), top=connection+p3dc.Point3(0,0,-height/2), width=width, rot=p3dc.LRotationf(0,180,0), color=color)
         return self
     
-    def add_midSection_block(self,
+    def add_frontSection(self,
+                module:'ProceduralShips.ShipModule',
+                connection:'typing.Union[p3dc.Point3,typing.Iterable[float,float,float]]',
+                connection_size:float,
+                width:float,
+                length:float,
+                height:float,
+                color:'tuple[float,float,float,float]' = (0,0,0,1),
+                shape:str=""):
+        connection = self.toPoint3(connection)
+        module.addConnector("rear", position=connection, connection_size=connection_size, color=color)
+        self.add_wedge(base=connection+p3dc.Point3(0,length,0), top=connection+p3dc.Point3(0,0,+height/2), width=width, rot=p3dc.LRotationf(0,180,0), color=color)
+        self.add_wedge(base=connection+p3dc.Point3(0,length,0), top=connection+p3dc.Point3(0,0,-height/2), width=width, rot=p3dc.LRotationf(0,180,0), color=color)
+        return self
+    
+    def add_midSection_block_old(self,
                 module:'ProceduralShips.ShipModule',
                 connection_front:'typing.Union[p3dc.Point3,typing.Iterable[float,float,float]]',
                 connection_front_size:float,
@@ -118,6 +133,164 @@ class ShipBuilder(GeomBuilder.GeomBuilder):
         module.addConnector(ProceduralShips.Directions.front, position=connection_front, connection_size=connection_front_size, color=color)
         self.add_block(center=block_center, size=(width,((connection_front-connection_rear)).y,height), color=color)
         module.addConnector(ProceduralShips.Directions.rear, position=connection_rear, connection_size=connection_rear_size, color=color)
+        return self
+    
+    def add_midSection(self,
+                    module: 'ProceduralShips.ShipModule',
+                    connection_front: 'typing.Union[p3dc.Point3, typing.Iterable[float, float, float]]',
+                    connection_front_size: float,
+                    connection_rear: 'typing.Union[p3dc.Point3, typing.Iterable[float, float, float]]',
+                    connection_rear_size: float,
+                    width: float,
+                    height: float,
+                    color: 'tuple[float, float, float, float]' = (0, 0, 0, 1),
+                    shape:'typing.Union[str,typing.List[str],typing.Tuple[str],None]'=""):
+        connection_front, connection_rear = self.toPoint3(connection_front), self.toPoint3(connection_rear)
+        block_center = connection_rear + (connection_front - connection_rear) / 2
+        module.addConnector("front", position=connection_front, connection_size=connection_front_size, color=color)
+        module.addConnector("rear", position=connection_rear, connection_size=connection_rear_size, color=color)
+        
+        if not shape:
+            shape = self.rng.choice([
+                                            "block",
+                                            "cylinder",
+                                            #"dome", #TODO: Does not look good yet...
+                                            "tapered",
+                                            #"winged", #TODO: Does not look good yet...
+                                            "ribbed",
+                                            #"scaled", #TODO: Does not look good yet...
+                                            #"spherical", #TODO: Does not look good yet...
+                                            "multi",
+                                            ])
+        if not isinstance(shape, str):
+            shape = self.rng.choice(shape)
+        
+        if shape == "block":
+            self.add_block(center=block_center, size=(width, ((connection_front - connection_rear)).y, height), color=color)
+        elif shape == "cylinder":
+            self.add_cylindrical_midsection(center=block_center, radius=width / 2, height=((connection_front - connection_rear)).y, color=color)
+        elif shape == "dome":
+            self.add_dome_midsection(center=block_center, radius=width / 2, height=height, color=color)
+        elif shape == "tapered":
+            self.add_tapered_midsection(base_center=block_center, top_center=block_center, base_width=width, top_width=width / 2, height=((connection_front - connection_rear)).y, color=color)
+        elif shape == "winged":
+            self.add_winged_midsection(center=block_center, width=width, length=((connection_front - connection_rear)).y, thickness=height / 4, color=color)
+        elif shape == "ribbed":
+            self.add_ribbed_midsection(center=block_center, width=width, height=((connection_front - connection_rear)).y, depth=height, rib_count=5, rib_thickness=0.2, color=color)
+        elif shape == "scaled":
+            self.add_scaled_midsection(center=block_center, width=width, height=((connection_front - connection_rear)).y, depth=height, scale_count=5, scale_spacing=0.5, color=color)
+        elif shape == "spherical":
+            self.add_spherical_midsection(center=block_center, radius=width / 4, sphere_count=3, spacing=width / 2, color=color)
+        elif shape == "multi":
+            self.add_multi_layered_midsection(center=block_center, width=width, height=((connection_front - connection_rear)).y, depth=height, layer_count=5, variance_divisor=4, color=color)
+        
+        # GeomBuilder_Ships.ShipBuilder.add_midSection_block
+        return self
+    
+    def add_cylindrical_midsection(self,
+                                    center: 'tuple[float, float, float]',
+                                    radius: float,
+                                    height: float,
+                                    color: 'tuple[float, float, float, float]' = (0, 0, 0, 1)):
+        base = p3dc.Point3(center[0], center[1] - height / 2, center[2])
+        top = p3dc.Point3(center[0], center[1] + height / 2, center[2])
+        self.add_cylinder(base=base, base_radius=radius, top=top, top_radius=radius, color=color)
+        return self
+    
+    def add_dome_midsection(self,
+                            center: 'tuple[float, float, float]',
+                            radius: float,
+                            height: float,
+                            color: 'tuple[float, float, float, float]' = (0, 0, 0, 1)):
+        dome_center = (center[0], center[1] + height / 2, center[2])
+        self.add_dome(center=dome_center, radius=radius, color=color)
+        return self
+    
+    def add_tapered_midsection(self,
+                                base_center: 'tuple[float, float, float]',
+                                top_center: 'tuple[float, float, float]',
+                                base_width: float,
+                                top_width: float,
+                                height: float,
+                                color: 'tuple[float, float, float, float]' = (0, 0, 0, 1)):
+        base = p3dc.Point3(base_center[0], base_center[1] - height / 2, base_center[2])
+        top = p3dc.Point3(top_center[0], top_center[1] + height / 2, top_center[2])
+        self.add_cylinder(base=base, base_radius=base_width / 2, top=top, top_radius=top_width / 2, color=color)
+        return self
+    
+    def add_winged_midsection(self,
+                            center: 'tuple[float, float, float]',
+                            width: float,
+                            length: float,
+                            thickness: float,
+                            color: 'tuple[float, float, float, float]' = (0, 0, 0, 1)):
+        self.add_block(center=center, size=(width, length, thickness), color=color)
+        # Add wings
+        wing_offset = width / 2 + thickness / 2
+        self.add_wedge(base=p3dc.Point3(center[0] - wing_offset, center[1], center[2]),
+                        top=p3dc.Point3(center[0] - wing_offset - length / 2, center[1], center[2] + thickness / 2),
+                        width=length, color=color)
+        self.add_wedge(base=p3dc.Point3(center[0] + wing_offset, center[1], center[2]),
+                        top=p3dc.Point3(center[0] + wing_offset + length / 2, center[1], center[2] + thickness / 2),
+                        width=length, color=color)
+        return self
+    
+    def add_ribbed_midsection(self,
+                            center: 'tuple[float, float, float]',
+                            width: float,
+                            height: float,
+                            depth: float,
+                            rib_count: int,
+                            rib_thickness: float,
+                            color: 'tuple[float, float, float, float]' = (0, 0, 0, 1)):
+        self.add_block(center=center, size=(width, height, depth), color=color)
+        # Add ribs
+        rib_spacing = height / (rib_count + 1)
+        for i in range(1, rib_count + 1):
+            rib_center = (center[0], center[1] - height / 2 + i * rib_spacing, center[2])
+            self.add_block(center=rib_center, size=(width + rib_thickness, rib_thickness, depth + rib_thickness), color=color)
+        return self
+    
+    def add_multi_layered_midsection(self,
+                                    center: 'tuple[float, float, float]',
+                                    width: float,
+                                    height: float,
+                                    depth: float,
+                                    layer_count: int,
+                                    variance_divisor: float,
+                                    color: 'tuple[float, float, float, float]' = (0, 0, 0, 1)):
+        for i in range(layer_count):
+            layer_center = (center[0], center[1]-height/2 + i * height/layer_count+height/(layer_count)/2, center[2])
+            j = i if i > layer_count/2 else layer_count-1-i
+            layer_size = (width *(1+ layer_count/(j+1)/variance_divisor), height/(layer_count), depth*(1+ layer_count/(j+1)/variance_divisor))
+            self.add_block(center=layer_center, size=layer_size, color=color)
+        return self
+    
+    def add_scaled_midsection(self,
+                            center: 'tuple[float, float, float]',
+                            width: float,
+                            height: float,
+                            depth: float,
+                            scale_count: int,
+                            scale_spacing: float,
+                            color: 'tuple[float, float, float, float]' = (0, 0, 0, 1)):
+        for i in range(scale_count):
+            scale_center = (center[0], center[1] - height / 2 + i * scale_spacing, center[2])
+            scale_size = (width - i * scale_spacing, depth, height / scale_count)
+            self.add_wedge(base=p3dc.Point3(scale_center[0], scale_center[1], scale_center[2] - scale_size[1] / 2),
+                            top=p3dc.Point3(scale_center[0], scale_center[1], scale_center[2] + scale_size[1] / 2),
+                            width=scale_size[0], color=color)
+        return self
+    
+    def add_spherical_midsection(self,
+                                center: 'tuple[float, float, float]',
+                                radius: float,
+                                sphere_count: int,
+                                spacing: float,
+                                color: 'tuple[float, float, float, float]' = (0, 0, 0, 1)):
+        for i in range(sphere_count):
+            sphere_center = (center[0], center[1] - (sphere_count / 2 - i) * spacing, center[2])
+            self.add_sphere(center=sphere_center, radius=radius, color=color)
         return self
     
     def add_hardpointSection_block(self,
