@@ -79,6 +79,7 @@ class DebugWidget(AGeWidgets.TightGridFrame):
     def showDevToolTabs(self):
         get.window().showDevToolTabs()
         self.layout().removeWidget(self.ShowDevToolTabsButton)
+        self.ShowDevToolTabsButton.hide()
     
     def toggleDebugOutput(self):
         get.engine().DebugPrintsEnabled = not get.engine().DebugPrintsEnabled
