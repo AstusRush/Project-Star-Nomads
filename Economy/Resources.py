@@ -385,8 +385,9 @@ class _ResourceDict(_typing.Dict['Resource_','Resource_']):
             ret += name + " = "
         ret += f"Resources._ResourceDict.fromList(\n"
         r,i = AGeToPy._topy(self.list(), indent=indent+2, indentstr=indentstr, ignoreNotImplemented=ignoreNotImplemented)
-        ret += f"{r},\n{indentstr*(indent+1)}cap={self.Capacity})" #TODO: Save ValidResourceTypes
+        ret += f"{r},\n{indentstr*(indent+1)}cap="+AGeToPy._topy(self.Capacity)[0]+")" #TODO: Save ValidResourceTypes
         imp.update(i)
+        imp.update(AGeToPy._topy(self.Capacity)[1])
         return ret, imp
 #endregion _ResourceDict
 
