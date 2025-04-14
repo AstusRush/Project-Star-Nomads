@@ -178,11 +178,6 @@ class ProceduralShip(ProceduralModels._ProceduralModel):
             self.TeamColour = ape.colour(App().Theme["Star Nomads"][f"Team {ship.fleet().Team}"])
         super().__init__(loadImmediately=loadImmediately,seed=seed,ship=ship)
     
-    def getFrontsectionStyle(self):
-        return "" #TODO: Styles
-    def getMidsectionStyle(self):
-        return "" #TODO: Styles
-    
     def tocode_AGeLib(self, name="", indent=0, indentstr="    ", ignoreNotImplemented = False) -> typing.Tuple[str,dict]:
         # We save the models by not saving them since this tells the ships to autogenerate new procedural models which is exactly what we want
         # Later on we might want to save the seed and maybe the style and so on but for now saving literally nothing is entirely sufficient to accurately restore everything
@@ -347,9 +342,27 @@ class ProceduralShip(ProceduralModels._ProceduralModel):
     
     def applyTeamColour(self):
         #TODO: This is a pretty bad way to do this...
+        #TODO: And it is even worse that I now use this indirectly to apply the team style...
         if self.ship:
             self.ship().generateProceduralModel()
         #return super().applyTeamColour(team)
+    
+    def getFrontsectionStyle(self):
+        return "" #TODO: Styles
+    def getMidsectionStyle(self):
+        if self.ship and self.ship().fleet:
+            team = self.ship().fleet().team()
+            # "block","cylinder","tapered","ribbed","multi",
+            #if 1 <= team <= 5:
+            #    return ["block","cylinder","tapered","ribbed","multi"][team-1]
+            if team == 1:
+                return "block"
+            elif team == 2:
+                return ["cylinder","tapered"]
+            elif team == 3:
+                return ["ribbed","multi"]
+            else: return ""
+        else: return ""
 
 class ShipModule():
     def __init__(self, ship:'ProceduralShip', type_:'type[ModuleTypes.ModuleType]', seed:int=None, module:'typing.Union[BaseModules.Module,None]'=None, extraInfo:'typing.Union[dict,None]'=None) -> None:
