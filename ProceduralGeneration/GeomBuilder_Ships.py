@@ -183,6 +183,9 @@ class ShipBuilder(GeomBuilder.GeomBuilder):
             self.add_spherical_midsection(center=block_center, radius=width / 4, sphere_count=3, spacing=width / 2, color=color)
         elif shape == "multi":
             self.add_multi_layered_midsection(center=block_center, width=width, height=((connection_front - connection_rear)).y, depth=height, layer_count=5, variance_divisor=4, color=color)
+        else:
+            NC(2,f"\"{shape}\" is an invalid mid-section shape for ships!",tb=True)
+            self.add_block(center=block_center, size=(width, ((connection_front - connection_rear)).y, height), color=color)
         
         # GeomBuilder_Ships.ShipBuilder.add_midSection_block
         return self
