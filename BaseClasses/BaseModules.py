@@ -620,6 +620,8 @@ class _Economic(Module):
 
 class Augment(Module):
     # All augmentations that enhance/modify the statistics of other modules like +dmg% , +movementpoints , or +shieldRegeneration
+    #   but also modules that have a localised effect on the tile like effects from nebulae.
+    #   In general pretty much everything that has some kind of passive effect that is restricted to the ship, the fleet, or the tile.
     Name = "Augment Module"
     Buildable = False
     
@@ -632,8 +634,16 @@ class Augment(Module):
         self.FullWidget = ModuleWidgets.AugmentWidget(self)
         return self.FullWidget
 
+class TileCostModifier(Augment):
+    Name = "Tile Cost Modifier Module"
+    Buildable = False
+    
+    def __init__(self) -> None:
+        super().__init__()
+        #FEATURE:MOVECOST: Implement tile cost
+
 class Support(Module): #MAYBE: inherit from Augment
-    # like Augment but with an area of effect to buff allies or debuff enemies
+    # Like Augment but with an area of effect that impacts nearby tiles to, for example, buff allies or debuff enemies.
     Name = "Support Module"
     Buildable = False
     
@@ -770,9 +780,9 @@ class MicroJumpDrive(Special):
             from BaseClasses import FleetBase
             if get.engine().CurrentlyInBattle: f = FleetBase.Flotilla(self.team())
             else: f = FleetBase.Fleet(self.team())
-            f.moveToHex(hex,False)
             self.ship().fleet().removeShip(self.ship())
-            hex.fleet().addShip(self.ship())
+            f.addShip(self.ship())
+            f.moveToHex(hex,False)
             self.Charge -= 1
             self.playEffect()
             return True, True

@@ -254,7 +254,8 @@ class FleetBase():
         return sum([i.Stats.Threat for i in self.Ships]) if self.Ships else 0
     
     def isBackgroundObject(self):
-        return all([i.IsBackgroundObject for i in self.Ships])
+        if not (self.Ships): return False
+        return  all([i.IsBackgroundObject for i in self.Ships])
     
     def isBlockingTilePartially(self):
         return any([i.IsBlockingTilePartially for i in self.Ships])
@@ -358,6 +359,8 @@ class FleetBase():
         return hex.isNavigable(self.isBlockingTilePartially(), self.isBlockingTileCompletely(), self.isBackgroundObject())
     
     def _tileCost(self, hex:'HexBase._Hex'):
+        #TODO: Implement tile cost function
+        #FEATURE:MOVECOST: Implement tile cost function
         return 1
     
     def lookAt(self, hex:'HexBase._Hex'):

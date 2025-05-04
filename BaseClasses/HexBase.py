@@ -899,7 +899,7 @@ def findPath(start:_Hex, destination:_Hex, navigable = lambda hex: hex.Navigable
     navigable   : A function that, given a _Hex, tells us whether we can move through this hex. \n
     cost        : A cost function for moving through a hex. Should return a value >= 1. By default all costs are 1. \n
     """
-    #TODO: This should be able to take movement points and endsure that the returned path does not exceed this (if given)
+    #TODO: This should be able to take movement points and ensure that the returned path does not exceed this (if given)
     Found = False
     Done = False
     Path: typing.List[_Hex] = None
