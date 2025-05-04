@@ -453,18 +453,21 @@ class FullInfoWidget(QtWidgets.QScrollArea):
         self.updateInfo()
     
     def _init_UI(self):
-        if isinstance(self.window(),InfoWindow):
-            self.window().setWindowTitle(f"Ship Info: {self.ship().Name}")
-        self.setWidgetResizable(True)
-        self.Frame = AGeWidgets.TightGridFrame()
-        self.setWidget(self.Frame)
-        self.RefreshButton = self.Frame.addWidget(AGeWidgets.Button(self.Frame, "Refresh", lambda: self.updateInfo()))
-        self.NameField = self.Frame.addWidget(AGeInput.Name(self.Frame, "Name: ", self.ship(), "Name"))
-        self.ClassField = self.Frame.addWidget(AGeInput.Name(self.Frame, "Class: ", self.ship(), "ClassName"))
-        self.Label = self.Frame.addWidget(QtWidgets.QLabel(self.Frame))
-        self.ModuleWidgets:'list[ModuleWidgets.ModuleWidget]' = []
-        for i in self.ship().Modules:
-            self.ModuleWidgets.append(self.Frame.addWidget(i.getFullInterface()))
+        try: #FIXME: When ending a battle while having open the InfoWindow self.Frame.addWidget() in the for-loop sometimes reports that the TightGridFrame no longer exists, despite self.Frame having been created just a couple lines earlier... Though I have not figured out how to reproduce it reliably...
+            if isinstance(self.window(),InfoWindow):
+                self.window().setWindowTitle(f"Ship Info: {self.ship().Name}")
+            self.setWidgetResizable(True)
+            self.Frame = AGeWidgets.TightGridFrame()
+            self.setWidget(self.Frame)
+            self.RefreshButton = self.Frame.addWidget(AGeWidgets.Button(self.Frame, "Refresh", lambda: self.updateInfo()))
+            self.NameField = self.Frame.addWidget(AGeInput.Name(self.Frame, "Name: ", self.ship(), "Name"))
+            self.ClassField = self.Frame.addWidget(AGeInput.Name(self.Frame, "Class: ", self.ship(), "ClassName"))
+            self.Label = self.Frame.addWidget(QtWidgets.QLabel(self.Frame))
+            self.ModuleWidgets:'list[ModuleWidgets.ModuleWidget]' = []
+            for i in self.ship().Modules:
+                self.ModuleWidgets.append(self.Frame.addWidget(i.getFullInterface()))
+        except:
+            NC(2,"Could not set up Full Info Widget",exc=True)
     
     def updateInfo(self):
         self._init_UI()
