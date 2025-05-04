@@ -780,9 +780,9 @@ class MicroJumpDrive(Special):
             from BaseClasses import FleetBase
             if get.engine().CurrentlyInBattle: f = FleetBase.Flotilla(self.team())
             else: f = FleetBase.Fleet(self.team())
-            self.ship().fleet().removeShip(self.ship())
-            f.addShip(self.ship())
             f.moveToHex(hex,False)
+            self.ship().fleet().removeShip(self.ship())
+            hex.fleet().addShip(self.ship())
             self.Charge -= 1
             self.playEffect()
             return True, True
