@@ -190,14 +190,19 @@ class HexInfoDisplay(QtWidgets.QSplitter):
             self.DetailScrollWidget.setWidget(self.DetailView)
     
     def showDetails(self, widget:'QtWidgets.QWidget'): #TODO: if the ship gets destroyed this should get cleared and the clearing mechanism is currently bad in general
-        self.DetailView = AGeWidgets.TightGridWidget(self)
-        self.DetailScrollWidget.setWidget(self.DetailView)
-        #if self.LastDetailsWidget:
-        #    self.DetailView.layout().removeWidget(self.LastDetailsWidget)
-        #    self.FleetOverview.deleteLater()
-        #    self.LastDetailsWidget.deleteLater()
-        self.DetailView.layout().addWidget(widget)
-        self.LastDetailsWidget = widget
+        try:
+            #FIXME: This sometimes throws a 'RuntimeError: wrapped C/C++ object of type TightGridFrame has been deleted' when adding the widget to the DetailView layout...
+            #MAYBE: Could it be that multiple events try to access this at the same time? Do we need a Mutex?
+            self.DetailView = AGeWidgets.TightGridWidget(self)
+            self.DetailScrollWidget.setWidget(self.DetailView)
+            #if self.LastDetailsWidget:
+            #    self.DetailView.layout().removeWidget(self.LastDetailsWidget)
+            #    self.FleetOverview.deleteLater()
+            #    self.LastDetailsWidget.deleteLater()
+            self.DetailView.layout().addWidget(widget)
+            self.LastDetailsWidget = widget
+        except:
+            NC(2,"Could not show details!",exc=True)
 
 class FleetStats(AGeWidgets.TightGridFrame):
     def __init__(self, parent: 'HexInfoDisplay', fleet: typing.Union['FleetBase.Fleet','FleetBase.Flotilla']) -> None:

@@ -559,9 +559,9 @@ class ShipBase():
             from BaseClasses import FleetBase
             if get.engine().CurrentlyInBattle: f = FleetBase.Flotilla(self.fleet().Team)
             else: f = FleetBase.Fleet(self.fleet().Team)
-            f.moveToHex(hex,False)
             self.fleet().removeShip(self)
-            hex.fleet().addShip(self)
+            f.addShip(self)
+            f.moveToHex(hex,False)
             self.Stats.spendMovePoints(1)
             return True, True
         return False, True

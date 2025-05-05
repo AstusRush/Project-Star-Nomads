@@ -158,11 +158,7 @@ class FleetBase():
             if self.hex().fleet:
                 if self.hex().fleet() is self:
                     self.hex().fleet = None
-            for i in self.hex().content:
-                if not i:
-                    self.hex().content.remove(i)
-                elif i() == self:
-                    self.hex().content.remove(i)
+            self.hex().removeContent(self)
             self.hex = None
         if self.TeamRing:
             self.TeamRing.destroy()
@@ -194,6 +190,15 @@ class FleetBase():
   #endregion init and destroy
   #region manage ship list
     def _addShip(self, ship:'ShipBase.ShipBase'):
+        if self.isBackgroundObject() and not ship.IsBackgroundObject and self.hex:
+            if self.hex().fleet:
+                if self.hex().fleet() is not self:
+                    NC(1,"A ship that is not a background object was added to a fleet which is a background object but is on a tile which already has a foreground-fleet."
+                        "Therefore this fleet can not be converted into a foreground fleet. This might lead to many problems...",
+                        tb=True, input=f"This Fleet: {self.Name}\nOther Fleet: {self.hex().fleet().Name}\nShip: {ship.Name}")
+            else:
+                self.hex().removeContent(self)
+                self.hex().fleet = weakref.ref(self)
         if not ship in self.Ships:
             self.Ships.append(ship)
         ship.reparentTo(self)
@@ -227,6 +232,7 @@ class FleetBase():
                 else: print(f"{self.Name} was emptied")
             return False
         else:
+            #TODO: check if fleet is now a background fleet and move it into the background if appropriate
             return True
     
     def isDestroyed(self):

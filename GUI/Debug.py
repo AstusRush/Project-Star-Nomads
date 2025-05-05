@@ -72,6 +72,7 @@ class DebugWidget(AGeWidgets.TightGridFrame):
         self.SpawnSalvageButton = self.addWidget(AGeWidgets.Button(self,"Spawn 1 unit of salvage at selected hex", lambda: spawnSalvageAtSelectedHex(1.0)))
         self.RegenerateProceduralShipModelsButton = self.addWidget(AGeWidgets.Button(self,"Regenerate procedural ship models", lambda: regenerateProceduralShipModels()))
         self.RegenerateAllProceduralModelsButton = self.addWidget(AGeWidgets.Button(self,"Regenerate all procedural models", lambda: regenerateAllProceduralModels()))
+        self.DestroyFleetAtSelectedHexButton = self.addWidget(AGeWidgets.Button(self,"Destroy fleet at selected hex", lambda: destroyFleetAtSelectedHex()))
         self.EndBattleButton = self.addWidget(AGeWidgets.Button(self,"End Battle",lambda: get.engine().endBattleScene()))
         self.EnableDebugOutputButton = self.addWidget(AGeWidgets.Button(self,"Enable print Debug Output",lambda: self.toggleDebugOutput()))
         self.GetTeamValuesButton = self.addWidget(AGeWidgets.Button(self,"Get combined value of each team",lambda: getTeamValues()))
@@ -88,11 +89,22 @@ class DebugWidget(AGeWidgets.TightGridFrame):
         else:
             self.EnableDebugOutputButton.setText("Enable print Debug Output")
 
+def destroyFleetAtSelectedHex():
+    currentHex = get.hexGrid().SelectedHex
+    if not currentHex:
+        NC(2,"No Hex is selected")
+        return
+    if not currentHex.fleet:
+        NC(2, "The Hex is not occupied", input=currentHex.Name)
+        return
+    currentHex.fleet().completelyDestroy()
+
 def spawnAsteroidAtSelectedHex():
     from Environment import Environment, EnvironmentalObjects, EnvironmentalObjectGroups
     currentHex = get.hexGrid().SelectedHex
     if not currentHex:
         NC(2,"No Hex is selected")
+        return
     if currentHex.fleet:
         NC(2, "The Hex is already occupied", input=currentHex.fleet())
         return

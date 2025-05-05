@@ -88,6 +88,7 @@ class PlayerAI_Campaign(PlayerAI):
                 ship:'ShipBase.Ship' = random.choice(self.getValidShipTypes())()
                 ship.Name = ship.ClassName[0:-1]+str(random.randint(1000,9999))
                 fleet.addShip(ship=ship)
+                #TODO: This should be rewritten to use fleet.addShips(ships) to improve performance! (or use fleet._addShip and call the other stuff when a fleet is done)
     
     def createNewFleetInstance(self) -> 'FleetBase.Fleet':
         from BaseClasses import FleetBase

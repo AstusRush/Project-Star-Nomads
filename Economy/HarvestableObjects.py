@@ -112,12 +112,3 @@ class Debris(HarvestableEnvironmentalObject):
         if model is None:
             model = ProceduralModels.ProceduralModel_Debris()
         return super().setModel(model)
-    
-    def handleNewCampaignTurn(self):
-        #TODO: Instead of checking this in the turn of team -1 it should be checked after harvesting resources
-        #       but I am currently hesitant to implement that in the harvesting method as this could lead to a whole bunch of Problems later on
-        #       so, for the moment, I am going to leave the code for that here as this is, while not the prettiest from the players perspective
-        #       at least completely future-proof and robust
-        super().handleNewCampaignTurn()
-        if not bool(self.ResourceManager.storedResources()):
-            self.destroy()

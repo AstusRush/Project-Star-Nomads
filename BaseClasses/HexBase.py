@@ -585,6 +585,13 @@ class _Hex():
         #TODO: If the this is already selected while new content is added the new content should be informed about this and act accordingly (display/update movement range, add/update UI elements, etc).
         #       Furthermore the other content might need to be informed that there is new content which might require them to update their UI elements or highlighting
     
+    def removeContent(self, fleet:'FleetBase.FleetBase'):
+        for i in self.content:
+            if not i:
+                self.content.remove(i)
+            elif i() == fleet:
+                self.content.remove(i)
+    
     def hideContent(self):
         for i in self.content:
             if i and i(): #TODO: When there was a game with fleets and one then loads a new game this method says that None-Type has no attribute "hide". Reproduce by removing the "and i()" from this line, starting a new game, moving the starting fleet, ending the turn, and then loading the AutoSave that was created when ending the turn
