@@ -261,7 +261,7 @@ class FleetBase():
     
     def isBackgroundObject(self):
         if not (self.Ships): return False
-        return  all([i.IsBackgroundObject for i in self.Ships])
+        return all([i.IsBackgroundObject for i in self.Ships])
     
     def isBlockingTilePartially(self):
         return any([i.IsBlockingTilePartially for i in self.Ships])

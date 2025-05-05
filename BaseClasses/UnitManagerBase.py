@@ -190,7 +190,7 @@ class UnitManager():
     
     def getAllies(self, team:int) -> typing.List[int]:
         return [team,] #TODO: implement Alliances
-    
+
 class UnitList(typing.List['FleetBase.FleetBase']):
     AI:AI_Player.PlayerAI = None
     _name:str = ""
