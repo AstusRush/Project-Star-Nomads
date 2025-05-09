@@ -499,6 +499,7 @@ class EngineClass(ape.APE):
             Fleet1.moveToHex(self.Scene.HexGrid.getCentreHexes(1)[0])
             self.generateCampaignSector()
             self.resetCameraAndSetUnitTab()
+            #TODO: Ensure that the fleet can actually move (I once spawned inside an steroid cluster which blocked all movement)
     
     def _confirmNewOrLoad(self, action:str=""):
         confirm = True

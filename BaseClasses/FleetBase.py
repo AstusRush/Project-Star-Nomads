@@ -367,7 +367,26 @@ class FleetBase():
     def _tileCost(self, hex:'HexBase._Hex'):
         #TODO: Implement tile cost function
         #FEATURE:MOVECOST: Implement tile cost function
-        return 1
+        from BaseClasses import BaseModules
+        cost_modifier = 1
+        for c in hex.content:
+            try:
+                if c:
+                    for ship in c().Ships:
+                        for module in ship.Modules:
+                            if isinstance(module, BaseModules.TileCostModifier):
+                                cost_modifier *= module.getTileCostMultiplier(self)
+            except:
+                hex.content.remove(c)
+        try:
+            if hex.fleet:
+                for ship in hex.fleet().Ships:
+                    for module in ship.Modules:
+                        if isinstance(module, BaseModules.TileCostModifier):
+                            cost_modifier *= module.getTileCostMultiplier(self)
+        except:
+            NC(1, exc=True)
+        return cost_modifier
     
     def lookAt(self, hex:'HexBase._Hex'):
         if self.MovementSequence and self.MovementSequence.isPlaying():
@@ -546,22 +565,24 @@ class FleetBase():
         #    This one takes into account movement cost by using recursion and keeping track of available movement points from that tile on
         #    This also requires checking if a hex has been visited before and only continuing to calculate from that tile on if the new cost is lower
         #    ... wait... this is variant 2 all over again!!! I have just described the same algorithm that I want to use in variant 2!
-        Variant = 4
+        # Variant 6:
+        #    Ask that newfangled ChatGPT thingy, which chose to implement Dijkstra
+        Variant = 6
         
         if Variant == 1: #Too slow...
             t1 = time.time()
             ####
             mPoints = self.MovePoints if self.ActiveTurn else self.MovePoints_max # To allow calculations while it's not this unit's turn we use the MovePoints_max then
             l: typing.Set['HexBase._Hex'] = set() # Using a set instead of a list is 5% faster... which is still not fast enough
-            for i in self.hex().getDisk(mPoints): #FEATURE:MOVECOST: This does not take into account that hexes could have a negative movement point cost...
+            for i in self.hex().getDisk(math.floor(mPoints)): #NOTE:MOVECOST: This does not take into account that hexes could have a negative movement point cost...
                 #                                       Therefore we could miss some more distant tiles. But this method is already far too slow so we can not really afford to increase the radius of the disk...
                 if not i in l:
                     path, cost = HexBase.findPath(self.hex(), i, self._navigable, self._tileCost)
                     if path:
                         if cost <= mPoints:
                             l.update(path)
-                        else:
-                            l.update(path[:mPoints])
+                        #else:
+                        #    l.update(path[:math.floor(mPoints)])
             ####
             if get.engine().DebugPrintsEnabled: print("list",time.time()-t1)
             return l
@@ -569,7 +590,7 @@ class FleetBase():
             pass # https://www.reddit.com/r/gamemaker/comments/1eido8/mp_grid_for_tactics_grid_movement_highlights/
         if Variant == 3:
             pass
-        if Variant == 4: #FEATURE:MOVECOST: This does not take into account different tile movement cost
+        if Variant == 4: #NOTE:MOVECOST: This does not take into account different tile movement cost
             # This is VERY fast
             mPoints = self.MovePoints if self.ActiveTurn else self.MovePoints_max # To allow calculations while it's not this unit's turn we use the MovePoints_max then
             l: typing.Set['HexBase._Hex'] = set() # Using a set instead of a list is 5% faster... which is still not fast enough
@@ -583,6 +604,44 @@ class FleetBase():
                 tl.append(temp.difference(tl[i-1]).difference(tl[i]))
                 l.update(temp)
             return l
+        if Variant == 5:
+            pass
+        if Variant == 6:
+            from heapq import heappush, heappop
+            mPoints = self.MovePoints if self.ActiveTurn else self.MovePoints_max  # Use max points if not the unit's turn
+            start_hex = self.hex()
+            reachable_hexes: typing.Set['HexBase._Hex'] = set()
+            open_set = [(0, start_hex)]  # Priority queue: (current_cost, hex)
+            visited = {}  # Dictionary to store the minimum cost to reach each hex
+            
+            while open_set:
+                current_cost, current_hex = heappop(open_set)
+                
+                # Skip if we've already visited this hex with a lower cost
+                if current_hex in visited and visited[current_hex] <= current_cost:
+                    continue
+                
+                # Mark this hex as visited with the current cost
+                visited[current_hex] = current_cost
+                reachable_hexes.add(current_hex)
+                
+                # Explore neighbors
+                for neighbour in current_hex.getNeighbour():
+                    if not self._navigable(neighbour):
+                        continue
+                    
+                    # Calculate the cost to move to the neighbour
+                    move_cost = self._tileCost(neighbour)
+                    new_cost = current_cost + move_cost
+                    
+                    # If the new cost exceeds movement points, skip this neighbour
+                    if new_cost > mPoints:
+                        continue
+                    
+                    # Add the neighbour to the open set for further exploration
+                    heappush(open_set, (new_cost, neighbour))
+            reachable_hexes.remove(self.hex())
+            return reachable_hexes
     
     
   #endregion Movement

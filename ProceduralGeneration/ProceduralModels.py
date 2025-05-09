@@ -107,19 +107,11 @@ class _ProceduralModel(ModelBase.ModelBase):
         #self.Model.setScale(value)
     
     def tocode_AGeLib(self, name="", indent=0, indentstr="    ", ignoreNotImplemented = False) -> typing.Tuple[str,dict]:
-        #raise NotImplementedError() #CRITICAL: How do we save the instructions for generating models?
-        ret, imp = "None", {}
-        ## ret is the ship data that calls a function which is stored as an entry in imp which constructs the ship
-        ## Thus, ret, when executed, will be this ship. This can then be nested in a list so that we can reproduce entire fleets.
-        #imp.update(IMP_MODELBASE)
-        #get.shipModels()
-        #ret = indentstr*indent
-        #if name:
-        #    ret += name + " = "
-        #if hasattr(self,"INTERNAL_NAME"):
-        #    ret += f"get.shipModels()[\"{self.INTERNAL_NAME}\"]()"
-        #else:
-        #    ret += f"createShip({self.IconPath},{self.ModelPath})"
+        #TODO: Handle classes (probably just by throwing a warning and ignoring them) that are not in the "ProceduralModels" module (currently the import statement expects them to be in this module)
+        ret, imp = "ProceduralModels."+self.__class__.__name__+f"(seed={self.Seed})", {}
+        if name:
+            ret += name + " = "
+        imp.update(IMP_PROCMODEL)
         return ret, imp
     
     def generateModel(self):
@@ -218,7 +210,80 @@ class ProceduralModel_Skybox(_ProceduralModel):
 
 class ProceduralModel_Nebula(_ProceduralModel):
     def generateModel(self):
-        raise NotImplementedError("#TODO: Procedurally generate nebulas")
+        """
+        Generates a nebula using procedural geometry and textures.
+        """
+        gb = GeomBuilder.GeomBuilder('nebula', rng=self.rng)
+        
+        # Parameters for the nebula
+        num_spheres = 10
+        radius_range = (3.0, 6.0)
+        color = (0.9, 0.05, 0.8, 0.2)  # Nebula color with transparency
+        
+        node = p3dc.NodePath(p3dc.PandaNode(f"Central node of a Nebula"))
+        
+        # Generate overlapping spheres
+        for _ in range(num_spheres):
+            center = (
+                self.rng.uniform(-10, 10),
+                self.rng.uniform(-10, 10),
+                self.rng.uniform(-1, 1),
+            )
+            radius = self.rng.uniform(*radius_range)
+            if False:
+                sub_node = ape.loadModel("Models/Simple Geometry/sphere.ply")
+            else:
+                gb.add_sphere(center=center, radius=radius, color=(self.rng.uniform(0.7, 0.99),self.rng.uniform(0.01,0.1),self.rng.uniform(0.7, 0.99),self.rng.uniform(0.05, 0.2)), samples=8,planes=6)
+                sub_node = p3dc.NodePath(gb.get_geom_node())
+            
+            sub_node.reparentTo(node)
+            sub_node.setTransparency(p3dc.TransparencyAttrib.MAlpha)
+            sub_node.setColor((self.rng.uniform(0.7, 0.99),self.rng.uniform(0.01,0.1),self.rng.uniform(0.7, 0.99),self.rng.uniform(0.05, 0.2)))
+            sub_node.setScale(radius)
+            sub_node.setPos(center)
+        
+        # Create the node
+        node.setTransparency(p3dc.TransparencyAttrib.MAlpha)
+        return node
+    
+    def generateModel_g(self):
+        """
+        Generates a nebula using procedural geometry and textures.
+        """
+        gb = GeomBuilder.GeomBuilder('nebula', rng=self.rng)
+        
+        # Parameters for the nebula
+        num_spheres = 20
+        radius_range = (3.0, 8.0)
+        color = (0.9, 0.05, 0.8, 0.4)  # Nebula color with transparency
+        
+        # Generate overlapping spheres
+        for _ in range(num_spheres):
+            center = (
+                self.rng.uniform(-10, 10),
+                self.rng.uniform(-10, 10),
+                self.rng.uniform(-1, 1),
+            )
+            radius = self.rng.uniform(*radius_range)
+            gb.add_sphere(center=center, radius=radius, color=(self.rng.uniform(0.7, 0.99),self.rng.uniform(0.01,0.1),self.rng.uniform(0.7, 0.99),self.rng.uniform(0.05, 0.2)), samples=8,planes=6)
+        
+        # Create the node
+        node = p3dc.NodePath(gb.get_geom_node())
+        node.setTransparency(p3dc.TransparencyAttrib.MAlpha)
+        return node
+    
+    #def generateModel(self):
+    #    #TODO: Procedurally generate nebulae
+    #    gb = GeomBuilder.GeomBuilder('Debris')
+    #    gb.add_debris(color=(0.9,0.05,0.8))
+    #    node = p3dc.NodePath(gb.get_geom_node())
+    #    return node
+    
+    def resetModel(self):
+        super().resetModel()
+        self.Model.setHpr(0,0,0)
+        self.Model.setPos(0,0,0)
+        self.Model.setScale(0.5) # Hacky way to increase size of nebulae
 
 class ProceduralModel_Debris(_ProceduralModel):
     def generateModel(self):
@@ -226,13 +291,6 @@ class ProceduralModel_Debris(_ProceduralModel):
         gb.add_debris()
         node = p3dc.NodePath(gb.get_geom_node())
         return node
-    
-    def tocode_AGeLib(self, name="", indent=0, indentstr="    ", ignoreNotImplemented = False) -> typing.Tuple[str,dict]:
-        ret, imp = f"ProceduralModels.ProceduralModel_Debris(seed={self.Seed})", {}
-        if name:
-            ret += name + " = "
-        imp.update(IMP_PROCMODEL)
-        return ret, imp
 
 class ProceduralModel_Sphere(_ProceduralModel):
     def generateModel(self):

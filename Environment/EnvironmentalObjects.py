@@ -82,3 +82,36 @@ class Asteroid(EnvironmentalObject):
         if model is None:
             model = ProceduralModels.ProceduralModel_Asteroid()
         return super().setModel(model)
+
+class Nebula_Base(EnvironmentalObject):
+    Name = "Nebula"
+    ClassName = "Nebula"
+    def __init__(self, generateModel=True) -> None:
+        super().__init__()
+        self.IsBlockingTilePartially  = False
+        self.IsBlockingTileCompletely = False
+        self.IsBackgroundObject       = True
+        if generateModel:
+            self.setModel(ProceduralModels.ProceduralModel_Nebula())
+            if not self.Model.CouldLoadModel and self.Model.Model: self.Model.Model.setColor(ape.colour(QtGui.QColor(0xf010d0)))
+        self.addModule(BaseModules.Asteroid_Hull())
+    
+    def setModel(self, model: 'typing.Union[ModelBase.ModelBase,None]'):
+        if model is None:
+            model = ProceduralModels.ProceduralModel_Nebula()
+        return super().setModel(model)
+
+class Nebula_Movement(Nebula_Base):
+    Name = "Nebula"
+    ClassName = "Nebula"
+    def __init__(self, generateModel=True) -> None:
+        super().__init__(generateModel=False)
+        if generateModel:
+            self.setModel(ProceduralModels.ProceduralModel_Nebula())
+            if not self.Model.CouldLoadModel and self.Model.Model: self.Model.Model.setColor(ape.colour(QtGui.QColor(0xf010d0)))
+        self.addModule(BaseModules.TileCostModifier(2))
+    
+    def setModel(self, model: 'typing.Union[ModelBase.ModelBase,None]'):
+        if model is None:
+            model = ProceduralModels.ProceduralModel_Nebula()
+        return super().setModel(model)

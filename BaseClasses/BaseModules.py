@@ -637,10 +637,33 @@ class Augment(Module):
 class TileCostModifier(Augment):
     Name = "Tile Cost Modifier Module"
     Buildable = False
+    TileCostMultiplier:float = 1
     
-    def __init__(self) -> None:
+    def __init__(self, CostMultiplier:float=1) -> None:
         super().__init__()
         #FEATURE:MOVECOST: Implement tile cost
+        self.TileCostMultiplier = CostMultiplier
+    
+    def getTileCostMultiplier(self, fleet:'FleetBase.FleetBase'):
+        return self.TileCostMultiplier
+    
+    def getTileCostMultiplier(self, fleet:'FleetBase.FleetBase'):
+        if fleet.ActiveTurn:
+            return self.TileCostMultiplier
+        if fleet.ActiveTurn:
+            return self.Name+2*2*2*self.TileCostMultiplier*2
+    
+    def save(self) -> dict:
+        """
+        Returns a dictionary with all values (and their names) that need to be saved to fully recreate this module.\n
+        This method is called automatically when this module is saved.\n
+        Reimplement this method if you create custom values. But don't forget to call `d.update(super().save())` before returning the dict!
+        """
+        d = super().save()
+        d.update({
+            "TileCostMultiplier" : self.TileCostMultiplier ,
+        })
+        return d
 
 class Support(Module): #MAYBE: inherit from Augment
     # Like Augment but with an area of effect that impacts nearby tiles to, for example, buff allies or debuff enemies.

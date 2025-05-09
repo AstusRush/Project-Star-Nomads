@@ -136,7 +136,7 @@ class EnvironmentCreator_Battle(_EnvironmentCreator):
     #ClusterNumberMax = 45
     ClusterTypes:'list[type[_ClusterType]]' = None
     def __init__(self) -> None:
-        self.ClusterTypes = [ClusterType_Asteroid_S, ClusterType_Asteroid_M, ClusterType_Asteroid_L]
+        self.ClusterTypes = [ClusterType_Asteroid_S, ClusterType_Asteroid_M, ClusterType_Asteroid_L,ClusterType_Nebula,ClusterType_AsteroidAndNebula]
 
 
 class EnvironmentCreator_Sector(_EnvironmentCreator):
@@ -144,7 +144,7 @@ class EnvironmentCreator_Sector(_EnvironmentCreator):
     #ClusterNumberMax = 45
     ClusterTypes:'list[type[_ClusterType]]' = None
     def __init__(self) -> None:
-        self.ClusterTypes = [ClusterType_Asteroid_S, ClusterType_Asteroid_M, ClusterType_AsteroidHarvestable]
+        self.ClusterTypes = [ClusterType_Asteroid_S, ClusterType_Asteroid_M, ClusterType_AsteroidHarvestable,ClusterType_Nebula,ClusterType_AsteroidAndNebula]
 
 
 class _ClusterType:
@@ -188,6 +188,20 @@ class ClusterType_AsteroidHarvestable(_ClusterType):
     ObjectTypes:'list[type[EnvironmentalObjects.EnvironmentalObject]]' = None
     def __init__(self) -> None:
         self.ObjectTypes = [EnvironmentalObjects.Asteroid, HarvestableObjects.ResourceAsteroid]
+
+class ClusterType_Nebula(_ClusterType):
+    ClusterSizeMin = 3
+    ClusterSizeMax = 20
+    ObjectTypes:'list[type[EnvironmentalObjects.EnvironmentalObject]]' = None
+    def __init__(self) -> None:
+        self.ObjectTypes = [EnvironmentalObjects.Nebula_Movement]
+
+class ClusterType_AsteroidAndNebula(_ClusterType):
+    ClusterSizeMin = 3
+    ClusterSizeMax = 20
+    ObjectTypes:'list[type[EnvironmentalObjects.EnvironmentalObject]]' = None
+    def __init__(self) -> None:
+        self.ObjectTypes = [EnvironmentalObjects.Asteroid, EnvironmentalObjects.Nebula_Movement]
 
 
 """ AGeIDE Code to experiment with the formulas for cluster
