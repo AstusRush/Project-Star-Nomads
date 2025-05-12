@@ -384,32 +384,57 @@ class ModuleTypeSelectionWidget(AGeWidgets.TightGridWidget):
     def clear(self):
         self.ModuleTypeList.clear()
 
-class ModuleTypeList(QtWidgets.QListWidget):
+class ModuleTypeList(QtWidgets.QTreeWidget):
     def __init__(self, parent:'ModuleListWidget') -> None:
         super().__init__(parent)
-        self.itemDoubleClicked.connect(lambda item: self.addModule(item))
+        self.itemDoubleClicked.connect(lambda item, column: self.addModule(item, column))
         self.installEventFilter(self)
+        self.Categories:'typing.List[typing.Tuple[type[BaseModules.Module],ModuleTypeItem]]' = []
+        self.header().hide()
     
     def parent(self) -> 'ModuleTypeSelectionWidget':
         return super().parent()
     
     def populate(self, startsWith:'typing.Union[str,tuple[str],None]'=None, type_:'typing.Union[type[BaseModules.Module],tuple[type[BaseModules.Module]],None]'=None, hideUniqueMandatory:bool=False):
         self.clear()
+        self.Categories.clear()
+        for module in (BaseModules._FundamentalModule, BaseModules.Weapon, BaseModules.Shield, BaseModules.Augment, BaseModules.Support, BaseModules.Special, BaseModules._Economic, BaseModules.Module):
+            if hideUniqueMandatory and module is BaseModules._FundamentalModule: continue
+            item = ModuleTypeItem()
+            item.setText(0,"Other Modules" if module is BaseModules.Module else (module.Name+"s" if module.Name.endswith("Module") else module.Name))
+            item.setData(0,100, module)
+            item.setData(0,101, False)
+            self.addTopLevelItem(item)
+            self.Categories.append((module,item))
+            item.setExpanded(True)
         for moduleName,moduleType in get.modules().items():
             if (moduleType.Buildable
                 and (startsWith is None or moduleName.startswith(startsWith))
                 and (type_ is None or issubclass(moduleType,type_))
-                and (
-                    not hideUniqueMandatory or not issubclass(moduleType,(BaseModules.Hull, BaseModules.Engine, BaseModules.Thruster, BaseModules.Sensor))
-                    )
+                and (not hideUniqueMandatory or not issubclass(moduleType,BaseModules._FundamentalModule))
                 ):
                 item = ModuleTypeItem()
-                item.setText(moduleName)
-                item.setData(100, moduleType)
-                self.addItem(item)
+                item.setText(0,moduleName)
+                item.setData(0,100, moduleType)
+                item.setData(0,101, True)
+                try:
+                    item.setToolTip(0,moduleName+"\n"+moduleType().resourceCost().text('Cost:'))
+                except:
+                    NC(2,"Error setting tooltip for module",exc=True)
+                #self.addItem(item)
+                added = False
+                for mod,cat in self.Categories:
+                    if issubclass(moduleType,mod):
+                        cat.addChild(item)
+                        added = True
+                        break
+                if not added:
+                    NC(2, f"Could not add {moduleName} to any category",tb=True)
+                    self.addTopLevelItem(item)
     
-    def addModule(self, item:'ModuleTypeItem'):
-        self.parent().addModule(item.data(100)) # get.modules()[self.AddModuleSelectBox.currentText()])
+    def addModule(self, item:'ModuleTypeItem', column:int):
+        if item.data(0,101):
+            self.parent().addModule(item.data(0,100))
 
 class InstalledModuleListWidget(AGeWidgets.TightGridWidget):
     def __init__(self, parent:'ModuleListWidget') -> None:
@@ -577,7 +602,7 @@ class ModuleList(QtWidgets.QListWidget):
 class ModuleItem(QtWidgets.QListWidgetItem):
     pass
 
-class ModuleTypeItem(QtWidgets.QListWidgetItem):
+class ModuleTypeItem(QtWidgets.QTreeWidgetItem):
     pass
 
 class ModuleEditor(AGeWidgets.TightGridFrame):

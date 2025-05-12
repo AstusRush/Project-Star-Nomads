@@ -226,7 +226,11 @@ class Module():
         """
         return None
 
-class Hull(Module):
+class _FundamentalModule(Module):
+    Name = "Fundamental Module"
+    Buildable = False
+
+class Hull(_FundamentalModule):
     # The hull of a ship (can be tied to a ship model)
     # Determines the size of the ship (and maybe available slots for module types)
     # Also influences the HP of the ship and the required engine size
@@ -309,7 +313,7 @@ class Asteroid_Hull(Hull):
 
 class HullPlating(Module):
     Name = "Hull Plating"
-    Buildable = True
+    Buildable = False #TODO: Implement HullPlating
     
     def __init__(self) -> None:
         super().__init__()
@@ -324,7 +328,7 @@ class HullPlating(Module):
 #    Buildable = True
 #    pass
 
-class Engine(Module): # FTL Engine
+class Engine(_FundamentalModule): # FTL Engine
     Name = "Engine"
     Buildable = True
     Thrust = 6
@@ -391,7 +395,7 @@ class Engine(Module): # FTL Engine
         tech.addStatCustomizer(d,self,"Thrust",AGeInput.Float)
         return d
 
-class Thruster(Module): # Sublight Thruster
+class Thruster(_FundamentalModule): # Sublight Thruster
     Name = "Thruster"
     Buildable = True
     Thrust = 6
@@ -570,7 +574,7 @@ class Hangar(Module):
         self.FullWidget = ModuleWidgets.HangarWidget(self)
         return self.FullWidget
 
-class Sensor(Module):
+class Sensor(_FundamentalModule):
     # Includes sensors that increase weapon accuracy
     Name = "Sensors"
     Buildable = True
@@ -616,6 +620,7 @@ class _Economic(Module):
     This class only exists for basic type checking purposes.\n
     Do not inherit form this class! Inherit from `Economy.BaseEconomicModules.Economic` instead!
     """
+    Name = "Economic Module"
     pass
 
 class Augment(Module):
