@@ -5,8 +5,11 @@ TODO
     Copyright (C) 2021  Robin Albers
 """
 
+#NOTE: We are keeping imports to a bare minimum and are adding an underscore before all imports to keep the namespace clean for easier auto-completion
+#NOTE: To make auto-completion easier we are also adding underscores before all less commonly used classes
 import typing as _typing
 from AGeLib import AGeAux as _AGeAux
+from AGeLib import App as _App
 
 class _InvalidCapacityChangeException(Exception):
     pass
@@ -253,6 +256,8 @@ class _ResourceDict(_typing.Dict['Resource_','Resource_']):
             return key
         elif isinstance(key, Resource_):
             return type(key)
+        else:
+            raise _InvalidResourceTypeException()
     
     def list(self) -> 'list[Resource_]':
         return [k(v) for k,v in self.items()]
@@ -336,7 +341,7 @@ class _ResourceDict(_typing.Dict['Resource_','Resource_']):
         return bool(len(self))
     
     def __len__(self) -> int:
-        return len([i for i in self.values() if round(i,15)])
+        return len([i for i in self.values() if abs(i)>1e-14])
     
     def copy(self, keepRestrictions=True, _negate=False) -> '_ResourceDict':
         d = _ResourceDict()
@@ -351,27 +356,45 @@ class _ResourceDict(_typing.Dict['Resource_','Resource_']):
             d.ValidResourceTypes = self.ValidResourceTypes
         return d
     
-    def text(self, headline:str="", indent:bool=None, inverseSigns:bool=False, digits:int=5) -> str:
+    def text(self, headline:str="", indent:bool=None, inverseSigns:bool=False, digits:int=5, available:'_ResourceDict'=None, format_:bool=False) -> str:
         """
-        Returns a formatted text that describes this storage dict and its content.
+        Returns a formatted text that describes this storage dict and its content. \n
+        format_=True means that the returned string uses rich formatting. (Automatically set to True if available is given.) \n
+        If available is given, returns a formatted text that uses coloured text to show if costs are affordable.
         """
+        if available is not None:
+            format_=True
+        br = "<br>" if format_ else "\n"
+        t = "&nbsp;"*4 if format_ else "\t"
         if indent is None: indent = bool(headline)
         if self.Capacity != float("inf"):
             text = f"{headline} (Cap" if headline else "Capacity"
             text += f": {round(self.UsedCapacity,5)} / {round(self.Capacity,5)}"
             if headline: text += ")"
-            text += "\n"
+            text += br
         else:
-            text = f"{headline}\n" if headline else ""
+            text = f"{headline}{br}" if headline else ""
         if not self:
-            if indent: text += "\t"
+            if indent: text += t
             text += "None"
         else:
             for k,v in self.items():
-                if indent: text += "\t"
-                if inverseSigns: text += f"{k}: {round(-v,digits)}\n"
-                else:            text += f"{k}: {round( v,digits)}\n"
-        text = text.rstrip("\n")
+                if indent: text += t
+                if inverseSigns:
+                    if available is not None:
+                        if v>available[k]+1e-13: text += f"{k}: <font color=\""+_App().Theme["Special Text Colours"]["Negative"].color().name()+f"\">{round(-v,digits)}</font>{br}"
+                        elif v<-1e-13:           text += f"{k}: <font color=\""+_App().Theme["Special Text Colours"]["Positive"].color().name()+f"\">{round(-v,digits)}</font>{br}"
+                        else:                    text += f"{k}: {round(-v,digits)}{br}"
+                    else:
+                        text += f"{k}: {round(-v,digits)}{br}"
+                else:
+                    if available is not None:
+                        if v>available[k]+1e-13: text += f"{k}: <font color=\""+_App().Theme["Special Text Colours"]["Negative"].color().name()+f"\">{round( v,digits)}</font>{br}"
+                        elif v<-1e-13:           text += f"{k}: <font color=\""+_App().Theme["Special Text Colours"]["Positive"].color().name()+f"\">{round( v,digits)}</font>{br}"
+                        else:                    text += f"{k}: {round( v,digits)}{br}"
+                    else:
+                        text += f"{k}: {round( v,digits)}{br}"
+        text = text.rstrip(br)
         return text
     
     def tocode_AGeLib(self, name="", indent=0, indentstr="    ", ignoreNotImplemented = False) -> _typing.Tuple[str,dict]:

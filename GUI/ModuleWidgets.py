@@ -256,7 +256,7 @@ class ConstructionModuleWidget(ModuleWidget):
         import importlib
         importlib.reload(ConstructionWindow)
         ###### Also remove the self. as this should not be a member
-        get.engine().constructionWindow = ConstructionWindow.ConstructionWindow()
+        get.engine().constructionWindow = ConstructionWindow.ConstructionWindow(constructionModule=self.module())
         get.engine().constructionWindow.setConstructionModule(self.module())
         get.engine().constructionWindow.show()
         App().processEvents()

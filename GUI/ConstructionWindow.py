@@ -69,23 +69,24 @@ from Economy import BaseEconomicModules, Resources
 #           Therefore there must be a strong link between them.
 
 class ConstructionWindow(AWWF):
-    def __init__(self, parent=None, IncludeTopBar=True, initTopBar=True, IncludeStatusBar=True, IncludeErrorButton=True, FullscreenHidesBars=False):
+    def __init__(self, parent=None, IncludeTopBar=True, initTopBar=True, IncludeStatusBar=True, IncludeErrorButton=True, FullscreenHidesBars=False, constructionModule:'BaseEconomicModules.ConstructionModule'=None):
         super().__init__(parent, IncludeTopBar, initTopBar, IncludeStatusBar, IncludeErrorButton, FullscreenHidesBars)
         # Maybe a triple splitter for ( Ship Stats | Module List | Module Editor )
         self.StandardSize = (1200,650)
-        self.ConstructionWidget = self.CW = ConstructionWidget(self)
+        self.ConstructionWidget = self.CW = ConstructionWidget(self, constructionModule=constructionModule)
         self.setCentralWidget(self.ConstructionWidget)
     
-    def setConstructionModule(self, module:BaseEconomicModules.ConstructionModule):
+    def setConstructionModule(self, module:'BaseEconomicModules.ConstructionModule'):
         self.ConstructionWidget.setConstructionModule(module)
 
 class ConstructionWidget(QtWidgets.QSplitter):
     constructionModule: 'weakref.ref[BaseEconomicModules.ConstructionModule]' = None
-    def __init__(self, parent: typing.Optional['QtWidgets.QWidget'] = None) -> None:
+    def __init__(self, parent: typing.Optional['QtWidgets.QWidget'] = None, constructionModule:'BaseEconomicModules.ConstructionModule'=None) -> None:
         super().__init__(parent)
         #self.Splitter = self.addWidget(QtWidgets.QSplitter(self))
         self.Ship = ShipBase.Ship()
         self.LifeEdit = False
+        if isinstance(constructionModule, BaseEconomicModules.ConstructionModule): self.constructionModule:'weakref.ref[BaseEconomicModules.ConstructionModule]' = weakref.ref(constructionModule)
         
         self.ShipStats = ShipStats(self)
         self.addWidget(self.ShipStats)
@@ -94,7 +95,10 @@ class ConstructionWidget(QtWidgets.QSplitter):
         self.ModuleEditor = ModuleEditor(self)
         self.addWidget(self.ModuleEditor)
         
-        self._ShipInitialized = False
+        if isinstance(constructionModule, BaseEconomicModules.ConstructionModule):
+            self._initFirstShip()
+        else:
+            self._ShipInitialized = False
     
     def setConstructionModule(self, module:BaseEconomicModules.ConstructionModule):
         self.constructionModule:'weakref.ref[BaseEconomicModules.ConstructionModule]' = weakref.ref(module)
@@ -315,26 +319,28 @@ class ShipStats(AGeWidgets.TightGridFrame):
     
     def updateShipInterface(self): #TODO: This should be called once the initial ship is set up, whenever the ship changes, and on request in case the fleet has gained resources
         if self.ShipStats:
-            text = f"Value: {self.ship().Stats.Value}\n"
+            text = f"Value: {self.ship().Stats.Value}<br>"
             if not self.parent().lifeEditing():
-                text += self.ship().resourceCost().text("Cost:") + "\n"
-            try:
-                text += self.parent().constructionModule().availableResources().text("Available Resources:") + "\n"
-                text += (self.parent().constructionModule().availableResources()-self.ship().resourceCost()).text("Difference:")
+                text += self.ship().resourceCost().text("Cost:",available=self.parent().constructionModule().availableResources()) + "<br><br>"
+            else:
+                text += self.ship().resourceCost().text("Resource value of current ship:",format_=True) + "<br><br>"
+            try: # "<p>"+moduleName+"<br>"+moduleType().resourceCost().textFormatAffordability(self.parent().parent().parent().constructionModule().availableResources(),'Cost:')+"</p>"
+                text += self.parent().constructionModule().availableResources().text("Available Resources:",format_=True) + "<br>"
                 if not self.parent().lifeEditing():
+                    text += (self.ship().resourceCost()-self.parent().constructionModule().availableResources()).text("Difference:",inverseSigns=True,format_=True)
                     if self.parent().constructionModule().canSpend(self.ship().resourceCost()):
-                        text += "\nCan afford"
+                        text += "<br><br>Can afford"
                     else:
-                        text += "\nCan NOT afford"
+                        text += "<br><br>Can NOT afford"
             except:
                 text += f"Available Resources: ???"
                 NC(2, "The construction module for this window might no longer exist...", exc=True)
             try:
                 self.ship().updateInterface()
             except:
-                text += f"\nCould not refresh interface"
+                text += f"<br><br>Could not refresh interface"
                 NC(4,"Could not refresh ship interface", exc=True)
-            self.Label.setText(text)
+            self.Label.setText(f"<div>{text}</div>")
 
 class ModuleListWidget(AGeWidgets.TightGridFrame):
     def __init__(self, parent:'ConstructionWidget') -> None:
@@ -418,7 +424,12 @@ class ModuleTypeList(QtWidgets.QTreeWidget):
                 item.setData(0,100, moduleType)
                 item.setData(0,101, True)
                 try:
-                    item.setToolTip(0,moduleName+"\n"+moduleType().resourceCost().text('Cost:'))
+                    if isinstance(self.parent().parent().parent(),ConstructionWidget) and self.parent().parent().parent().lifeEditing():
+                        item.setToolTip(0,"<p>"+moduleName+"<br>"+moduleType().resourceCost().text('Cost:',available=self.parent().parent().parent().constructionModule().availableResources())+"</p>")
+                    elif isinstance(self.parent().parent().parent(),ConstructionWidget) and self.parent().parent().parent().constructionModule:
+                        item.setToolTip(0,"<p>"+moduleName+"<br>"+moduleType().resourceCost().text('Cost:',available=(self.parent().parent().parent().constructionModule().availableResources()-self.parent().parent().parent().Ship.resourceCost()))+"</p>")
+                    else:
+                        item.setToolTip(0,moduleName+"\n"+moduleType().resourceCost().text('Cost:'))
                 except:
                     NC(2,"Error setting tooltip for module",exc=True)
                 #self.addItem(item)
@@ -710,9 +721,20 @@ class ModuleEditor(AGeWidgets.TightGridFrame):
     
     def updateValueLabel(self, costAndModule:'tuple[Resources._ResourceDict,BaseModules.Module]'=(None,None)):
         costToChange, module = costAndModule
-        self.ValueLabel.setText(
-            f"Value: {round(self.ActiveModule.Value,5)}{f' (-> {round(module.Value,5)})' if (module and round(module.Value-self.ActiveModule.Value,5)) else ''}\n"
-            f"Threat {round(self.ActiveModule.Threat,5)}{f' (-> {round(module.Threat,5)})' if (module and round(module.Threat-self.ActiveModule.Threat,5)) else ''}\n"
-            f"Mass {round(self.ActiveModule.Mass,5)}{f' (-> {round(module.Mass,5)})' if (module and round(module.Mass-self.ActiveModule.Mass,5)) else ''}\n"
-            f"{costToChange.text(headline='Expected cost to change:') if costToChange else self.ActiveModule.resourceCost().text(headline='Current cost of module:')}"
-            )
+        text = ""
+        text += f"Value: {round(self.ActiveModule.Value,5)}{f' (-> {round(module.Value,5)})' if (module and round(module.Value-self.ActiveModule.Value,5)) else ''}<br>"
+        text += f"Threat {round(self.ActiveModule.Threat,5)}{f' (-> {round(module.Threat,5)})' if (module and round(module.Threat-self.ActiveModule.Threat,5)) else ''}<br>"
+        text += f"Mass {round(self.ActiveModule.Mass,5)}{f' (-> {round(module.Mass,5)})' if (module and round(module.Mass-self.ActiveModule.Mass,5)) else ''}<br>"
+        if self.parent().lifeEditing() and bool(costToChange):
+            text += costToChange.text(headline='Expected cost to change:',format_=True,available=self.parent().constructionModule().availableResources())
+        elif costToChange:
+            text += costToChange.text(headline='Expected cost to change:',format_=True,available=self.parent().constructionModule().availableResources()-self.parent().Ship.resourceCost())
+        else:
+            text += self.ActiveModule.resourceCost().text(headline='Current cost of module:',format_=True)
+        self.ValueLabel.setText("<p>"+text+"</p>")
+        #self.ValueLabel.setText(
+        #    f"Value: {round(self.ActiveModule.Value,5)}{f' (-> {round(module.Value,5)})' if (module and round(module.Value-self.ActiveModule.Value,5)) else ''}<br>"
+        #    f"Threat {round(self.ActiveModule.Threat,5)}{f' (-> {round(module.Threat,5)})' if (module and round(module.Threat-self.ActiveModule.Threat,5)) else ''}<br>"
+        #    f"Mass {round(self.ActiveModule.Mass,5)}{f' (-> {round(module.Mass,5)})' if (module and round(module.Mass-self.ActiveModule.Mass,5)) else ''}<br>"
+        #    f"{costToChange.text(headline='Expected cost to change:',format_=True,available=self.parent().constructionModule().availableResources() if self.parent().lifeEditing() else None) if costToChange else self.ActiveModule.resourceCost().text(headline='Current cost of module:',format_=True)}"
+        #    )
