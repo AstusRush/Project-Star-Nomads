@@ -896,7 +896,7 @@ class _Hex():
     
   #endregion Hex Math
 
-def findPath(start:_Hex, destination:_Hex, navigable = lambda hex: hex.Navigable, cost = lambda hex: 1) -> typing.Tuple[typing.List[_Hex],float]:
+def findPath(start:_Hex, destination:_Hex, navigable = lambda hex: hex.Navigable, cost = lambda hex: 1, movementPoints:float=None) -> typing.Tuple[typing.List[_Hex],float]:
     """
     The hex path finder. \n
     Returns a list containing the hexes that form a shortest path between start and destination (including destination but excluding start). \n
@@ -905,6 +905,7 @@ def findPath(start:_Hex, destination:_Hex, navigable = lambda hex: hex.Navigable
     destination : Destination hex for path finding. \n
     navigable   : A function that, given a _Hex, tells us whether we can move through this hex. \n
     cost        : A cost function for moving through a hex. Should return a value >= 1. By default all costs are 1. \n
+    movementPoints : If a float is given the returned path will only include those tiles that can be reached using the given amount of movementPoints. If movementPoints is None the whole path is returned.
     """
     #TODO: This should be able to take movement points and ensure that the returned path does not exceed this (if given)
     Found = False
@@ -943,7 +944,18 @@ def findPath(start:_Hex, destination:_Hex, navigable = lambda hex: hex.Navigable
                 heappush(Openset, (new_h, new_cost, new_pos, new_path))
     try:
         if len(Path) > 1:
+            assert Path[0] == start
+            assert Path[-1] == destination
             Path = Path[1:] # We do not return the starting position
+            if movementPoints is not None:
+                #print("Path", f"from {start.Name} to {destination.Name}:", "->".join([str(i.Coordinates) for i in Path]))
+                p = []
+                c = 0
+                for i in Path:
+                    c += cost(i)
+                    if c > movementPoints: break
+                    else: p.append(i)
+                Path = p
             return Path, sum([cost(i) for i in Path])
         else:
             return [], 0

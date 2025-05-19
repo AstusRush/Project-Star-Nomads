@@ -408,19 +408,19 @@ class FleetBase():
         #       This will probably be necessary for other animations, too... For example a ship should only explode once a rocket has hit it - not when the rocket was fired by the other ship...
         #     This is already sorta done by the `self.MovementSequence.finish()` in the beginning of this function but there needs to ba a more reliable system to handle animations and interactions
     
-    def findPath(self,hex:'HexBase._Hex') -> typing.Tuple[typing.List['HexBase._Hex'],float]:
+    def findPath(self,hex:'HexBase._Hex', restrictedToMovement=False) -> typing.Tuple[typing.List['HexBase._Hex'],float]:
         "returns (path, cost)"
-        return HexBase.findPath(self.hex(), hex, self._navigable, self._tileCost)
+        return HexBase.findPath(self.hex(), hex, self._navigable, self._tileCost, movementPoints=(self.MovePoints if restrictedToMovement else None))
     
     def moveTo_AI(self, hex:'HexBase._Hex'):
-        select = self.moveTo(hex)
+        select = self.moveTo(hex, restrictedToMovement=True)
         self.handleSensors() # To ensure the new hex does not get selected if enemies move out of sensor range
         if select and not self.Hidden:
             hex.select(True)
         if self.isSelected() and self.Hidden: # To clear the selection of the fleet
             get.unitManager().unselectAll()
     
-    def moveTo(self, hex:'HexBase._Hex'):
+    def moveTo(self, hex:'HexBase._Hex', restrictedToMovement=False):
         if self.Destroyed or not self.isActiveTurn():
             return False
         if not self._navigable(hex):
@@ -428,7 +428,8 @@ class FleetBase():
             self.lookAt(hex)
             return False
         else:
-            path, cost = self.findPath(hex)
+            path, cost = self.findPath(hex, restrictedToMovement=restrictedToMovement)
+            #print(self.Name, f"from {self.hex().Name} to {hex.Name}:", "->".join([str(i.Coordinates) for i in path]))
             if not path or cost > self.MovePoints:
                 # The figure can not move to the hex but we can at least make it look at the hex
                 self.lookAt(hex)
@@ -445,6 +446,7 @@ class FleetBase():
                 #self.Node.hprInterval(abs(angleBefore - angleAfter)/(360), (angleAfter,0,0), (angleBefore,0,0)).start()
                 return False
             else:
+                if restrictedToMovement: hex = path[-1]
                 if self.isSelected():
                     self.highlightRanges(False)
                     self.IsMovingFrom = self.hex().Coordinates
@@ -518,13 +520,8 @@ class FleetBase():
             NC(4,f"{self.Name} @{self.hex().Coordinates} could not find a path near {hex.Coordinates}!",input=f"{distance = }\n{tries = }")
             return False, False
         else:
-            if cost <= self.MovePoints: # Can we move to that close hex?
-                self.moveTo_AI(newHex)
-                return self.hex().distance(hex)<=distance, self.MovePoints<startMovePoints
-            else: # Let's move closer to that close hex
-                _, cost = self.findPath(path[int(self.MovePoints)-1])
-                self.moveTo_AI(path[int(self.MovePoints)-1])
-                return self.hex().distance(hex)<=distance, self.MovePoints<startMovePoints
+            self.moveTo_AI(newHex)
+            return self.hex().distance(hex)<=distance, self.MovePoints<startMovePoints
     
     def improveRotation(self,c,t):
         """
