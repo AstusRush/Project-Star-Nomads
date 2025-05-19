@@ -73,6 +73,7 @@ class EngineClass(ape.APE):
         self.CurrentlyInBattle = False
         
         self.newGame()
+        QtCore.QTimer.singleShot(1000, lambda: self.autoadjustGraphicSettings())
         get.app().S_NewTurnStarted.connect(lambda: self._handleNewTurn())
     
     def interactionsDisabled(self, influenceCameraMovement:bool=False) -> 'InteractionDisabler':
@@ -519,6 +520,16 @@ class EngineClass(ape.APE):
         fleet = get.camera().focusRandomFleet(team=1)
         if fleet and fleet.hex:
             fleet.hex().select()
+    
+    def autoadjustGraphicSettings(self):
+        try:
+            fps = ape.globalClock().getAverageFrameRate()
+            if fps < 30 and not get.menu().SkyboxOptionsWidget.SkyboxStatic():
+                get.menu().SkyboxOptionsWidget.Nebulae.set(False)
+                get.menu().SkyboxOptionsWidget.newSkybox(True)
+                NC(3,"Low framerate detected. Nebulae in the skybox were automatically turned off to improve framerate.")
+        except:
+            NC(3,"Error while trying to auto-adjust graphic settings", exc=True)
 
 class AppClass(ape.APEApp):
     S_NewTurnStarted = pyqtSignal()
