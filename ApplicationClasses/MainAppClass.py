@@ -517,7 +517,7 @@ class EngineClass(ape.APE):
         get.window().TabWidget.setCurrentWidget(get.window().HexInfoDisplay)
         get.scene().Camera.resetCameraPosition()
         fleet = get.camera().focusRandomFleet(team=1)
-        if fleet:
+        if fleet and fleet.hex:
             fleet.hex().select()
 
 class AppClass(ape.APEApp):

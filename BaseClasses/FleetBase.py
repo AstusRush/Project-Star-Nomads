@@ -389,6 +389,7 @@ class FleetBase():
         return cost_modifier
     
     def lookAt(self, hex:'HexBase._Hex'):
+        #if not self.hex: return
         if self.MovementSequence and self.MovementSequence.isPlaying():
             self.MovementSequence.finish()
         lastAngle = self.Node.getHpr()[0]
@@ -494,7 +495,7 @@ class FleetBase():
         Tries to get within `distance` tiles of `hex` but will only try to navigate to `tries` random tiles within this distance.
         Returns a tuple of 2 bools. The first bool tells you if the fleet is within `distance` tiles and the second bool tells you if the fleet has moved.
         """
-        if self.Destroyed or not self.isActiveTurn():
+        if self.Destroyed or not self.isActiveTurn(): # or not self.hex:
             return False, False
         distance, tries = int(distance), int(tries)
         startMovePoints = self.MovePoints
@@ -651,6 +652,7 @@ class FleetBase():
         Highlights all hexes that are relevant (movementrange, weaponrange, etc). \n
         If `highlight = False` the highlighted hexes are instead un-highlighted.
         """
+        if self.Destroyed or not self.hex: return
         #self.hex().grid().highlightHexes(clearFirst=True)
         self.hex().grid().clearAllHexHighlighting(forceAll=get.menu().GraphicsOptionsWidget.RedrawEntireGridWhenHighlighting())
         if highlight and not self.Hidden:
@@ -662,6 +664,7 @@ class FleetBase():
         Highlights all hexes that can be reached with the current movement points. \n
         If `highlight = False` the highlighted hexes are instead un-highlighted.
         """
+        if self.Destroyed or not self.hex: return
         if highlight:
             self.hex().grid().highlightHexes(self.getReachableHexes(), HexBase._Hex.COLOUR_REACHABLE, False, False, clearFirst=clearFirst)
         else:
@@ -741,6 +744,7 @@ class FleetBase():
     
     def detectEnemies(self, onlyPlayer=False) -> typing.List[typing.Tuple[int,'FleetBase']]:
         "Returns a list of tuples with the detection level of a fleet and the fleet in question. Only considers hostile fleets"
+        if self.Destroyed or not self.hex: return []
         ranges = list(self.getSensorRanges_Int())+[-1,]
         fleets:typing.List[typing.Tuple[int,'FleetBase']] = []
         for i,r in enumerate(ranges):
@@ -755,6 +759,7 @@ class FleetBase():
     
     def findClosestEnemy(self, onlyPlayer=False, shareIntel=True) -> typing.Union['FleetBase',bool]:
         "Returns the closest enemy fleet or False if none is detected"
+        if self.Destroyed or not self.hex: return False
         detectedEnemies = []
         if shareIntel:
             for team in get.unitManager().getAllies(self.Team):
@@ -787,8 +792,9 @@ class FleetBase():
                 j.hideContent()
         for team in get.unitManager().getAllies(1):
             for fleet in get.unitManager().Teams[team]:
-                fleet.hex().showContent()
-                fleet._showAllEnemies()
+                if fleet.hex:
+                    fleet.hex().showContent()
+                    fleet._showAllEnemies()
     
     def _showAllEnemies(self):
         for i in self.detectEnemies():
@@ -915,6 +921,7 @@ class Fleet(FleetBase):
     
     def getAttackableHexes(self, _hex:'HexBase._Hex'=None) -> typing.List['HexBase._Hex']:
         if not _hex:
+            if not self.hex: return []
             _hex = self.hex()
         l: typing.Set['HexBase._Hex'] = set()
         for i in _hex.getDisk(1):
@@ -1019,6 +1026,7 @@ class Flotilla(FleetBase):
     
     def getAttackableHexes(self, _hex:'HexBase._Hex'=None) -> typing.List['HexBase._Hex']:
         if not _hex:
+            if not self.hex: return []
             _hex = self.hex()
         l: typing.Set['HexBase._Hex'] = set()
         for i in self.getHexesInAttackRange(_hex):
@@ -1043,6 +1051,7 @@ class Flotilla(FleetBase):
         Highlights all hexes that can be reached with the current movement points. \n
         If `highlight = False` the highlighted hexes are instead un-highlighted.
         """
+        if not self.hex: return
         if highlight:
             self.hex().grid().highlightHexes(self.getHexesInAttackRange(), False, HexBase._Hex.COLOUR_ATTACKABLE, False, clearFirst=clearFirst)
         else:
