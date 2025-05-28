@@ -403,24 +403,23 @@ class HarvestModule(Economic):
     
     def harvestResourcesFromHexObjects(self, hex_:"HexBase._Hex"):
         try:
-            for i in (*hex_.content, hex_.fleet):
-                if not i: continue
-                if i().team() != -1: continue
-                available = i().ResourceManager.storedResources()
+            for i in hex_:
+                if i.team() != -1: continue
+                available = i.ResourceManager.storedResources()
                 if not available: continue
                 mul = 1
                 for r in self.Input:
                     mul = min(mul, available[r]/r)
                 mul = min(mul, self.ship().fleet().ResourceManager.freeCapacity() / Resources._ResourceDict.fromList([r for r in self.Input]).UsedCapacity)
-                i().ResourceManager.subtract(Resources._ResourceDict.fromList([mul*r for r in self.Input]))
+                i.ResourceManager.subtract(Resources._ResourceDict.fromList([mul*r for r in self.Input]))
                 tooMuch = self.ship().fleet().ResourceManager.add(Resources._ResourceDict.fromList([mul*r for r in self.Output]))
                 if tooMuch:
                     #VALIDATE: This case should be impossible but this is exactly why this message is helpful for debugging: If this case occurs something is broken
                     text = tooMuch.text("Could not store all harvested resources. This should not happen. Please report this incident. The following resources were spaced:"),
-                    NC(1,text,input=f"{self.Name = }\n{self.ship().Name = }\n{self.ship().fleet().Name = }\nHarvested from {i().Name = }")
+                    NC(1,text,input=f"{self.Name = }\n{self.ship().Name = }\n{self.ship().fleet().Name = }\nHarvested from {i.Name = }")
                     hex_.ResourcesFree += tooMuch
-                if not i().ResourceManager.storedResources():
-                    i().TeamRing.hide()
+                if not i.ResourceManager.storedResources():
+                    i.TeamRing.hide()
         except:
             NC(4,"Error while harvesting resources",exc=True)
             return

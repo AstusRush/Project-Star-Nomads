@@ -72,6 +72,17 @@ class EconomyDisplay(QtWidgets.QSplitter):
         
         get.app().S_HexSelectionChanged.connect(lambda: self.updateInfo())
         get.app().S_NewTurnStarted.connect(lambda: self.updateInfo())
+        
+        #TODO: Overhaul button position
+        self.TransferButton = super().addWidget(AGeWidgets.Button(self,"Transfer Resources", lambda: self.openTransferWindow()))
+    
+    def openTransferWindow(self):
+        hex_ = get.hexGrid().SelectedHex
+        if hex_:
+            from GUI import ResourceTransfer
+            win = ResourceTransfer.TransferWindow()
+            win.addParticipant(hex_)
+            win.show()
     
     def _init_TopView(self):
         self.TEMP_FleetResourceLabel = self.TopView.addWidget(QtWidgets.QLabel())

@@ -369,18 +369,9 @@ class FleetBase():
         #FEATURE:MOVECOST: Implement tile cost function
         from BaseClasses import BaseModules
         cost_modifier = 1
-        for c in hex.content:
-            try:
-                if c:
-                    for ship in c().Ships:
-                        for module in ship.Modules:
-                            if isinstance(module, BaseModules.TileCostModifier):
-                                cost_modifier *= module.getTileCostMultiplier(self)
-            except:
-                hex.content.remove(c)
         try:
-            if hex.fleet:
-                for ship in hex.fleet().Ships:
+            for i in hex:
+                for ship in i.Ships:
                     for module in ship.Modules:
                         if isinstance(module, BaseModules.TileCostModifier):
                             cost_modifier *= module.getTileCostMultiplier(self)

@@ -565,6 +565,20 @@ class _Hex():
         return f"\n### Hex {id(self)}\n\tName: {self.Name}\n\tHex at {self.Coordinates}\n\tID: {id(self)}\n\tParent Grid: {self.grid()}\n\tOccupied by Fleet: {fleet}\n### End Hex {id(self)}\n"
     
   #region Content
+    def __iter__(self):
+        for i in [self.fleet, *self.content]:
+            if i:
+                if i() is None:
+                    NC(2,"A hex iterated over content that was already deleted but te reference was not removed.\n"
+                        "The reference wil now be removed but this case should not happen in the first place.",
+                        input=f"Hex:\n{repr(self)}\n\nIs Fleet: {i is self.fleet}\nIs in content: {i in self.content}")
+                    if i in self.content:
+                        self.content.remove(i)
+                    elif i is self.fleet:
+                        self.fleet = None
+                else:
+                    yield i()
+    
     def selectFleet(self, select:bool = True):
         if select:
             get.unitManager().selectUnit(self.fleet)
