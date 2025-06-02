@@ -56,19 +56,69 @@ from BaseClasses import get
 class TransferWindow(AWWF):
     def __init__(self, parent: typing.Optional['QtWidgets.QWidget']=None) -> None:
         super().__init__(parent)
-        self.TransferWidget = TransferWidget(self)
-        self.setCentralWidget(self.TransferWidget)
+        self.ScrollArea = QtWidgets.QScrollArea(self)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        sizePolicy.setHorizontalStretch(5)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.ScrollArea.sizePolicy().hasHeightForWidth())
+        self.ScrollArea.setSizePolicy(sizePolicy)
+        self.ScrollArea.setSizeAdjustPolicy(QtWidgets.QAbstractScrollArea.AdjustToContents)
+        self.ScrollArea.setWidgetResizable(True)
+        self.ScrollArea.setObjectName("ScrollArea")
+        #self.ScrollArea.set
+        self.TransferWidget = TransferWidget(self.ScrollArea)
+        self.setCentralWidget(self.ScrollArea)
+        self.ScrollArea.setWidget(self.TransferWidget)
     
     def addParticipants(self, participants):
+        #TODO: Enforce that this can only be called once since the child connection would break otherwise
         self.TransferWidget.addParticipants(participants)
+        self.TransferWidget.connectChildren()
     
     def addParticipant(self, participant):
+        #TODO: Enforce that this can only be called once since the child connection would break otherwise
         self.TransferWidget.addParticipant(participant)
+        self.TransferWidget.connectChildren()
 
 class _StorageDisplayBase(AGeWidgets.TightGridWidget):#QtWidgets.QWidget):
-    def __init__(self, parent: typing.Optional['_StorageDisplayBase']=None, participants=None) -> None:
+    S_ClickedL:'pyqtSignal' = pyqtSignal(QtWidgets.QWidget)
+    S_ClickedR:'pyqtSignal' = pyqtSignal(QtWidgets.QWidget)
+    def __init__(self, parent: typing.Optional['_StorageDisplayBase']=None,
+                        participants
+                                :'list[typing.Union[HexBase._Hex,FleetBase.FleetBase,ShipBase.ShipBase,BaseEconomicModules.Cargo,Resources._ResourceDict]]'
+                                =None,
+                        name="") -> None:
+        self.ParticipantWidgets:'list[_StorageDisplayBase]' = []
         super().__init__(parent)
-        self.Frame = self.addOuterWidget(AGeWidgets.TightGridFrame(self))
+        self.Frame:'AGeWidgets.TightGridFrame' = self.addOuterWidget(AGeWidgets.TightGridFrame(self))
+        if name:
+            self.NameLabel = self.addWidget(QtWidgets.QLabel(name))
+        self.addParticipants(participants)
+        self.installEventFilter(self)
+        self.setAutoFillBackground(True)
+    
+    def eventFilter(self, source, event):
+        try:
+            # type: (QtWidgets.QWidget, QtCore.QEvent|QtGui.QKeyEvent|QtGui.QMouseEvent) -> bool
+            if event.type() == QtCore.QEvent.Type.MouseButtonPress:
+                if   event.button() == QtCore.Qt.MouseButton.LeftButton:
+                    self.S_ClickedL.emit(self)
+                    return True
+                elif event.button() == QtCore.Qt.MouseButton.RightButton:
+                    self.S_ClickedR.emit(self)
+                    return True
+                #NC(10,source)
+                #if TYPE_CHECKING: event:QtGui.QMouseEvent = event
+                #self.childAt(event.pos())
+        except:
+            NC(1,exc=True)
+        return super().eventFilter(source, event)
+    
+    def __iter__(self) -> 'typing.Generator[_StorageDisplayBase]':
+        for i in self.ParticipantWidgets:
+            yield i
+            for j in i:
+                yield j
     
     def addWidget(self, widget:'QtWidgets.QWidget', *args, **kwargs):
         self.Frame.addWidget(widget, *args, **kwargs)
@@ -78,34 +128,85 @@ class _StorageDisplayBase(AGeWidgets.TightGridWidget):#QtWidgets.QWidget):
         super().addWidget(widget, *args, **kwargs)
         return widget
     
+    def addParticipants(self, participants):
+        if not participants: return
+        for i in participants:
+            self.addParticipant(i)
+    
     def addParticipant(self, participant):
         if   isinstance(participant, HexBase._Hex):
-            self.addWidget(HexStorageDisplay(self, participant))
+            w = self.addWidget(HexStorageDisplay(self, participant))
         elif isinstance(participant, FleetBase.FleetBase):
-            self.addWidget(FleetStorageDisplay(self, participant))
+            w = self.addWidget(FleetStorageDisplay(self, participant))
         elif isinstance(participant, ShipBase.ShipBase):
-            self.addWidget(ShipStorageDisplay(self, participant))
+            w = self.addWidget(ShipStorageDisplay(self, participant))
         elif isinstance(participant, BaseEconomicModules.Cargo):
-            self.addWidget(ModuleStorageDisplay(self, participant))
+            w = self.addWidget(ModuleStorageDisplay(self, participant))
         elif isinstance(participant, Resources._ResourceDict):
-            self.addWidget(ResourceDictionaryStorageDisplay(self, participant))
+            w = self.addWidget(ResourceDictionaryStorageDisplay(self, participant))
         elif participant is None:
             return
         else:
             NC(2,f"_StorageDisplayBase can not handle objects of type {type(participant)}",tb=True)
+            return
+        self.ParticipantWidgets.append(w)
+    
+    def update(self):
+        try:
+            for i in self.ParticipantWidgets:
+                i.update()
+        except:
+            NC(2,"Could not update resource display", exc=True)
 
 class TransferWidget(_StorageDisplayBase):
     def __init__(self, parent: typing.Optional['QtWidgets.QWidget']=None, participants=None) -> None:
-        super().__init__(parent)
+        super().__init__(parent, participants)
+        self.SelectedL:'typing.Union[_StorageDisplayBase,None]' = None
+        self.SelectedR:'typing.Union[_StorageDisplayBase,None]' = None
         self.TransferSlider = self.addOuterWidget(TransferSlider(self))
         #TODO: Basic UI Setup
         
         #self.addParticipant(participants)
     
-    def addParticipants(self, participants):
-        if not participants: return
-        for i in participants:
-            self.addParticipant(i)
+    def setPalette(self, palette:'QtGui.QPalette'):
+        for i in self:
+            i.setPalette(palette)
+        self.childLeftClicked(self.SelectedL)
+        self.childRightClicked(self.SelectedR)
+        return super().setPalette(palette)
+    
+    def childLeftClicked(self, w:'_StorageDisplayBase'):
+        #TODO: Handle case where selected is already other selected
+        #TODO: Handle de-selection. REMINDER: changing the palette would currently lead to deselection (which does sound acceptable considering how rare it is)
+        #MAYBE: Different colours for Left and Right
+        #TODO: Handle selection where one is the child of the other since transfer would not work correctly
+        #MAYBE: Instead of left and right mouse button it would probably be more intuitive to only use LMB and overwrite the oldest selection with a new one
+        if self.SelectedL: self.SelectedL.setPalette(self.palette())
+        self.SelectedL = w
+        if w:
+            NC(10,f"L {w}")
+            pal = self.palette()
+            pal.setBrush(pal.ColorGroup.All, pal.ColorRole.Window, self.palette().brush(pal.ColorGroup.Active, pal.ColorRole.AlternateBase))
+            w.setPalette(pal)
+    
+    def childRightClicked(self, w:'_StorageDisplayBase'):
+        #TODO: Handle case where selected is already other selected
+        #TODO: Handle de-selection. REMINDER: changing the palette would currently lead to deselection (which does sound acceptable considering how rare it is)
+        #MAYBE: Different colours for Left and Right
+        #TODO: Handle selection where one is the child of the other since transfer would not work correctly
+        #MAYBE: Instead of left and right mouse button it would probably be more intuitive to only use LMB and overwrite the oldest selection with a new one
+        if self.SelectedR: self.SelectedR.setPalette(self.palette())
+        self.SelectedR = w
+        if w:
+            NC(10,f"R {w}")
+            pal = self.palette()
+            pal.setBrush(pal.ColorGroup.All, pal.ColorRole.Window, self.palette().brush(pal.ColorGroup.Active, pal.ColorRole.AlternateBase))
+            w.setPalette(pal)
+    
+    def connectChildren(self):
+        for i in self:
+            i.S_ClickedL.connect(lambda w: self.childLeftClicked(w))
+            i.S_ClickedR.connect(lambda w: self.childRightClicked(w))
 
 class TransferSlider(QtWidgets.QWidget):
     def __init__(self, parent:'TransferWidget') -> None:
@@ -114,25 +215,45 @@ class TransferSlider(QtWidgets.QWidget):
 
 class HexStorageDisplay(_StorageDisplayBase):
     def __init__(self, parent: '_StorageDisplayBase', content: 'HexBase._Hex') -> None:
-        super().__init__(parent)
+        super().__init__(parent, name=content.Name)
         self.content = weakref.ref(content)
         for i in content:
             self.addParticipant(i)
+        #TODO: free and harvestabel resources should have name labels
+        #TODO: Validate that updating these resource dictionaries actually works
+        #       (Are those references or copies? I think that this would probably break due to reassignments of those members somewhere.
+        #       These dictionaries are not meant to be used in the way we use them here)
         self.addParticipant(content.ResourcesFree)
         self.addParticipant(content.ResourcesHarvestable)
         pass #TODO
 
 class FleetStorageDisplay(_StorageDisplayBase):
     def __init__(self, parent: '_StorageDisplayBase', content: 'FleetBase.FleetBase') -> None:
-        super().__init__(parent)
+        self._ContentCounter = None
+        super().__init__(parent, name=content.Name)
+        self._ContentCounter = 0
         self.content = weakref.ref(content)
+        self.Label:'QtWidgets.QLabel' = self.addWidget(QtWidgets.QLabel(content.ResourceManager.storedResources().text()))
         for i in content.Ships:
-            self.addParticipant(i)
+            if any(isinstance(j, BaseEconomicModules.Cargo) for j in i.Modules):
+                self.addParticipant(i)
         pass #TODO
+    
+    def update(self):
+        self.Label.setText(self.content().ResourceManager.storedResources().text())
+        super().update()
+    
+    def addWidget(self, widget:'QtWidgets.QWidget', *args, **kwargs):
+        if self._ContentCounter is None:
+            self.Frame.addWidget(widget, *args, **kwargs)
+        else:
+            self.Frame.addWidget(widget, 1, self._ContentCounter)
+            self._ContentCounter += 1
+        return widget
 
 class ShipStorageDisplay(_StorageDisplayBase):
     def __init__(self, parent: '_StorageDisplayBase', content: 'ShipBase.ShipBase') -> None:
-        super().__init__(parent)
+        super().__init__(parent, name=content.Name)
         self.content = weakref.ref(content)
         for i in content.Modules:
             if isinstance(i, BaseEconomicModules.Cargo):
@@ -140,15 +261,25 @@ class ShipStorageDisplay(_StorageDisplayBase):
         pass #TODO
 
 class ResourceDictionaryStorageDisplay(_StorageDisplayBase):
-    def __init__(self, parent: '_StorageDisplayBase', content: 'Resources._ResourceDict') -> None:
-        super().__init__(parent)
+    def __init__(self, parent: '_StorageDisplayBase', content: 'Resources._ResourceDict', name="") -> None:
+        super().__init__(parent, name=name)
         self.content = weakref.ref(content)
+        #TODO: Are those references or copies? I think that this would probably break due to reassignments of those members somewhere.
+        #       These dictionaries are not meant to be used in the way we use them here!
+        #       Maybe this widget should just be deleted
         
-        self.Label = self.addWidget(QtWidgets.QLabel(content.text()))
+        self.Label:'QtWidgets.QLabel' = self.addWidget(QtWidgets.QLabel(content.text()))
         
         pass #TODO
+    
+    def update(self):
+        self.Label.setText(self.content().text())
 
 class ModuleStorageDisplay(ResourceDictionaryStorageDisplay):
     def __init__(self, parent: '_StorageDisplayBase', content: 'BaseEconomicModules.Cargo') -> None:
         self.content_CargoModule = weakref.ref(content)
-        super().__init__(parent, content.storedResources())
+        super().__init__(parent, content.storedResources(), name=content.Name)
+    
+    def update(self):
+        self.Label.setText(self.content_CargoModule().storedResources().text())
+        super().update()
