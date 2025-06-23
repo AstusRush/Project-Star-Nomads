@@ -128,6 +128,13 @@ class _StorageDisplayBase(AGeWidgets.TightGridWidget):
             for j in i:
                 yield j
     
+    def __contains__(self, w:'typing.Union[_StorageDisplayBase,None]') -> bool:
+        if not w: return False
+        for i in self:
+            if i is w:
+                return True
+        return False
+    
     def addWidget(self, widget:'QtWidgets.QWidget', *args, **kwargs):
         self.Frame.addWidget(widget, *args, **kwargs)
         return widget
@@ -206,7 +213,6 @@ class TransferWidget(_StorageDisplayBase):
             w.setPalette(self.palette())
     
     def childLeftClicked(self, w:'_StorageDisplayBase'):
-        #TODO: Handle selection where one is the child of the other since transfer would not work correctly and neither does highlighting
         if not w: return
         if self.Selected1 is w:
             self.colourAsUnselected(self.Selected1)
@@ -219,6 +225,12 @@ class TransferWidget(_StorageDisplayBase):
             self.Selected2 = None
             self.S_SelectionChanged.emit()
             return
+        if self.Selected1 and (w in self.Selected1 or self.Selected1 in w):
+            self.colourAsUnselected(self.Selected1)
+            self.Selected1 = None
+        if self.Selected2 and (w in self.Selected2 or self.Selected2 in w):
+            self.colourAsUnselected(self.Selected2)
+            self.Selected2 = None
         if self.Selected1 and self.Selected2:
             self.colourAsUnselected(self.Selected2)
         if self.Selected1:
@@ -228,11 +240,24 @@ class TransferWidget(_StorageDisplayBase):
         self.S_SelectionChanged.emit()
     
     def childRightClicked(self, w:'_StorageDisplayBase'):
+        if not w: return
+        if self.Selected1 is w:
+            self.colourAsUnselected(self.Selected1)
+            self.Selected1 = self.Selected2
+            self.Selected2 = None
+            self.S_SelectionChanged.emit()
+            return
         if self.Selected2 is w:
             self.colourAsUnselected(self.Selected2)
             self.Selected2 = None
             self.S_SelectionChanged.emit()
             return
+        if self.Selected1 and (w in self.Selected1 or self.Selected1 in w):
+            self.colourAsUnselected(self.Selected1)
+            self.Selected1 = None
+        if self.Selected2 and (w in self.Selected2 or self.Selected2 in w):
+            self.colourAsUnselected(self.Selected2)
+            self.Selected2 = None
         self.colourAsUnselected(self.Selected2)
         self.Selected2 = w
         self.colourAsSelected(self.Selected2)
