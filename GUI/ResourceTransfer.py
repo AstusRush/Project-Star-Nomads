@@ -56,6 +56,7 @@ from BaseClasses import get
 class TransferWindow(AWWF):
     def __init__(self, parent: typing.Optional['QtWidgets.QWidget']=None) -> None:
         super().__init__(parent)
+        self.StandardSize = (1200,650)
         self.ScrollArea = QtWidgets.QScrollArea(self)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         sizePolicy.setHorizontalStretch(5)
@@ -70,6 +71,13 @@ class TransferWindow(AWWF):
         self.setCentralWidget(self.ScrollArea)
         self.ScrollArea.setWidget(self.TransferWidget)
     
+    def show(self):
+        super().show()
+        App().processEvents()
+        self.positionReset()
+        App().processEvents()
+        self.activateWindow()
+    
     def addParticipants(self, participants):
         #TODO: Enforce that this can only be called once since the child connection would break otherwise
         self.TransferWidget.addParticipants(participants)
@@ -80,26 +88,26 @@ class TransferWindow(AWWF):
         self.TransferWidget.addParticipant(participant)
         self.TransferWidget.connectChildren()
 
-class _StorageDisplayBase(AGeWidgets.TightGridWidget):#QtWidgets.QWidget):
-    S_ClickedL:'pyqtSignal' = pyqtSignal(QtWidgets.QWidget)
-    S_ClickedR:'pyqtSignal' = pyqtSignal(QtWidgets.QWidget)
+class _StorageDisplayBase(AGeWidgets.TightGridWidget):
+    S_ClickedL = pyqtSignal(QtWidgets.QWidget)
+    S_ClickedR = pyqtSignal(QtWidgets.QWidget)
     def __init__(self, parent: typing.Optional['_StorageDisplayBase']=None,
                         participants
                                 :'list[typing.Union[HexBase._Hex,FleetBase.FleetBase,ShipBase.ShipBase,BaseEconomicModules.Cargo,Resources._ResourceDict]]'
                                 =None,
                         name="") -> None:
-        self.ParticipantWidgets:'list[_StorageDisplayBase]' = []
+        self.ParticipantWidgets:'set[_StorageDisplayBase]' = set()
         super().__init__(parent)
         self.Frame:'AGeWidgets.TightGridFrame' = self.addOuterWidget(AGeWidgets.TightGridFrame(self))
         if name:
             self.NameLabel = self.addWidget(QtWidgets.QLabel(name))
         self.addParticipants(participants)
-        self.installEventFilter(self)
         self.setAutoFillBackground(True)
+        self.installEventFilter(self)
     
     def eventFilter(self, source, event):
+        # type: (QtWidgets.QWidget, QtCore.QEvent|QtGui.QKeyEvent|QtGui.QMouseEvent) -> bool
         try:
-            # type: (QtWidgets.QWidget, QtCore.QEvent|QtGui.QKeyEvent|QtGui.QMouseEvent) -> bool
             if event.type() == QtCore.QEvent.Type.MouseButtonPress:
                 if   event.button() == QtCore.Qt.MouseButton.LeftButton:
                     self.S_ClickedL.emit(self)
@@ -149,7 +157,7 @@ class _StorageDisplayBase(AGeWidgets.TightGridWidget):#QtWidgets.QWidget):
         else:
             NC(2,f"_StorageDisplayBase can not handle objects of type {type(participant)}",tb=True)
             return
-        self.ParticipantWidgets.append(w)
+        self.ParticipantWidgets.add(w)
     
     def update(self):
         try:
@@ -159,54 +167,81 @@ class _StorageDisplayBase(AGeWidgets.TightGridWidget):#QtWidgets.QWidget):
             NC(2,"Could not update resource display", exc=True)
 
 class TransferWidget(_StorageDisplayBase):
+    S_SelectionChanged = pyqtSignal()
     def __init__(self, parent: typing.Optional['QtWidgets.QWidget']=None, participants=None) -> None:
         super().__init__(parent, participants)
-        self.SelectedL:'typing.Union[_StorageDisplayBase,None]' = None
-        self.SelectedR:'typing.Union[_StorageDisplayBase,None]' = None
+        self.Selected1:'typing.Union[_StorageDisplayBase,None]' = None
+        self.Selected2:'typing.Union[_StorageDisplayBase,None]' = None
         self.TransferSlider = self.addOuterWidget(TransferSlider(self))
         #TODO: Basic UI Setup
         
+        App().S_ColourChanged.connect(self._setPalette)
+        
         #self.addParticipant(participants)
     
-    def setPalette(self, palette:'QtGui.QPalette'):
-        for i in self:
-            i.setPalette(palette)
-        self.childLeftClicked(self.SelectedL)
-        self.childRightClicked(self.SelectedR)
-        return super().setPalette(palette)
+    def _setPalette(self):#, palette:'QtGui.QPalette'):
+        #NOTE: Changing the palette closes the transfer window in 90% of cases but it has nothing to do with any of the setPalette or eventFilter code...
+        try:
+            palette = App().Palette
+            ret = super().setPalette(palette)
+            for i in self:
+                try:
+                    i.setPalette(palette)
+                except:
+                    NC(2,exc=True)
+            self.colourAsSelected(self.Selected1)
+            self.colourAsSelected(self.Selected2)
+            return ret
+        except:
+            NC(2,exc=True)
+    
+    def colourAsSelected(self, w:'typing.Union[_StorageDisplayBase,None]'):
+        if w:
+            pal = self.palette()
+            pal.setBrush(pal.ColorGroup.All, pal.ColorRole.Window, self.palette().brush(pal.ColorGroup.Active, pal.ColorRole.AlternateBase))
+            w.setPalette(pal)
+    
+    def colourAsUnselected(self, w:'typing.Union[_StorageDisplayBase,None]'):
+        if w:
+            w.setPalette(self.palette())
     
     def childLeftClicked(self, w:'_StorageDisplayBase'):
-        #TODO: Handle case where selected is already other selected
-        #TODO: Handle de-selection. REMINDER: changing the palette would currently lead to deselection (which does sound acceptable considering how rare it is)
-        #MAYBE: Different colours for Left and Right
-        #TODO: Handle selection where one is the child of the other since transfer would not work correctly
-        #MAYBE: Instead of left and right mouse button it would probably be more intuitive to only use LMB and overwrite the oldest selection with a new one
-        if self.SelectedL: self.SelectedL.setPalette(self.palette())
-        self.SelectedL = w
-        if w:
-            NC(10,f"L {w}")
-            pal = self.palette()
-            pal.setBrush(pal.ColorGroup.All, pal.ColorRole.Window, self.palette().brush(pal.ColorGroup.Active, pal.ColorRole.AlternateBase))
-            w.setPalette(pal)
+        #TODO: Handle selection where one is the child of the other since transfer would not work correctly and neither does highlighting
+        if not w: return
+        if self.Selected1 is w:
+            self.colourAsUnselected(self.Selected1)
+            self.Selected1 = self.Selected2
+            self.Selected2 = None
+            self.S_SelectionChanged.emit()
+            return
+        if self.Selected2 is w:
+            self.colourAsUnselected(self.Selected2)
+            self.Selected2 = None
+            self.S_SelectionChanged.emit()
+            return
+        if self.Selected1 and self.Selected2:
+            self.colourAsUnselected(self.Selected2)
+        if self.Selected1:
+            self.Selected2 = self.Selected1
+        self.Selected1 = w
+        self.colourAsSelected(self.Selected1)
+        self.S_SelectionChanged.emit()
     
     def childRightClicked(self, w:'_StorageDisplayBase'):
-        #TODO: Handle case where selected is already other selected
-        #TODO: Handle de-selection. REMINDER: changing the palette would currently lead to deselection (which does sound acceptable considering how rare it is)
-        #MAYBE: Different colours for Left and Right
-        #TODO: Handle selection where one is the child of the other since transfer would not work correctly
-        #MAYBE: Instead of left and right mouse button it would probably be more intuitive to only use LMB and overwrite the oldest selection with a new one
-        if self.SelectedR: self.SelectedR.setPalette(self.palette())
-        self.SelectedR = w
-        if w:
-            NC(10,f"R {w}")
-            pal = self.palette()
-            pal.setBrush(pal.ColorGroup.All, pal.ColorRole.Window, self.palette().brush(pal.ColorGroup.Active, pal.ColorRole.AlternateBase))
-            w.setPalette(pal)
+        if self.Selected2 is w:
+            self.colourAsUnselected(self.Selected2)
+            self.Selected2 = None
+            self.S_SelectionChanged.emit()
+            return
+        self.colourAsUnselected(self.Selected2)
+        self.Selected2 = w
+        self.colourAsSelected(self.Selected2)
+        self.S_SelectionChanged.emit()
     
     def connectChildren(self):
         for i in self:
-            i.S_ClickedL.connect(lambda w: self.childLeftClicked(w))
-            i.S_ClickedR.connect(lambda w: self.childRightClicked(w))
+            i.S_ClickedL.connect(self.childLeftClicked)
+            i.S_ClickedR.connect(self.childRightClicked)
 
 class TransferSlider(QtWidgets.QWidget):
     def __init__(self, parent:'TransferWidget') -> None:
