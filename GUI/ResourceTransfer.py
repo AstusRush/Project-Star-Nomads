@@ -99,6 +99,7 @@ class _StorageDisplayBase(AGeWidgets.TightGridWidget):
         self.ParticipantWidgets:'set[_StorageDisplayBase]' = set()
         super().__init__(parent)
         self.Frame:'AGeWidgets.TightGridFrame' = self.addOuterWidget(AGeWidgets.TightGridFrame(self))
+        self.Name = name
         if name:
             self.NameLabel = self.addWidget(QtWidgets.QLabel(name))
         self.addParticipants(participants)
@@ -121,6 +122,9 @@ class _StorageDisplayBase(AGeWidgets.TightGridWidget):
         except:
             NC(1,exc=True)
         return super().eventFilter(source, event)
+    
+    def resources(self) -> 'Resources._ResourceDict':
+        raise NotImplementedError()
     
     def __iter__(self) -> 'typing.Generator[_StorageDisplayBase]':
         for i in self.ParticipantWidgets:
@@ -179,8 +183,7 @@ class TransferWidget(_StorageDisplayBase):
         super().__init__(parent, participants)
         self.Selected1:'typing.Union[_StorageDisplayBase,None]' = None
         self.Selected2:'typing.Union[_StorageDisplayBase,None]' = None
-        self.TransferSlider = self.addOuterWidget(TransferSlider(self))
-        #TODO: Basic UI Setup
+        self.TransferSlider = self.addOuterWidget(TransferSlider(self)) #TODO: This being inside the scroll area of the window is very ugly and unintuitive... This needs to change
         
         App().S_ColourChanged.connect(self._setPalette)
         
@@ -268,10 +271,61 @@ class TransferWidget(_StorageDisplayBase):
             i.S_ClickedL.connect(self.childLeftClicked)
             i.S_ClickedR.connect(self.childRightClicked)
 
-class TransferSlider(QtWidgets.QWidget):
+class TransferSlider(AGeWidgets.TightGridWidget):
     def __init__(self, parent:'TransferWidget') -> None:
-        self.TransferWidget = parent
+        self.transferWidget = weakref.ref(parent)
         super().__init__(parent)
+        self.Items:'list[SliderItem]' = []
+        self.HeaderLabel1:'typing.Union[QtWidgets.QLabel,None]' = None
+        self.HeaderLabel2:'typing.Union[QtWidgets.QLabel,None]' = None
+        self.transferWidget().S_SelectionChanged.connect(self.setUpSliders)
+    
+    def setUpSliders(self):
+        self.clear()
+        c1 = self.transferWidget().Selected2
+        c2 = self.transferWidget().Selected1
+        if c1: self.HeaderLabel1 = self.addWidget(QtWidgets.QLabel(c1.Name),0,1)
+        if c2: self.HeaderLabel2 = self.addWidget(QtWidgets.QLabel(c2.Name),0,3)
+        if not (c1 and c2): return
+        r = c1.resources() + c2.resources()
+        for c,i in enumerate(r):
+            self.Items.append(SliderItem(self, c+1, i, c1, c2))
+    
+    def clear(self):
+        for i in self.Items:
+            i.deleteLater()
+        self.Items.clear()
+        if self.HeaderLabel1:
+            self.layout().removeWidget(self.HeaderLabel1)
+            self.HeaderLabel1.deleteLater()
+            self.HeaderLabel1 = None
+        if self.HeaderLabel2:
+            self.layout().removeWidget(self.HeaderLabel2)
+            self.HeaderLabel2.deleteLater()
+            self.HeaderLabel2 = None
+
+class SliderItem():
+    def __init__(self, parent:'TransferSlider',c:int,resource:'Resources.Resource_',c1:'_StorageDisplayBase',c2:'_StorageDisplayBase') -> None:
+        self.transferSlider = weakref.ref(parent)
+        self.Resource = resource
+        self.container1 = weakref.ref(c1)
+        self.container2 = weakref.ref(c2)
+        self.LabelName = self.transferSlider().addWidget(QtWidgets.QLabel(str(resource)),c,0)
+        self.Label1 = self.transferSlider().addWidget(QtWidgets.QLabel(str(c1.resources()[resource].Quantity)),c,1)
+        self.Slider = self.transferSlider().addWidget(AGeInput.FloatSlider(self.transferSlider(),"",0,
+                                                                        min_=-min(c1.resources().FreeCapacity,c2.resources()[resource].Quantity),
+                                                                        max_=+min(c2.resources().FreeCapacity,c1.resources()[resource].Quantity)),c,2)
+        self.Label2 = self.transferSlider().addWidget(QtWidgets.QLabel(str(c2.resources()[resource].Quantity)),c,3)
+    
+    def deleteLater(self):
+        self.transferSlider().layout().removeWidget(self.LabelName)
+        self.transferSlider().layout().removeWidget(self.Label1)
+        self.transferSlider().layout().removeWidget(self.Slider)
+        self.transferSlider().layout().removeWidget(self.Label2)
+        self.LabelName.deleteLater()
+        self.Label1.deleteLater()
+        self.Slider.deleteLater()
+        self.Label2.deleteLater()
 
 class HexStorageDisplay(_StorageDisplayBase):
     def __init__(self, parent: '_StorageDisplayBase', content: 'HexBase._Hex') -> None:
@@ -286,6 +340,12 @@ class HexStorageDisplay(_StorageDisplayBase):
         self.addParticipant(content.ResourcesFree)
         self.addParticipant(content.ResourcesHarvestable)
         pass #TODO
+    
+    def resources(self) -> 'Resources._ResourceDict':
+        r = Resources._ResourceDict()
+        for i in self.content():
+            r += i.ResourceManager.storedResources()
+        return r
 
 class FleetStorageDisplay(_StorageDisplayBase):
     def __init__(self, parent: '_StorageDisplayBase', content: 'FleetBase.FleetBase') -> None:
@@ -303,6 +363,9 @@ class FleetStorageDisplay(_StorageDisplayBase):
         self.Label.setText(self.content().ResourceManager.storedResources().text())
         super().update()
     
+    def resources(self) -> 'Resources._ResourceDict':
+        return self.content().ResourceManager.storedResources()
+    
     def addWidget(self, widget:'QtWidgets.QWidget', *args, **kwargs):
         if self._ContentCounter is None:
             self.Frame.addWidget(widget, *args, **kwargs)
@@ -319,6 +382,9 @@ class ShipStorageDisplay(_StorageDisplayBase):
             if isinstance(i, BaseEconomicModules.Cargo):
                 self.addParticipant(i)
         pass #TODO
+    
+    def resources(self) -> 'Resources._ResourceDict':
+        return self.content().ResourceManager.storedResources()
 
 class ResourceDictionaryStorageDisplay(_StorageDisplayBase):
     def __init__(self, parent: '_StorageDisplayBase', content: 'Resources._ResourceDict', name="") -> None:
@@ -334,6 +400,9 @@ class ResourceDictionaryStorageDisplay(_StorageDisplayBase):
     
     def update(self):
         self.Label.setText(self.content().text())
+    
+    def resources(self) -> 'Resources._ResourceDict':
+        return self.content()
 
 class ModuleStorageDisplay(ResourceDictionaryStorageDisplay):
     def __init__(self, parent: '_StorageDisplayBase', content: 'BaseEconomicModules.Cargo') -> None:
@@ -343,3 +412,6 @@ class ModuleStorageDisplay(ResourceDictionaryStorageDisplay):
     def update(self):
         self.Label.setText(self.content_CargoModule().storedResources().text())
         super().update()
+    
+    def resources(self) -> 'Resources._ResourceDict':
+        return self.content_CargoModule().storedResources()
