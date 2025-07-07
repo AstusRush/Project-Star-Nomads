@@ -199,19 +199,10 @@ class TransferWidget(_StorageDisplayBase):
         
         #self.addParticipant(participants)
     
-    def _setPalette(self):#, palette:'QtGui.QPalette'):
-        #NOTE: Changing the palette closes the transfer window in 90% of cases but it has nothing to do with any of the setPalette or eventFilter code...
+    def _setPalette(self):
         try:
-            palette = App().Palette
-            ret = super().setPalette(palette)
-            for i in self:
-                try:
-                    i.setPalette(palette)
-                except:
-                    NC(2,exc=True)
             self.colourAsSelected(self.Selected1)
             self.colourAsSelected(self.Selected2)
-            return ret
         except:
             NC(2,exc=True)
     
