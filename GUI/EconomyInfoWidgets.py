@@ -80,6 +80,7 @@ class EconomyDisplay(QtWidgets.QSplitter):
         hex_ = get.hexGrid().SelectedHex
         if hex_:
             from GUI import ResourceTransfer
+            #TODO: Find a better place to store the reference than get.engine().TransferWindow
             get.engine().TransferWindow = ResourceTransfer.TransferWindow()
             get.engine().TransferWindow.addParticipant(hex_)
             get.engine().TransferWindow.show()
