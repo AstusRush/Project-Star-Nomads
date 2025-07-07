@@ -176,6 +176,16 @@ class _StorageDisplayBase(AGeWidgets.TightGridWidget):
                 i.update()
         except:
             NC(2,"Could not update resource display", exc=True)
+    
+    def addResources(self, r:'Resources._ResourceDict') -> 'Resources._ResourceDict':
+        """
+        Try to put as many resources from a _ResourceDict into a container and returns everything that did not fit as a new _ResourceDict\n
+        the given _ResourceDict is not altered!
+        """
+        raise NotImplementedError(f"addResources is not implemented for {type(self)}")
+    
+    def subtractResources(self, r:'Resources._ResourceDict') -> 'Resources._ResourceDict':
+        return self.addResources(-r)
 
 class TransferWidget(_StorageDisplayBase):
     S_SelectionChanged = pyqtSignal()
@@ -275,6 +285,7 @@ class TransferSlider(AGeWidgets.TightGridWidget):
     def __init__(self, parent:'TransferWidget') -> None:
         self.transferWidget = weakref.ref(parent)
         super().__init__(parent)
+        self.Mutex = QtCore.QMutex()
         self.Items:'list[SliderItem]' = []
         self.HeaderLabel1:'typing.Union[QtWidgets.QLabel,None]' = None
         self.HeaderLabel2:'typing.Union[QtWidgets.QLabel,None]' = None
@@ -310,12 +321,32 @@ class SliderItem():
         self.Resource = resource
         self.container1 = weakref.ref(c1)
         self.container2 = weakref.ref(c2)
+        self.OriginalValue1 = c1.resources()[resource].Quantity
+        self.OriginalValue2 = c2.resources()[resource].Quantity
         self.LabelName = self.transferSlider().addWidget(QtWidgets.QLabel(str(resource)),c,0)
         self.Label1 = self.transferSlider().addWidget(QtWidgets.QLabel(str(c1.resources()[resource].Quantity)),c,1)
         self.Slider = self.transferSlider().addWidget(AGeInput.FloatSlider(self.transferSlider(),"",0,
                                                                         min_=-min(c1.resources().FreeCapacity,c2.resources()[resource].Quantity),
                                                                         max_=+min(c2.resources().FreeCapacity,c1.resources()[resource].Quantity)),c,2)
         self.Label2 = self.transferSlider().addWidget(QtWidgets.QLabel(str(c2.resources()[resource].Quantity)),c,3)
+        self.Slider.S_ValueChanged.connect(self.apply)
+    
+    def apply(self):
+        with QtCore.QMutexLocker(self.transferSlider().Mutex):
+            r = self.Resource.new(self.OriginalValue1 - self.container1().resources()[self.Resource] - self.Slider())
+            d = Resources._ResourceDict()
+            d.add(r)
+            d -= self.container1().addResources(d)
+            c = self.container2().addResources(-d)
+        if bool(c):
+            NC(1,"Error while transferring resource",tb=True)
+            #CRITICAL: Handle this case
+        self.update()
+    
+    def update(self):
+        self.transferSlider().transferWidget().update()
+        self.Label1.setText(str(self.container1().resources()[self.Resource].Quantity))
+        self.Label2.setText(str(self.container2().resources()[self.Resource].Quantity))
     
     def deleteLater(self):
         self.transferSlider().layout().removeWidget(self.LabelName)
@@ -346,6 +377,18 @@ class HexStorageDisplay(_StorageDisplayBase):
         for i in self.content():
             r += i.ResourceManager.storedResources()
         return r
+    
+    def addResources(self, r:'Resources._ResourceDict') -> 'Resources._ResourceDict':
+        """
+        Try to put as many resources from a _ResourceDict into a container and returns everything that did not fit as a new _ResourceDict\n
+        the given _ResourceDict is not altered!
+        """
+        #TODO: If adding resources and space is insufficient dump resources into free floating container
+        #TODO: If subtracting resources consider free floating containers first
+        for i in self.content():
+            if i.Team == 1: #TODO: Also consider free floating containers
+                r = i.ResourceManager.add(r)
+        return r
 
 class FleetStorageDisplay(_StorageDisplayBase):
     def __init__(self, parent: '_StorageDisplayBase', content: 'FleetBase.FleetBase') -> None:
@@ -373,6 +416,13 @@ class FleetStorageDisplay(_StorageDisplayBase):
             self.Frame.addWidget(widget, 1, self._ContentCounter)
             self._ContentCounter += 1
         return widget
+    
+    def addResources(self, r:'Resources._ResourceDict') -> 'Resources._ResourceDict':
+        """
+        Try to put as many resources from a _ResourceDict into a container and returns everything that did not fit as a new _ResourceDict\n
+        the given _ResourceDict is not altered!
+        """
+        return self.content().ResourceManager.add(r)
 
 class ShipStorageDisplay(_StorageDisplayBase):
     def __init__(self, parent: '_StorageDisplayBase', content: 'ShipBase.ShipBase') -> None:
@@ -385,6 +435,13 @@ class ShipStorageDisplay(_StorageDisplayBase):
     
     def resources(self) -> 'Resources._ResourceDict':
         return self.content().ResourceManager.storedResources()
+    
+    def addResources(self, r:'Resources._ResourceDict') -> 'Resources._ResourceDict':
+        """
+        Try to put as many resources from a _ResourceDict into a container and returns everything that did not fit as a new _ResourceDict\n
+        the given _ResourceDict is not altered!
+        """
+        return self.content().ResourceManager.add(r)
 
 class ResourceDictionaryStorageDisplay(_StorageDisplayBase):
     def __init__(self, parent: '_StorageDisplayBase', content: 'Resources._ResourceDict', name="") -> None:
@@ -403,6 +460,13 @@ class ResourceDictionaryStorageDisplay(_StorageDisplayBase):
     
     def resources(self) -> 'Resources._ResourceDict':
         return self.content()
+    
+    def addResources(self, r:'Resources._ResourceDict') -> 'Resources._ResourceDict':
+        """
+        Try to put as many resources from a _ResourceDict into a container and returns everything that did not fit as a new _ResourceDict\n
+        the given _ResourceDict is not altered!
+        """
+        return self.content().fillFrom(r)
 
 class ModuleStorageDisplay(ResourceDictionaryStorageDisplay):
     def __init__(self, parent: '_StorageDisplayBase', content: 'BaseEconomicModules.Cargo') -> None:
@@ -415,3 +479,10 @@ class ModuleStorageDisplay(ResourceDictionaryStorageDisplay):
     
     def resources(self) -> 'Resources._ResourceDict':
         return self.content_CargoModule().storedResources()
+    
+    def addResources(self, r:'Resources._ResourceDict') -> 'Resources._ResourceDict':
+        """
+        Try to put as many resources from a _ResourceDict into a container and returns everything that did not fit as a new _ResourceDict\n
+        the given _ResourceDict is not altered!
+        """
+        return self.content_CargoModule().storedResources().fillFrom(r)
