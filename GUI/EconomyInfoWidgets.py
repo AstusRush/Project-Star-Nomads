@@ -80,9 +80,9 @@ class EconomyDisplay(QtWidgets.QSplitter):
         hex_ = get.hexGrid().SelectedHex
         if hex_:
             from GUI import ResourceTransfer
-            win = ResourceTransfer.TransferWindow()
-            win.addParticipant(hex_)
-            win.show()
+            get.engine().TransferWindow = ResourceTransfer.TransferWindow()
+            get.engine().TransferWindow.addParticipant(hex_)
+            get.engine().TransferWindow.show()
     
     def _init_TopView(self):
         self.TEMP_FleetResourceLabel = self.TopView.addWidget(QtWidgets.QLabel())

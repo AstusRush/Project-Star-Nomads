@@ -336,9 +336,9 @@ class SliderItem():
             r = self.Resource.new(self.OriginalValue1 - self.container1().resources()[self.Resource] - self.Slider())
             d = Resources._ResourceDict()
             d.add(r)
-            d -= self.container1().addResources(d)
-            c = self.container2().addResources(-d)
-        if bool(c):
+            a = self.container1().addResources(d)
+            b = self.container2().addResources(-d)
+        if bool(a+b):
             NC(1,"Error while transferring resource",tb=True)
             #CRITICAL: Handle this case
         self.update()
