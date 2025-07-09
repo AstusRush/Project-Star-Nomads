@@ -289,9 +289,10 @@ class TransferSlider(AGeWidgets.TightGridWidget):
         if c1: self.HeaderLabel1 = self.addWidget(QtWidgets.QLabel(c1.Name),0,1)
         if c2: self.HeaderLabel2 = self.addWidget(QtWidgets.QLabel(c2.Name),0,3)
         if not (c1 and c2): return
-        r = c1.resources() + c2.resources()
+        r = abs(c1.resources()) + abs(c2.resources())
         for c,i in enumerate(r):
-            self.Items.append(SliderItem(self, c+1, i, c1, c2))
+            if bool(r[i]):
+                self.Items.append(SliderItem(self, c+1, i, c1, c2))
     
     def clear(self):
         for i in self.Items:
@@ -315,11 +316,11 @@ class SliderItem():
         self.OriginalValue1 = c1.resources()[resource].Quantity
         self.OriginalValue2 = c2.resources()[resource].Quantity
         self.LabelName = self.transferSlider().addWidget(QtWidgets.QLabel(str(resource)),c,0)
-        self.Label1 = self.transferSlider().addWidget(QtWidgets.QLabel(str(c1.resources()[resource].Quantity)),c,1)
+        self.Label1 = self.transferSlider().addWidget(QtWidgets.QLabel(str(round(c1.resources()[resource].Quantity,5))),c,1)
         self.Slider = self.transferSlider().addWidget(AGeInput.FloatSlider(self.transferSlider(),"",0,
                                                                         min_=-min(c1.resources().FreeCapacity,c2.resources()[resource].Quantity),
                                                                         max_=+min(c2.resources().FreeCapacity,c1.resources()[resource].Quantity)),c,2)
-        self.Label2 = self.transferSlider().addWidget(QtWidgets.QLabel(str(c2.resources()[resource].Quantity)),c,3)
+        self.Label2 = self.transferSlider().addWidget(QtWidgets.QLabel(str(round(c2.resources()[resource].Quantity,5))),c,3)
         self.Slider.S_ValueChanged.connect(self.apply)
     
     def apply(self):
@@ -330,14 +331,17 @@ class SliderItem():
             a = self.container1().addResources(d)
             b = self.container2().addResources(-d)
         if bool(a+b):
-            NC(1,"Error while transferring resource",tb=True)
-            #CRITICAL: Handle this case
+            NC(1,"Error while transferring resource",input=f"To be transferred:\n{d=}\n\nCould not fit in a:\n{a=}\n\nCould not fit in b:\n{b=}",tb=True)
+            #CRITICAL: Handle resource transfer errors!
+            #NOTE: This bool-check allows for resource duplication/deletion due to floating-point noise since I had to give it a tolerance of 1e-14.
+            #       Loosing 1e-15 of a resource due to this and then not being able to build something could be frustrating...
+            #       Though, this is actually a problem everywhere where resources are transferred/spend/gained/processed and hard to avoid...
         self.update()
     
     def update(self):
         self.transferSlider().transferWidget().update()
-        self.Label1.setText(str(self.container1().resources()[self.Resource].Quantity))
-        self.Label2.setText(str(self.container2().resources()[self.Resource].Quantity))
+        self.Label1.setText(str(round(self.container1().resources()[self.Resource].Quantity,5)))
+        self.Label2.setText(str(round(self.container2().resources()[self.Resource].Quantity,5)))
     
     def deleteLater(self):
         self.transferSlider().layout().removeWidget(self.LabelName)
@@ -355,13 +359,9 @@ class HexStorageDisplay(_StorageDisplayBase):
         self.content = weakref.ref(content)
         for i in content:
             self.addParticipant(i)
-        #TODO: free and harvestabel resources should have name labels
-        #TODO: Validate that updating these resource dictionaries actually works
-        #       (Are those references or copies? I think that this would probably break due to reassignments of those members somewhere.
-        #       These dictionaries are not meant to be used in the way we use them here)
+        #TODO: free and harvestabel resources should have name labels. (Though I want to get rid of those things anyway since they don't get saved and are incompatible with the general architecture and design of the program.)
         self.addParticipant(content.ResourcesFree)
         self.addParticipant(content.ResourcesHarvestable)
-        pass #TODO
     
     def resources(self) -> 'Resources._ResourceDict':
         r = Resources._ResourceDict()
@@ -391,7 +391,6 @@ class FleetStorageDisplay(_StorageDisplayBase):
         for i in content.Ships:
             if any(isinstance(j, BaseEconomicModules.Cargo) for j in i.Modules):
                 self.addParticipant(i)
-        pass #TODO
     
     def update(self):
         self.Label.setText(self.content().ResourceManager.storedResources().text())
@@ -422,7 +421,6 @@ class ShipStorageDisplay(_StorageDisplayBase):
         for i in content.Modules:
             if isinstance(i, BaseEconomicModules.Cargo):
                 self.addParticipant(i)
-        pass #TODO
     
     def resources(self) -> 'Resources._ResourceDict':
         return self.content().ResourceManager.storedResources()
@@ -438,13 +436,11 @@ class ResourceDictionaryStorageDisplay(_StorageDisplayBase):
     def __init__(self, parent: '_StorageDisplayBase', content: 'Resources._ResourceDict', name="") -> None:
         super().__init__(parent, name=name)
         self.content = weakref.ref(content)
-        #TODO: Are those references or copies? I think that this would probably break due to reassignments of those members somewhere.
-        #       These dictionaries are not meant to be used in the way we use them here!
-        #       Maybe this widget should just be deleted
+        #TODO: This does work in principle but could break due to things overwriting the original resource dictionaries.
+        #       These dictionaries are not meant to be used in the way they are used in this context.
+        #       Maybe this widget should just be deleted...
         
         self.Label:'QtWidgets.QLabel' = self.addWidget(QtWidgets.QLabel(content.text()))
-        
-        pass #TODO
     
     def update(self):
         self.Label.setText(self.content().text())

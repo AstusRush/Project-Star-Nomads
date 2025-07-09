@@ -144,7 +144,9 @@ class Resource_(metaclass=_Resource_Metaclass):
     def __abs__(self) -> 'Resource_':
         return self.new(abs(self.Quantity))
     def __nonzero__(self) -> bool:
-        return bool(self.Quantity)
+        return bool(abs(self.Quantity)>1e-14)
+    def __bool__(self) -> bool:
+        return bool(abs(self.Quantity)>1e-14)
     
     def tocode_AGeLib(self, name="", indent=0, indentstr="    ", ignoreNotImplemented = False) -> _typing.Tuple[str,dict]:
         ret, imp = "", {}
@@ -339,9 +341,19 @@ class _ResourceDict(_typing.Dict['Resource_','Resource_']):
         return self.copy(_negate=True)
     def __nonzero__(self) -> bool:
         return bool(len(self))
+    def __bool__(self) -> bool:
+        return bool(len(self))
     
     def __len__(self) -> int:
-        return len([i for i in self.values() if abs(i)>1e-14])
+        return len([i for i in self.values() if bool(i)])
+    
+    def __abs__(self) -> '_ResourceDict':
+        d = _ResourceDict()
+        for k,v in self.items():
+            d[k] = abs(v)
+        d.Capacity = self.Capacity
+        d.ValidResourceTypes = self.ValidResourceTypes
+        return d
     
     def copy(self, keepRestrictions=True, _negate=False) -> '_ResourceDict':
         d = _ResourceDict()
@@ -379,6 +391,7 @@ class _ResourceDict(_typing.Dict['Resource_','Resource_']):
             text += "None"
         else:
             for k,v in self.items():
+                if not bool(v): continue
                 if indent: text += t
                 if inverseSigns:
                     if available is not None:
