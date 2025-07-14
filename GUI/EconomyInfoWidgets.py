@@ -81,7 +81,7 @@ class EconomyDisplay(QtWidgets.QSplitter):
         if hex_:
             from GUI import ResourceTransfer
             #TODO: Find a better place to store the reference than get.engine().TransferWindow
-            get.engine().TransferWindow = ResourceTransfer.TransferWindow()
+            get.engine().TransferWindow = ResourceTransfer.TransferWindow(restrictToTeam=1,allowFreeCargo=True)
             get.engine().TransferWindow.addParticipant(hex_)
             get.engine().TransferWindow.show()
     

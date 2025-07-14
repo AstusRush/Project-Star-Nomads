@@ -565,7 +565,7 @@ class _Hex():
         return f"\n### Hex {id(self)}\n\tName: {self.Name}\n\tHex at {self.Coordinates}\n\tID: {id(self)}\n\tParent Grid: {self.grid()}\n\tOccupied by Fleet: {fleet}\n### End Hex {id(self)}\n"
     
   #region Content
-    def __iter__(self):
+    def __iter__(self) -> 'typing.Generator[FleetBase.FleetBase]':
         for i in [self.fleet, *self.content]:
             if i:
                 if i() is None:

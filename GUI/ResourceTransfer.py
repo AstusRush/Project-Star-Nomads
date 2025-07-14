@@ -54,7 +54,9 @@ if TYPE_CHECKING:
 from BaseClasses import get
 
 class TransferWindow(AWWF):
-    def __init__(self, parent: typing.Optional['QtWidgets.QWidget']=None) -> None:
+    def __init__(self, parent: typing.Optional['QtWidgets.QWidget']=None,
+                        restrictToTeam:typing.Union[bool,None]=None,
+                        allowFreeCargo:bool = True) -> None:
         super().__init__(parent)
         self.StandardSize = (1200,650)
         self.ScrollArea = QtWidgets.QScrollArea(self)
@@ -67,7 +69,7 @@ class TransferWindow(AWWF):
         self.ScrollArea.setWidgetResizable(True)
         self.ScrollArea.setObjectName("ScrollArea")
         #self.ScrollArea.set
-        self.TransferWidget = TransferWidget(self.ScrollArea)
+        self.TransferWidget = TransferWidget(self.ScrollArea,restrictToTeam=restrictToTeam,allowFreeCargo=allowFreeCargo)
         self.setCentralWidget(self.ScrollArea)
         self.ScrollArea.setWidget(self.TransferWidget)
     
@@ -95,7 +97,11 @@ class _StorageDisplayBase(AGeWidgets.TightGridWidget):
                         participants
                                 :'list[typing.Union[HexBase._Hex,FleetBase.FleetBase,ShipBase.ShipBase,BaseEconomicModules.Cargo,Resources._ResourceDict]]'
                                 =None,
-                        name="") -> None:
+                        name="",
+                        restrictToTeam:typing.Union[bool,None]=None,
+                        allowFreeCargo:bool = True) -> None:
+        self.RestrictToTeam:typing.Union[bool,None] = restrictToTeam
+        self.AllowFreeCargo:bool = allowFreeCargo
         self.ParticipantWidgets:'set[_StorageDisplayBase]' = set()
         super().__init__(parent)
         self.Frame:'AGeWidgets.TightGridFrame' = self.addOuterWidget(AGeWidgets.TightGridFrame(self))
@@ -154,15 +160,15 @@ class _StorageDisplayBase(AGeWidgets.TightGridWidget):
     
     def addParticipant(self, participant):
         if   isinstance(participant, HexBase._Hex):
-            w = self.addWidget(HexStorageDisplay(self, participant))
+            w = self.addWidget(HexStorageDisplay(self,participant,restrictToTeam=self.RestrictToTeam,allowFreeCargo=self.AllowFreeCargo))
         elif isinstance(participant, FleetBase.FleetBase):
-            w = self.addWidget(FleetStorageDisplay(self, participant))
+            w = self.addWidget(FleetStorageDisplay(self,participant,restrictToTeam=self.RestrictToTeam,allowFreeCargo=self.AllowFreeCargo))
         elif isinstance(participant, ShipBase.ShipBase):
-            w = self.addWidget(ShipStorageDisplay(self, participant))
+            w = self.addWidget(ShipStorageDisplay(self,participant,restrictToTeam=self.RestrictToTeam,allowFreeCargo=self.AllowFreeCargo))
         elif isinstance(participant, BaseEconomicModules.Cargo):
-            w = self.addWidget(ModuleStorageDisplay(self, participant))
+            w = self.addWidget(ModuleStorageDisplay(self,participant,restrictToTeam=self.RestrictToTeam,allowFreeCargo=self.AllowFreeCargo))
         elif isinstance(participant, Resources._ResourceDict):
-            w = self.addWidget(ResourceDictionaryStorageDisplay(self, participant))
+            w = self.addWidget(ResourceDictionaryStorageDisplay(self,participant,restrictToTeam=self.RestrictToTeam,allowFreeCargo=self.AllowFreeCargo))
         elif participant is None:
             return
         else:
@@ -189,8 +195,10 @@ class _StorageDisplayBase(AGeWidgets.TightGridWidget):
 
 class TransferWidget(_StorageDisplayBase):
     S_SelectionChanged = pyqtSignal()
-    def __init__(self, parent: typing.Optional['QtWidgets.QWidget']=None, participants=None) -> None:
-        super().__init__(parent, participants)
+    def __init__(self, parent: typing.Optional['QtWidgets.QWidget']=None, participants=None,
+                        restrictToTeam:typing.Union[bool,None]=None,
+                        allowFreeCargo:bool = True) -> None:
+        super().__init__(parent, participants,restrictToTeam=restrictToTeam,allowFreeCargo=allowFreeCargo)
         self.Selected1:'typing.Union[_StorageDisplayBase,None]' = None
         self.Selected2:'typing.Union[_StorageDisplayBase,None]' = None
         self.TransferSlider = self.addOuterWidget(TransferSlider(self)) #TODO: This being inside the scroll area of the window is very ugly and unintuitive... This needs to change
@@ -267,7 +275,7 @@ class TransferWidget(_StorageDisplayBase):
         self.colourAsSelected(self.Selected2)
         self.S_SelectionChanged.emit()
     
-    def connectChildren(self):
+    def connectChildren(self): #TODO: Connect them when they get added and remove this method to make the interface simpler
         for i in self:
             i.S_ClickedL.connect(self.childLeftClicked)
             i.S_ClickedR.connect(self.childRightClicked)
@@ -354,11 +362,16 @@ class SliderItem():
         self.Label2.deleteLater()
 
 class HexStorageDisplay(_StorageDisplayBase):
-    def __init__(self, parent: '_StorageDisplayBase', content: 'HexBase._Hex') -> None:
-        super().__init__(parent, name=content.Name)
+    def __init__(self, parent: '_StorageDisplayBase', content: 'HexBase._Hex',
+                        restrictToTeam:typing.Union[bool,None]=None,
+                        allowFreeCargo:bool = True) -> None:
+        super().__init__(parent, name=content.Name, restrictToTeam=restrictToTeam, allowFreeCargo=allowFreeCargo)
         self.content = weakref.ref(content)
         for i in content:
-            self.addParticipant(i)
+            if self.RestrictToTeam is None or i.Team == self.RestrictToTeam:
+                self.addParticipant(i)
+            elif self.AllowFreeCargo:
+                pass  #TODO: Also consider free floating containers
         #TODO: free and harvestabel resources should have name labels. (Though I want to get rid of those things anyway since they don't get saved and are incompatible with the general architecture and design of the program.)
         self.addParticipant(content.ResourcesFree)
         self.addParticipant(content.ResourcesHarvestable)
@@ -366,7 +379,10 @@ class HexStorageDisplay(_StorageDisplayBase):
     def resources(self) -> 'Resources._ResourceDict':
         r = Resources._ResourceDict()
         for i in self.content():
-            r += i.ResourceManager.storedResources()
+            if self.RestrictToTeam is None or i.Team == self.RestrictToTeam:
+                r += i.ResourceManager.storedResources()
+            elif self.AllowFreeCargo:
+                pass  #TODO: Also consider free floating containers
         return r
     
     def addResources(self, r:'Resources._ResourceDict') -> 'Resources._ResourceDict':
@@ -377,14 +393,18 @@ class HexStorageDisplay(_StorageDisplayBase):
         #TODO: If adding resources and space is insufficient dump resources into free floating container
         #TODO: If subtracting resources consider free floating containers first
         for i in self.content():
-            if i.Team == 1: #TODO: Also consider free floating containers
+            if self.RestrictToTeam is None or i.Team == self.RestrictToTeam:
                 r = i.ResourceManager.add(r)
+            elif self.AllowFreeCargo:
+                pass  #TODO: Also consider free floating containers
         return r
 
 class FleetStorageDisplay(_StorageDisplayBase):
-    def __init__(self, parent: '_StorageDisplayBase', content: 'FleetBase.FleetBase') -> None:
+    def __init__(self, parent: '_StorageDisplayBase', content: 'FleetBase.FleetBase',
+                        restrictToTeam:typing.Union[bool,None]=None,
+                        allowFreeCargo:bool = True) -> None:
         self._ContentCounter = None
-        super().__init__(parent, name=content.Name)
+        super().__init__(parent, name=content.Name, restrictToTeam=restrictToTeam, allowFreeCargo=allowFreeCargo)
         self._ContentCounter = 0
         self.content = weakref.ref(content)
         self.Label:'QtWidgets.QLabel' = self.addWidget(QtWidgets.QLabel(content.ResourceManager.storedResources().text()))
@@ -415,8 +435,10 @@ class FleetStorageDisplay(_StorageDisplayBase):
         return self.content().ResourceManager.add(r)
 
 class ShipStorageDisplay(_StorageDisplayBase):
-    def __init__(self, parent: '_StorageDisplayBase', content: 'ShipBase.ShipBase') -> None:
-        super().__init__(parent, name=content.Name)
+    def __init__(self, parent: '_StorageDisplayBase', content: 'ShipBase.ShipBase',
+                        restrictToTeam:typing.Union[bool,None]=None,
+                        allowFreeCargo:bool = True) -> None:
+        super().__init__(parent, name=content.Name, restrictToTeam=restrictToTeam, allowFreeCargo=allowFreeCargo)
         self.content = weakref.ref(content)
         for i in content.Modules:
             if isinstance(i, BaseEconomicModules.Cargo):
@@ -433,8 +455,10 @@ class ShipStorageDisplay(_StorageDisplayBase):
         return self.content().ResourceManager.add(r)
 
 class ResourceDictionaryStorageDisplay(_StorageDisplayBase):
-    def __init__(self, parent: '_StorageDisplayBase', content: 'Resources._ResourceDict', name="") -> None:
-        super().__init__(parent, name=name)
+    def __init__(self, parent: '_StorageDisplayBase', content: 'Resources._ResourceDict', name="",
+                        restrictToTeam:typing.Union[bool,None]=None,
+                        allowFreeCargo:bool = True) -> None:
+        super().__init__(parent, name=name, restrictToTeam=restrictToTeam, allowFreeCargo=allowFreeCargo)
         self.content = weakref.ref(content)
         #TODO: This does work in principle but could break due to things overwriting the original resource dictionaries.
         #       These dictionaries are not meant to be used in the way they are used in this context.
@@ -456,9 +480,11 @@ class ResourceDictionaryStorageDisplay(_StorageDisplayBase):
         return self.content().fillFrom(r)
 
 class ModuleStorageDisplay(ResourceDictionaryStorageDisplay):
-    def __init__(self, parent: '_StorageDisplayBase', content: 'BaseEconomicModules.Cargo') -> None:
+    def __init__(self, parent: '_StorageDisplayBase', content: 'BaseEconomicModules.Cargo',
+                        restrictToTeam:typing.Union[bool,None]=None,
+                        allowFreeCargo:bool = True) -> None:
         self.content_CargoModule = weakref.ref(content)
-        super().__init__(parent, content.storedResources(), name=content.Name)
+        super().__init__(parent, content.storedResources(), name=content.Name, restrictToTeam=restrictToTeam, allowFreeCargo=allowFreeCargo)
     
     def update(self):
         self.Label.setText(self.content_CargoModule().storedResources().text())
