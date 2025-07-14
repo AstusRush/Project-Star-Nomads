@@ -652,12 +652,6 @@ class TileCostModifier(Augment):
     def getTileCostMultiplier(self, fleet:'FleetBase.FleetBase'):
         return self.TileCostMultiplier
     
-    def getTileCostMultiplier(self, fleet:'FleetBase.FleetBase'):
-        if fleet.ActiveTurn:
-            return self.TileCostMultiplier
-        if fleet.ActiveTurn:
-            return self.Name+2*2*2*self.TileCostMultiplier*2
-    
     def save(self) -> dict:
         """
         Returns a dictionary with all values (and their names) that need to be saved to fully recreate this module.\n
